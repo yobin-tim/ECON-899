@@ -12,10 +12,12 @@ prim, res = Initialize() #initialize primitive and results structs
 #stationary distribution 
 Q = sum(res.μ, dims = 1)
 Plots.plot(a_grid, transpose(Q))
+Plots.savefig("02_stationary_pdf.png")
 Plots.plot(a_grid, transpose(μ))
 
 cumQ = cumsum(Q, dims = 2)
 Plots.plot(a_grid, transpose(cumQ))
+Plots.savefig("02_stationary_cdf.png")
 
 #value function
 Plots.plot(a_grid, transpose(val_func), title="Value Functions",
