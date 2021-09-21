@@ -65,10 +65,15 @@ where q=$(round(out_results.q,digits=8))",
                     Lorenz[i,2]=Lorenz[i,2]+TS_Distribution[a_index]*(a_grid[a_index]+S_grid[1]) +
                         TS_Distribution[na+a_index]*(a_grid[a_index]+S_grid[2])
                 end
+                #Calculating Gini
+                Gini=sum(Lorenz[:,1].-Lorenz[:,2])/(sum(Lorenz[:,1].-Lorenz[:,2])+sum(Lorenz[:,1]))
                 #Lorenz[:,2]=Lorenz[:,2]./Lorenz[n_lorenz,2] #express cumulative assets as a percentage
                 print(Lorenz)
-                Plots.plot(100*Lorenz[:,1],100*Lorenz[:,2], title="Lorenz Curve", xlabel="% of Population",
-                    ylabel="% of Assets", legend=false)
+                Plots.plot(100*Lorenz[:,1],100*Lorenz[:,2], title="Lorenz Curve.
+The Gini Coefficient is $(round(Gini,digits=8))",
+                xlabel="% of Population",
+                    ylabel="% of Assets", legend=:bottomright, label="Lorenz")
+                    plot!(100*Lorenz[:,1],100*Lorenz[:,1], label="Line of Equality")
                     Plots.savefig("Lorenz.png")
         end
         DistPlots()
