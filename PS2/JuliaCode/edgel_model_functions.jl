@@ -112,7 +112,7 @@ end
 
 # solve the model
 function Solve_model(prim::Primitives, res::Results; tol::Float64 = 1e-3,
-     Ed::Float64 = 100.0, θ::Float64 = 0.95)
+    Ed::Float64 = 100.0, θ::Float64 = 0.95)
     n = 0               # counter
 
     while abs(Ed) > tol
