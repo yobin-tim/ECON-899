@@ -130,8 +130,31 @@ function μ_iterate(prim::Primitives, res::Results; tol::Float64 = 1e-4, err::Fl
     println("Wealth distribution converged in ", n, " iterations.")
 end
 
+## Finding the market clearing price
+function set_price(prim::Primitives, res::Results, tol::Float64 = 1e-4)
+    @unpack μ, pol_func, q = res
+    xs_supply = dot(μ, pol_func)
+    adj = 0.001 * q
+    if abs(xs_supply) > tol && xs_supply > 0
+        q_new = q - adj
+        return(false)
+    elseif abs(xs_supply) > tol && xs_supply < 0
+        q_new = q + adj
+        return(false)
+    else
+        println("Price is within tolerance: q = ", q)
+        return(true)
+    end
+    res.q = q_new
+end
+
 ## Solve the model
-function Solve_model(prim::Primitives, res::Results)
-    V_iterate(prim, res) #in this case, all we have to do is the value function iteration!
-    μ_iterate(prim, res) #iterate for μ
+function Solve_model(prim::Primitives, res::Results, tol::Float64 = 1e-4, err::Float64 = 100.0)
+    @unpack μ, pol_func = res
+    converged = false
+    while !converged
+        V_iterate(prim, res) #in this case, all we have to do is the value function iteration!
+        μ_iterate(prim, res) #iterate for μ
+        converged = set_price(prim, res)
+    end
 end
