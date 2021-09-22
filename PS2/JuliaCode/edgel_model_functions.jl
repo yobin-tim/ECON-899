@@ -1,5 +1,4 @@
 
-
 #keyword-enabled structure to hold model primitives
 @with_kw struct Primitives
     β::Float64 = 0.9932 #discount rate
