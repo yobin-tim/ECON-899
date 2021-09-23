@@ -17,6 +17,7 @@
 
 ! ************************************************************************
 ! ------------------------------------------------------------------------
+
 ! ------------------------------------------------------------------------
 ! module : params_grid
 !
@@ -28,77 +29,77 @@
 
 module params_grid
 
-implicit none
+	implicit none
 
-! -----------------------------------------------------------------------
-! *******************DECLARATION OF PARAMETERS AND VARIABLES*************
-! -----------------------------------------------------------------------
-! Model Parameters
+	! -----------------------------------------------------------------------
+	! *******************DECLARATION OF PARAMETERS AND VARIABLES*************
+	! -----------------------------------------------------------------------
+	! Model Parameters
 
-! Price as a parameter 
-! TODO: make this a variable
-DOUBLE PRECISION			:: 				q ! Price 
-INTEGER 					::				n_glob_iter = 0
-double precision, parameter :: 				cBET 				= 0.9932d0
-double precision, parameter :: 				cALPHA 				= 1.5d0
+	! Price as a parameter 
+	! TODO: make this a variable
+	DOUBLE PRECISION			:: 				q ! Price 
+	INTEGER 					::				n_glob_iter = 0
+	double precision, parameter :: 				cBET 				= 0.9932d0
+	double precision, parameter :: 				cALPHA 				= 1.5d0
 
-! Model Probabilities
-double precision, parameter :: 				Pgg 				= 0.97d0
-double precision, parameter :: 				Pbg 				= 1d0 - Pgg
-double precision, parameter :: 				Pbb 				= 0.5d0
-double precision, parameter :: 				Pgb 				= 1 - Pbb
-double precision	 		:: 				Pr(2)
-
-
-! Tolerance level for convergence and max itations
-double precision, parameter :: 				tol			 		= 1d-5!
-integer, parameter 			:: 				max_it 				= 10000
-integer 					::				it		 			= 1 !itation counter
-integer 					:: 				converged			= 0
+	! Model Probabilities
+	double precision, parameter :: 				Pgg 				= 0.97d0
+	double precision, parameter :: 				Pbg 				= 1d0 - Pgg
+	double precision, parameter :: 				Pbb 				= 0.5d0
+	double precision, parameter :: 				Pgb 				= 1 - Pbb
+	double precision	 		:: 				Pr(2)
 
 
-! -----------------------------------------------------------------------
-! ****************************GRID SET**********************************
-! -----------------------------------------------------------------------
-! Set up for discritizing the state space (Capital Grid)
-integer						:: 				i_A, i_Apr
-integer, parameter 			:: 				n_A 			= 1000
-double precision 			:: 				grid_A(n_A)
-double precision, parameter :: 				min_A 			= -2d0 !1d0
-double precision, parameter :: 				max_A 			= 5d0 !75d0
-double precision, parameter :: 				step_A 			= (max_A - min_A)/(dble(n_A) - 1d0)
-double precision			:: 				A_today
-double precision			:: 				A_tomorrow
-
-! Set up for discritizing the state space (Employment Grid)
-integer						:: 				i_S
-double precision, parameter :: 				Sg 					= 1d0
-double precision, parameter :: 				Sb 					= 0.5d0
-integer, parameter 			:: 				n_S 				= 2
-double precision 			:: 				grid_S(n_S)
-double precision			:: 				S_today
-
-integer 					:: 				i_state
-integer, parameter  		:: 				n_state 		= n_A*n_S ! Writing grid in one whole loop
-
-! Global variables for Dynamic Progamming
-double precision 			:: 				c_today
-double precision 			:: 				c_today_temp
-double precision 			:: 				y_today
-double precision 			:: 				A_tomorrow_max
-double precision 			:: 				v_today
-double precision 			:: 				v_today_temp
-double precision 			:: 				v_tomorrow
-double precision 			:: 				v_yesterday
+	! Tolerance level for convergence and max itations
+	double precision, parameter :: 				tol			 		= 1d-5!
+	integer, parameter 			:: 				max_it 				= 10000
+	integer 					::				it		 			= 1 !itation counter
+	integer 					:: 				converged			= 0
 
 
-! Allocating space for Policy Functions
-double precision 			:: 				pf_c(n_A, n_S)
-double precision 			:: 				pf_A(n_A, n_S)
-double precision 			:: 				pf_v(n_A, n_S)
+	! -----------------------------------------------------------------------
+	! ****************************GRID SET**********************************
+	! -----------------------------------------------------------------------
+	! Set up for discritizing the state space (Capital Grid)
+	integer						:: 				i_A, i_Apr
+	integer, parameter 			:: 				n_A 			= 1000
+	double precision 			:: 				grid_A(n_A)
+	double precision, parameter :: 				min_A 			= -2d0 !1d0
+	double precision, parameter :: 				max_A 			= 5d0 !75d0
+	double precision, parameter :: 				step_A 			= (max_A - min_A)/(dble(n_A) - 1d0)
+	double precision			:: 				A_today
+	double precision			:: 				A_tomorrow
 
-integer 					::			  i_stat
-integer 					::			  iMaxThreads
+	! Set up for discritizing the state space (Employment Grid)
+	integer						:: 				i_S
+	double precision, parameter :: 				Sg 					= 1d0
+	double precision, parameter :: 				Sb 					= 0.5d0
+	integer, parameter 			:: 				n_S 				= 2
+	double precision 			:: 				grid_S(n_S)
+	double precision			:: 				S_today
+
+	integer 					:: 				i_state
+	integer, parameter  		:: 				n_state 		= n_A*n_S ! Writing grid in one whole loop
+
+	! Global variables for Dynamic Progamming
+	double precision 			:: 				c_today
+	double precision 			:: 				c_today_temp
+	double precision 			:: 				y_today
+	double precision 			:: 				A_tomorrow_max
+	double precision 			:: 				v_today
+	double precision 			:: 				v_today_temp
+	double precision 			:: 				v_tomorrow
+	double precision 			:: 				v_yesterday
+
+
+	! Allocating space for Policy Functions
+	double precision 			:: 				pf_c(n_A, n_S)
+	double precision 			:: 				pf_A(n_A, n_S)
+	double precision 			:: 				pf_v(n_A, n_S)
+
+	integer 					::			  i_stat
+	integer 					::			  iMaxThreads
 
 end module params_grid
 

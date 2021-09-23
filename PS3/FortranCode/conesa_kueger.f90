@@ -1,0 +1,54 @@
+! ------------------------------------------------------------------------
+! module : params_grid
+!
+! Description : This module will form the foudation for our program. In it
+! we will allocate space for all paramaters used in this program and set up the
+! grids to create a discritized state space
+! ------------------------------------------------------------------------
+! ------------------------------------------------------------------------
+
+module params_grid
+
+    implicit none
+    
+    ! -----------------------------------------------------------------------
+    ! *******************DECLARATION OF PARAMETERS AND VARIABLES*************
+    ! -----------------------------------------------------------------------
+    ! Model Parameters
+    
+    INTEGER, PARAMETER          :: N     = 66               ! Lifespan of the agents
+    INTEGER, PARAMETER          :: J_R   = 46               ! Retirement age
+    DOUBLE PRECISION, PARAMETER :: n     = 0.011d0          ! Population growth rate
+    DOUBLE PRECISION, PARAMETER :: a_1   = 0d0              ! Initial assets holding for newborns
+    DOUBLE PRECISION, PARAMETER :: THETA = 0.11d0           ! Labor income tax rate
+    DOUBLE PRECISION, PARAMETER :: z_H   = 1.0d0            ! Idiosyncratic productivity High
+    DOUBLE PRECISION, PARAMETER :: z_L   = 0.5d0            ! Idiosyncratic productivity Low
+    DOUBLE PRECISION, PARAMETER :: p_H   = 0.2037d0         ! Probability of z_H at birth
+    DOUBLE PRECISION, PARAMETER :: p_L   = 0.7963d0         ! Probability of z_L at birth
+    DOUBLE PRECISION, PARAMETER :: GAMMA = 0.42d0           ! Utillity weight on consumption
+    DOUBLE PRECISION, PARAMETER :: SIGMA = 2.0d0            ! coefcient of relative risk aversion
+    DOUBLE PRECISION, PARAMETER :: ALPHA = 0.36d0           ! Capital share in production
+    DOUBLE PRECISION, PARAMETER :: DELTA = 0.06d0           ! Capital depreciation rate
+    DOUBLE PRECISION, PARAMETER :: PI_HH = 0.9261d0         ! Probability of transision from z_H to z_H
+    DOUBLE PRECISION, PARAMETER :: PI_HL = 1.0d0 - PI_LL    ! Probability of transision from z_H to z_L
+    DOUBLE PRECISION, PARAMETER :: PI_LL = 0.0739d0         ! Probability of transision from z_L to z_L
+    DOUBLE PRECISION, PARAMETER :: PI_LH = 1.0d0 - PI_LL    ! Probability of transision from z_L to z_H
+    
+    ! Model Variables
+
+    DOUBLE PRECISION,           :: b                !  Pension benefits (THIS MAY BE A VECTOR)
+    
+    
+    end module params_grid ! end of module
+
+! ------------------------------------------------------------------------
+! subroutine : read_ez
+!
+! Description : This module reads ez.txt the file containing the deterministic
+! age efficiency profile.
+! ------------------------------------------------------------------------
+! ------------------------------------------------------------------------
+
+subroutine read_ez()
+
+    end subroutine read_ez ! end of subroutine
