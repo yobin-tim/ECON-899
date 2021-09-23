@@ -2,7 +2,7 @@ using Parameters, Plots, LinearAlgebra, StatsPlots #import the libraries we want
 # cd("C:/Users/edgel/Google Drive/UW-Madison/f21/econ899/Q1/problem_sets/PS2/JuliaCode")
 include("edgel_model_functions.jl") #import the functions that solve our growth model
 
-prim, res = Initialize() #initialize primitive and results structs
+rprim, res = Initialize() #initialize primitive and results structs
 @elapsed Solve_model(prim, res, θ = 0.5) #solve the model!
 @unpack val_func, pol_func, μ, q̄ = res
 @unpack a_grid = prim
@@ -66,3 +66,4 @@ fig_polfun = plot(a_grid, transpose(pol_func), title="Policy Functions", xlabel=
         label = ["S = e" "S = u"], legend=:topleft, tickfontsize = upscale * 8)
 
 savefig(fig_polfun, "./PS2/Figures/02_pubready_polfun_edgel.tex")        
+
