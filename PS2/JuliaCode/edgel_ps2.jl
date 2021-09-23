@@ -2,7 +2,7 @@ using Parameters, Plots, LinearAlgebra, StatsPlots #import the libraries we want
 # cd("C:/Users/edgel/Google Drive/UW-Madison/f21/econ899/Q1/problem_sets/PS2/JuliaCode")
 include("edgel_model_functions.jl") #import the functions that solve our growth model
 
-rprim, res = Initialize() #initialize primitive and results structs
+prim, res = Initialize() #initialize primitive and results structs
 @elapsed Solve_model(prim, res, θ = 0.5) #solve the model!
 @unpack val_func, pol_func, μ, q̄ = res
 @unpack a_grid = prim
@@ -15,7 +15,7 @@ Plots.plot(a_grid, transpose(Q))
 Plots.savefig("./PS2/Figures/02_stationary_pdf_edgel.png")
 Plots.plot(a_grid, transpose(μ))
 
-cumQ = cumsum(Q, dims = 2)
+cumQ = cumsum(  Q, dims = 2)
 Plots.plot(a_grid, transpose(cumQ))
 Plots.savefig("./PS2/Figures/02_stationary_cdf_edgel.png")
 
