@@ -1,6 +1,4 @@
 using Parameters, DelimitedFiles, ProgressBars
-theme(:juno)
-
 # Define the primitives of the model
 @with_kw mutable struct  Primitives
     N_final ::Int64             = 66         # Lifespan of the agents
@@ -35,14 +33,14 @@ theme(:juno)
     # util_R  ::Function          = (c) -> c^(γ*(1-σ))/(1-σ)
 
     # Optimal labor supply note that last argument is x = (1+r)*a-a_next
-    l_opt   ::Function          = (e, w, x) ->  (γ *(1-θ)*e*w-(1-γ)*(x) ) /( (1 - θ)*w*e) 
+    l_opt   ::Function          = (e, w, r, a, a_next) ->  (γ *(1-θ)*e*w-(1-γ)*( (1+r)*a - a_next ) ) /( (1 - θ)*w*e) 
     
     # Grids
     # Age efficiency profile
-    η       ::Matrix{Float64}   = readdlm("Shared Repo/PS3/Data/ef.txt") 
+    η       ::Matrix{Float64}   = readdlm("./PS3/Data/ef.txt") 
     nA      ::Int64             = 1000      # Size of the asset grid
     a_min   ::Float64           = 0.0       # lower bound of the asset grid
-    a_max   ::Float64           = 75.0      # upper bound of the asset grid
+    a_max   ::Float64           = 100.0      # upper bound of the asset grid
     a_grid  ::Array{Float64}    = collect(range(a_min, length = nA, stop = a_max))   # asset grid
 end # Primitives
 
@@ -69,18 +67,19 @@ function Initialize()
     pol_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the policy function
     pol_fun_ind = zeros(prim.nA, prim.nZ, prim.N_final)# Initialize the policy function indices
     
+    # ! This is not showing much improvement in speed
     # We can pre compute the labor supply grid
     l_grid = zeros(prim.nZ, prim.N_final, prim.nA, prim.nA)    # labor grid
-    for z in 1:prim.nZ, age in 1:prim.N_final, a in 1:prim.nA, an in 1:prim.nA
-        if age < prim.J_R
-            x = (1+r)*prim.a_grid[a] - prim.a_grid[an]
-            e = prim.η[age] * prim.z_Vals[z]
-            l_grid[z, age, a, an] = prim.l_opt(e, w, x)
-        else
-            l_grid[z, age, a, an] = 0
-        end # if
-    end # for
-
+    # for z in 1:prim.nZ, age in 1:prim.N_final, a in 1:prim.nA, an in 1:prim.nA
+    #     if age < prim.J_R
+    #         x = (1+r)*prim.a_grid[a] - prim.a_grid[an]
+    #         e = prim.η[age] * prim.z_Vals[z]
+    #         l_grid[z, age, a, an] = prim.l_opt(e, w, x)
+    #     else
+    #         l_grid[z, age, a, an] = 0
+    #     end # if
+    # end # for
+    
     # Before the model starts, we can set the initial value function at the end stage
     # We set the last age group to have a value function consuming all the assets and
     # with a labor supply 0 (i.e. no labor) and recieving a benefit of b
@@ -96,7 +95,7 @@ end
 # Value function of the agent
 function V(prim::Primitives, res::Results)
     # Unopack the primitives
-    @unpack nA, nZ, z_Vals, η, N_final, J_R, util, β, θ, a_grid, Π = prim
+    @unpack nA, nZ, z_Vals, η, N_final, J_R, util, β, θ, a_grid, Π, l_opt = prim
     @unpack r, w, b, l_grid, val_fun, pol_fun, pol_fun_ind = res
 
     # First we iterate over the productivity levels
@@ -104,7 +103,8 @@ function V(prim::Primitives, res::Results)
         z = z_Vals[z_index] # Current idiosyncratic productivity level
         println("Solving for productivity type $z")
         # Next we iterate over the age groups
-        for j in ProgressBar(N_final-1:-1:1)
+        for j in ProgressBar(N_final-1:-1:1) # Progressbar for runing in console
+        # for j in N_final-1:-1:1 # Without progressbar for runing in jupyter notebook
             e = ( j < J_R ) ? z * η[j] : 0 # Worker productivity level (only for working age)
             # Next we iterate over the asset grid
             for a_index in 1:nA
@@ -113,9 +113,10 @@ function V(prim::Primitives, res::Results)
                 cand_pol = 0 # Initialize the candidate policy
                 cand_pol_ind = 0 # Initialize the candidate policy index
                 # Next we iterate over the possible choices of the next period's asset
+                l_grid = l_opt.(e, w, r, a, a_grid) # Labor supply grid
                 for an_index in 1:nA
-                    l = l_grid[z_index, j, a_index, an_index] # Current labor supply
                     a_next = a_grid[an_index] # Next period's asset level
+                    l = l_grid[an_index] # Current labor supply
                     if ( j < J_R ) # If the agent is working
                         c = w * (1 - θ) * e * l + (1 + r)a - a_next # Consumption
                     else # If the agent is not working
@@ -144,10 +145,17 @@ function V(prim::Primitives, res::Results)
     res.pol_fun_ind = pol_fun_ind
 end # Value function
 
-prim, res = Initialize()                            # Initialize the model
+# Function to obtain the steady state distribution
+function SteadyStateDist(prim::Primitives, res::Results)
+    # Unpack the primitives
+    @unpack N_final, n = prim
+    # Finding relative size of each age cohort
+    μ = [1.0]
+    for i in 2:N_final
+        push!(μ, μ[i-1]/(1.0 + n))
+    end
 
-V(prim::Primitives, res::Results)
+    μ/sum(μ)
+end
 
-using Plots
-
-plot(res.val_fun[:,:,end ])
+SteadyStateDist(prim, res)
