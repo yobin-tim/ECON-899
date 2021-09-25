@@ -209,7 +209,116 @@ function TV_iterate_star(prim::Primitives, res::Results; use_fortran::Bool=false
     res.μ = μ #update distribution
 end #end of TV_iterate_star
 
+
+function run_Fortran(q::Float64, n_iter::Int64)
+
+    # Compile Fortran code
+    run(`gfortran -fopenmp -O2 -o T_op ../FortranCode/T_operator.f90`)
+    run(`./T_op $q $n_iter`)
+    results_raw =  readdlm("value_funct.csv");
+    val_func = hcat(results_raw[1:1000,end], results_raw[1001:end,end])
+    pol_func = hcat(results_raw[1:1000,end-1], results_raw[1001:end,end-1])
+    consumption = hcat(results_raw[1:1000,end-2], results_raw[1001:end,end-2])
+    A_grid_fortran = results_raw[1:1000,end-3]
+    res.val_func = val_func
+    res.pol_func = pol_func
+    return A_grid_fortran
+end # run_Fortran()
+
+
+# Function that runs Fortran code for the T operator value function iteration
+
 # Funtion that thest of markets clear at current prices
-function solve_the_model(prim::Primitives, res::Results, tol::Float64 = 1e-4, use_fortran::Bool=false, A_grid_fortran::Array{Float64,2} = [0; 0])
-    
+function solve_the_model(prim::Primitives, res::Results, use_fortran::Bool)
+
+    n_iter_max = 100;
+    tol::Float64 = 1e-4;
+    θ = 0.95
+    for n_i in 1:n_iter_max
+        if use_fortran
+            t1 = @elapsed begin
+            A_grid_fortran = run_Fortran(res.q, n_i-1);
+            end
+            t2 = @elapsed begin
+            TV_iterate_star(prim, res, use_fortran=true, A_grid_fortran = A_grid_fortran)
+            end
+        else 
+            t1 = @elapsed begin
+            TV_iterate(prim, res)
+            end
+            t2 = @elapsed begin
+            TV_iterate_star(prim, res)
+            end
+        end
+
+        excess_demand = sum(res.μ .* res.pol_func)
+
+        if abs( excess_demand ) < 1e-3
+            println("Markets Clear (whithin tolerance)")   
+            break    
+        elseif excess_demand  > 0
+            q_next = θ*res.q + 1 - θ
+        else
+            q_next = θ*res.q + (1-θ)*prim.β
+        end #end of if
+        res.q = q_next
+        
+        println("$n_i iterations; convergence_time T = $t1, convergence_time T* = $t2 excess demand=  $excess_demand, q =  $(res.q), θ = $θ")
+        
+        if (abs(excess_demand) > 1e-3*100) & (θ <= 0.85)
+            θ = 0.85
+        elseif (abs(excess_demand) > 1e-3*10) & (θ <= 0.95)
+            θ = 0.95
+        elseif θ < 0.99
+            θ = 0.99
+        end
+    end #end of for loop
 end # end of market_clearing
+
+# #######################3
+# SS_WealthDistribution = sum(res.μ, dims = 2)
+# n_lorenz=1000
+# Lorenz=zeros(n_lorenz,2)
+# Lorenz[:,1]=collect(range(0,length=n_lorenz,1)) #First column is percent of population
+# i=1
+# for a_index=1:prim.nA
+#     if sum(SS_WealthDistribution[1:a_index])<=Lorenz[i,1]
+#         Lorenz[i,2]=Lorenz[i,2]+res.μ[a_index]*(prim.A_grid[a_index]+prim.S_vals[1]) +
+#         res.μ[prim.nA+a_index]*(prim.A_grid[a_index]+prim.S_vals[2]) #Second column is cumulative assets
+#     else
+#         while sum(SS_WealthDistribution[1:a_index])>Lorenz[i,1]
+#             i+=1
+#             Lorenz[i,2]=Lorenz[i-1,2]+0; #copy over the previous cumulative wealth
+#         end
+#     end
+#     Lorenz[i,2]=Lorenz[i,2]+res.μ[a_index]*(prim.A_grid[a_index]+prim.S_vals[1]) +
+#     res.μ[prim.nA+a_index]*(prim.A_grid[a_index]+prim.S_vals[2])
+# end
+# #######3
+# Lorenz
+
+# plot(Lorenz[:,1], Lorenz[:,2],  label = "Lorenz Curve", legend =:left)
+# plot!(Lorenz[:,1], Lorenz[:,1], label = "45 Degree")
+# # Plotting
+# cuttoff = findfirst(res.pol_func[:,1] .< prim.A_grid)
+# plot(prim.A_grid[1: cuttoff+50], res.μ[1:cuttoff+50, :])
+# plot(prim.A_grid, cumsum(res.μ, dims=1))
+
+# # cuttoff
+# cuttoff = findfirst(res.pol_func[:,1] .< prim.A_grid)
+
+# ## Lorenz
+# w_e = res.μ[1:cuttoff,1] .* (prim.A_grid[1:cuttoff] .+ prim.S_vals[1] )
+# w_u = res.μ[1:cuttoff,2] .* (prim.A_grid[1:cuttoff] .+ prim.S_vals[2] )
+
+# plot(prim.A_grid[1:cuttoff], w_e)
+# plot(prim.A_grid[1:cuttoff], w_u)
+
+# sum(w_e + w_u)
+
+# w_eg = []
+# for a in prim.A_grid[1:cuttoff]
+#     for s in prim.S_vals
+#         push!(w_eq, a + s)
+#     end
+# end

@@ -26,7 +26,7 @@ using Parameters, DelimitedFiles, ProgressBars
     # Utility of a worker
     # * Previously calle util_w 
     # Todo: Change name to util_w if there is a problem
-    util  ::Function          = (c, l) -> (c^γ * (1 - l)^γ)^(1-σ)/(1-σ) 
+    util  ::Function          = (c, l) -> ( c > 0 ) ? (c^γ * (1 - l)^γ)^(1-σ)/(1-σ) : -Inf
     # Utility of a retiree
     # Todo: Remove the next 3 lines if everything is working
     # * Note im only using the utility of a worker and setign l = 0 to obtain the utility of a retiree
@@ -92,8 +92,27 @@ function Initialize()
     return (prim, res)                              # Return the primitives and results
 end
 
-# Value function of the agent
-function V(prim::Primitives, res::Results)
+# Value funtion for the retirees
+function V_ret(prim::Primitives, res::Results)
+    # unpack the primitives and the results
+    @unpack nA, a_grid, N_final, J_R, util = prim
+    @unpack b, r = res
+    # We obtain for every age group and asset holdigs level the value function using backward induction
+    for j in N_final-1:-1:J_R
+        for a_index in 1:nA
+            a = a_grid[a_index]
+            vals = util.(((1+r)*a + b ).- a_grid, 0) .- res.val_fun[:, 1, j+1]
+            pol_ind = argmax(vals)
+            val_max = vals[pol_ind]
+            res.pol_fun_ind[a_index, :, j] .= pol_ind
+            res.pol_fun[a_index, :, j] .= a_grid[pol_ind]
+            res.val_fun[a_index, :, j] .= val_max
+        end # for a_index 
+    end # for j
+end # V_ret
+
+# Value function for the workers
+function V_workers(prim::Primitives, res::Results)
     # Unopack the primitives
     @unpack nA, nZ, z_Vals, η, N_final, J_R, util, β, θ, a_grid, Π, l_opt = prim
     @unpack r, w, b, l_grid, val_fun, pol_fun, pol_fun_ind = res
@@ -103,7 +122,7 @@ function V(prim::Primitives, res::Results)
         z = z_Vals[z_index] # Current idiosyncratic productivity level
         println("Solving for productivity type $z")
         # Next we iterate over the age groups
-        for j in ProgressBar(N_final-1:-1:1) # Progressbar for runing in console
+        for j in ProgressBar(J_R-1:-1:1) # Progressbar for runing in console
         # for j in N_final-1:-1:1 # Without progressbar for runing in jupyter notebook
             e = ( j < J_R ) ? z * η[j] : 0 # Worker productivity level (only for working age)
             # Next we iterate over the asset grid
@@ -143,7 +162,7 @@ function V(prim::Primitives, res::Results)
     res.val_fun = val_fun
     res.pol_fun = pol_fun
     res.pol_fun_ind = pol_fun_ind
-end # Value function
+end # V_workers
 
 # Function to obtain the steady state distribution
 function SteadyStateDist(prim::Primitives, res::Results)
@@ -158,4 +177,4 @@ function SteadyStateDist(prim::Primitives, res::Results)
     μ/sum(μ)
 end
 
-SteadyStateDist(prim, res)
+# SteadyStateDist(prim, res)

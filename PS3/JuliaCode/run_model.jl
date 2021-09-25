@@ -4,7 +4,8 @@ include("conesa_kueger.jl");
 
 prim, res = Initialize();
 
-V(prim, res);
+V_ret(prim, res);
+V_workers(prim, res);
 
 plot(res.pol_fun[500,1,:])
 
@@ -19,3 +20,7 @@ plot!(prim.a_grid, savings[:,2,20])
 
 plot(prim.a_grid, res.pol_fun[:,1,1])
 plot!(prim.a_grid, res.pol_fun[:,2,1])
+
+plot(savings[500,1,:])
+plot!(savings[500,2,:])
+plot!
