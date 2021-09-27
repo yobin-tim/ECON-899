@@ -40,7 +40,7 @@ using Parameters, DelimitedFiles, ProgressBars
     η       ::Matrix{Float64}   = readdlm("./PS3/Data/ef.txt") 
     nA      ::Int64             = 1000      # Size of the asset grid
     a_min   ::Float64           = 0.0       # lower bound of the asset grid
-    a_max   ::Float64           = 100.0      # upper bound of the asset grid
+    a_max   ::Float64           = 75.0      # upper bound of the asset grid
     a_grid  ::Array{Float64}    = collect(range(a_min, length = nA, stop = a_max))   # asset grid
 end # Primitives
 
@@ -49,7 +49,6 @@ mutable struct Results
     w       ::Float64                       # Wage        
     r       ::Float64                       # Interest rate
     b       ::Float64                       # Benefits
-    l_grid ::Array{Float64, 4}              # Labor supply grid
     val_fun ::Array{Float64,3}              # Value function
     pol_fun ::Array{Float64,3}              # Policy function
     # ! This is a experiment, maybe it is usefull to also save 
@@ -67,19 +66,6 @@ function Initialize()
     pol_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the policy function
     pol_fun_ind = zeros(prim.nA, prim.nZ, prim.N_final)# Initialize the policy function indices
     
-    # ! This is not showing much improvement in speed
-    # We can pre compute the labor supply grid
-    l_grid = zeros(prim.nZ, prim.N_final, prim.nA, prim.nA)    # labor grid
-    # for z in 1:prim.nZ, age in 1:prim.N_final, a in 1:prim.nA, an in 1:prim.nA
-    #     if age < prim.J_R
-    #         x = (1+r)*prim.a_grid[a] - prim.a_grid[an]
-    #         e = prim.η[age] * prim.z_Vals[z]
-    #         l_grid[z, age, a, an] = prim.l_opt(e, w, x)
-    #     else
-    #         l_grid[z, age, a, an] = 0
-    #     end # if
-    # end # for
-    
     # Before the model starts, we can set the initial value function at the end stage
     # We set the last age group to have a value function consuming all the assets and
     # with a labor supply 0 (i.e. no labor) and recieving a benefit of b
@@ -87,7 +73,7 @@ function Initialize()
     val_fun[: ,: , end] = hcat(last_period_value, last_period_value) 
     
     # Initialize the results
-    res = Results(w, r, b, l_grid, val_fun, pol_fun, pol_fun_ind)        
+    res = Results(w, r, b, val_fun, pol_fun, pol_fun_ind)        
     
     return (prim, res)                              # Return the primitives and results
 end
@@ -115,7 +101,7 @@ end # V_ret
 function V_workers(prim::Primitives, res::Results)
     # Unopack the primitives
     @unpack nA, nZ, z_Vals, η, N_final, J_R, util, β, θ, a_grid, Π, l_opt = prim
-    @unpack r, w, b, l_grid, val_fun, pol_fun, pol_fun_ind = res
+    @unpack r, w, b, val_fun, pol_fun, pol_fun_ind = res
 
     # First we iterate over the productivity levels
     for z_index in 1:nZ
@@ -141,8 +127,9 @@ function V_workers(prim::Primitives, res::Results)
                     else # If the agent is not working
                         c = (1 + r) * a - a_next # Consumption of retiree
                     end
+                    # TODO: Check if this is correct this may be a source of error since selections of a and a_next influence labor supply 
                     if c < 0 # If the consumption is negative, stop the exploration
-                        break
+                        continue
                     end
                     # exp_v_next = val_fun[an_index, :, j+1] * Π[z_index , :] # Expected value of next period
                     exp_v_next = val_fun[an_index, 1, j+1] * Π[z_index , 1] + val_fun[an_index, 2, j+1] * Π[z_index , 2] # Expected value of next period
@@ -163,6 +150,44 @@ function V_workers(prim::Primitives, res::Results)
     res.pol_fun = pol_fun
     res.pol_fun_ind = pol_fun_ind
 end # V_workers
+
+# If we want to speed up the code we can use Fortran
+# the following function is a wrapper for the Fortran code
+
+function V_Fortran(w::Float64, r::Float64, b::Float64)
+
+    # Compile Fortran code
+    path = "/home/mitch/Work/ECON-899/PS3/FortranCode/"
+    run(`gfortran -fopenmp -O2 -o V_Fortran $(path)conesa_kueger.f90`)
+    # run(`./T_op $q $n_iter`) 
+    run(`./V_Fortran`)
+
+    results_raw =  readdlm("$(path)results.csv");
+
+    val_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the value function
+    pol_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the policy function
+    pol_fun_ind = zeros(prim.nA, prim.nZ, prim.N_final + 1)    # Initialize the policy function index
+
+    for j in 1:prim.N_final
+        range_a = (j-1) * 2*prim.nA + 1 : j * 2*prim.nA |> collect
+        val_fun[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end], results_raw[range_a[prim.nA+1:end],end])
+        pol_fun[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end-1], results_raw[range_a[prim.nA+1:end],end-1])
+    end
+    # consumption = hcat(results_raw[1:1000,end-2], results_raw[1001:end,end-2])
+    A_grid_fortran = results_raw[1:prim.nA,end-3]
+    res.val_fun = val_fun
+    res.pol_fun = pol_fun
+    return A_grid_fortran
+    
+end # run_Fortran()
+
+prim, res = Initialize();
+A_grid_fortran = V_Fortran(res.w, res.r, res.b)
+
+
+using Plots
+theme(:juno)
+plot(res.pol_fun[:,:,20])
 
 # Function to obtain the steady state distribution
 function SteadyStateDist(prim::Primitives, res::Results)

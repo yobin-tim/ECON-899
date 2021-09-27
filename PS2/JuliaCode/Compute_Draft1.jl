@@ -125,8 +125,7 @@ function MC_assets(prim,res; dist_tol::Float64 = 1e-6, dist_err::Float64 = 100.0
                 res.q_Bounds[1]=res.q
                 res.q=res.q_Bounds[1]*.7 +res.q_Bounds[2]*.3
             end
-            print("Excess Supply: $(ExcessSupply), q:$(res.q)
-")
+            print("Excess Supply: $(ExcessSupply), q:$(res.q)")
         else
             Done=true
         end

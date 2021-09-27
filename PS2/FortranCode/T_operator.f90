@@ -404,7 +404,35 @@ end subroutine bellman
 ! description : Writes results to .csv file
 ! ------------------------------------------------------------------------
 ! ------------------------------------------------------------------------
+subroutine coda()
 
+use params_grid
+use omp_lib
+
+implicit none
+
+! write(*,*) ""
+! write (*,*) "Writing PFs to CSV file"
+open(unit = 2, file = 'value_funct.csv', status = 'replace', action = 'write', iostat = i_stat)
+200 format(f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x)
+
+do i_S = 1, n_S
+	do i_A = 1,n_A
+		write(2,200) grid_S(i_S),grid_A(i_A), pf_c(i_A, i_S), pf_A(i_A, i_S), pf_v(i_A, i_S)
+	end do
+end do
+
+return
+
+end subroutine coda
+! ************************************************************************
+! ------------------------------------------------------------------------
+! ------------------------------------------------------------------------
+! subroutine : read_data
+!
+! description : Read previous results from .csv file
+! ------------------------------------------------------------------------
+! ------------------------------------------------------------------------
 subroutine read_data()
 	use params_grid
 
@@ -442,24 +470,3 @@ subroutine read_data()
 
 end
 
-subroutine coda()
-
-use params_grid
-use omp_lib
-
-implicit none
-
-! write(*,*) ""
-! write (*,*) "Writing PFs to CSV file"
-open(unit = 2, file = 'value_funct.csv', status = 'replace', action = 'write', iostat = i_stat)
-200 format(f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x)
-
-do i_S = 1, n_S
-	do i_A = 1,n_A
-	    write(2,200) grid_S(i_S),grid_A(i_A), pf_c(i_A, i_S), pf_A(i_A, i_S), pf_v(i_A, i_S)
-	end do
-end do
-
-return
-
-end subroutine coda
