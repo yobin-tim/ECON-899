@@ -8,16 +8,16 @@
    2. Ryan to add julia code in latex
 2. Finish problem set 2
 3. Look over Mitchell’s work so far. What is going on with the savings?
-4. Yobin
-5. Ryan
-6. Danny
-7. Calculate Asset Distributions: Write down the structure of the distribution
-8. Mitchell
-9. Ryan
-10. Write outer loop to pin down L, K, and b
-11. Danny
-12. Do policy experiments from 3
-13. Yobin (Starting Mon/Tues)
-14. Optional: Arrays to match between julia and fortran
+   1. Yobin
+   2. Ryan
+   3. Danny
+4. Calculate Asset Distributions: Write down the structure of the distribution
+   1. Mitchell
+   2. Ryan
+5. Write outer loop to pin down L, K, and b
+   1. Danny
+6. Do policy experiments from 3
+   1. Yobin (Starting Mon/Tues)
+7. Optional: Arrays to match between julia and fortran
 
 ****
