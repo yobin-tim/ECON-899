@@ -42,6 +42,7 @@ using Parameters, DelimitedFiles, ProgressBars
     a_min   ::Float64           = 0.0       # lower bound of the asset grid
     a_max   ::Float64           = 75.0      # upper bound of the asset grid
     a_grid  ::Array{Float64}    = collect(range(a_min, length = nA, stop = a_max))   # asset grid
+
 end # Primitives
 
 # Structure mutable parameters and results of the model 
@@ -49,11 +50,13 @@ mutable struct Results
     w       ::Float64                       # Wage        
     r       ::Float64                       # Interest rate
     b       ::Float64                       # Benefits
+    μ       :: Array{Float64, 1}            # Distibution of age cohorts
     val_fun ::Array{Float64,3}              # Value function
     pol_fun ::Array{Float64,3}              # Policy function
     # ! This is a experiment, maybe it is usefull to also save 
     # ! the indices of the optimal policy function
     pol_fun_ind ::Array{Int64,3}            # Policy function indices
+    F       ::Array{Float64,3}              # Distribution of agents over asset holdings
 end # Results
 
 # Function that initializes the model
@@ -72,8 +75,21 @@ function Initialize()
     last_period_value = prim.util.( prim.a_grid .* (1 + r) .+ b, 0 ) 
     val_fun[: ,: , end] = hcat(last_period_value, last_period_value) 
     
+    # Calculate distribution of age cohorts
+    μ = [1.0]
+    for i in 2:prim.N_final
+        push!(μ, μ[i-1]/(1.0 + prim.n))
+    end
+    μ = μ/sum(μ)
+
+    # Finally we initialize the distribution of the agents
+    F = zeros(prim.nA, prim.nZ, prim.N_final)
+    F[1, 1, 1] = μ[1] * prim.p_H  
+    F[1, 2, 1] = μ[1] * prim.p_L
+    F[2:end, :, 1] .= 0  
+
     # Initialize the results
-    res = Results(w, r, b, val_fun, pol_fun, pol_fun_ind)        
+    res = Results(w, r, b, μ, val_fun, pol_fun, pol_fun_ind, F)        
     
     return (prim, res)                              # Return the primitives and results
 end
@@ -155,51 +171,51 @@ end # V_workers
 # the following function is a wrapper for the Fortran code
 
 function V_Fortran(w::Float64, r::Float64, b::Float64)
-
+    # PS3/FortranCode/conesa_kueger.f90
     # Compile Fortran code
-    path = "/home/mitch/Work/ECON-899/PS3/FortranCode/"
-    run(`gfortran -fopenmp -O2 -o V_Fortran $(path)conesa_kueger.f90`)
+    path = "./PS3/FortranCode/"
+    run(`gfortran -fopenmp -O2 -o $(path)V_Fortran $(path)conesa_kueger.f90`)
     # run(`./T_op $q $n_iter`) 
-    run(`./V_Fortran`)
+    run(`$(path)V_Fortran`)
 
     results_raw =  readdlm("$(path)results.csv");
 
     val_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the value function
     pol_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the policy function
     pol_fun_ind = zeros(prim.nA, prim.nZ, prim.N_final + 1)    # Initialize the policy function index
-
+    consumption = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the consumption function
     for j in 1:prim.N_final
         range_a = (j-1) * 2*prim.nA + 1 : j * 2*prim.nA |> collect
         val_fun[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end], results_raw[range_a[prim.nA+1:end],end])
-        pol_fun[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end-1], results_raw[range_a[prim.nA+1:end],end-1])
+        pol_fun_ind[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end-1], results_raw[range_a[prim.nA+1:end],end-1])
+        pol_fun[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end-2], results_raw[range_a[prim.nA+1:end],end-2])
+        consumption[:,:,j]   = hcat(results_raw[range_a[1:prim.nA],end-3], results_raw[range_a[prim.nA+1:end],end-3])
     end
-    # consumption = hcat(results_raw[1:1000,end-2], results_raw[1001:end,end-2])
-    A_grid_fortran = results_raw[1:prim.nA,end-3]
+    A_grid_fortran = results_raw[1:prim.nA,end-4]
     res.val_fun = val_fun
     res.pol_fun = pol_fun
-    return A_grid_fortran
+    res.pol_fun_ind = pol_fun_ind
+    return A_grid_fortran, consumption
     
 end # run_Fortran()
-
-prim, res = Initialize();
-A_grid_fortran = V_Fortran(res.w, res.r, res.b)
-
-
-using Plots
-theme(:juno)
-plot(res.pol_fun[:,:,20])
 
 # Function to obtain the steady state distribution
 function SteadyStateDist(prim::Primitives, res::Results)
     # Unpack the primitives
-    @unpack N_final, n = prim
+    @unpack N_final, n, p_L, p_H, nZ, nA, Π = prim
     # Finding relative size of each age cohort
-    μ = [1.0]
-    for i in 2:N_final
-        push!(μ, μ[i-1]/(1.0 + n))
-    end
 
-    μ/sum(μ)
-end
-
-# SteadyStateDist(prim, res)
+    # Finding the steady state distribution
+    for j in 2:N_final
+        for z_ind in 1:nZ
+            for a_ind in 1:nA
+                a_next_ind = res.pol_fun_ind[a_ind, z_ind, j]
+                if a_next_ind == 0 # Level not reached
+                    continue
+                end
+                res.F[a_next_ind, 1, j] += res.F[a_ind, z_ind, j-1] * Π[z_ind, 1] * (res.μ[j]/res.μ[j-1])
+                res.F[a_next_ind, 2, j] += res.F[a_ind, z_ind, j-1] * Π[z_ind, 2] * (res.μ[j]/res.μ[j-1])
+            end 
+        end # z_ind
+    end # j loop
+end # SteadyStateDist

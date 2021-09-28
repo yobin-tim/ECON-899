@@ -63,6 +63,7 @@ module params_grid
     DOUBLE PRECISION            :: a_current                  ! Initialize current value of the asset
     DOUBLE PRECISION            :: a_next                     ! Initialize next value of the asset
     DOUBLE PRECISION            :: a_maxim                    ! Initialize canditate maximizer asset holding level
+    INTEGER                     :: a_ind_maxim                ! Initialize canditate maximizer asset holding index
     DOUBLE PRECISION            :: l_opt                      ! Initialize optimal labor supply
     DOUBLE PRECISION            :: v_next                     ! Initialize continuation value of the value function
     DOUBLE PRECISION            :: u_current                  ! Initialize current value of utility
@@ -71,6 +72,7 @@ module params_grid
     ! Allocating space for Policy Functions
     DOUBLE PRECISION            :: pf_c(nA, nZ, nJ)
     DOUBLE PRECISION            :: pf_A(nA, nZ, nJ)
+    INTEGER                     :: pf_A_ind(nA, nZ, nJ)
     DOUBLE PRECISION            :: pf_v(nA, nZ, nJ)
     INTEGER                     :: i_stat
     INTEGER                     :: iMaxThreads
@@ -120,13 +122,13 @@ subroutine read_ez()
 
     integer        :: fu, rc, i
 
-    open(action='read', file='/home/mitch/Work/ECON-899/PS3/FortranCode/ef.csv', iostat=rc, newunit=fu)
+    open(action='read', file='./PS3/FortranCode/ef.csv', iostat=rc, newunit=fu)
     
-    if (rc /= 0) stop 'Unable to open file ez.txt'
+    if (rc /= 0) stop 'Unable to open file ez.csv'
 
     do i = 1, J_R - 1
         read(fu, *, iostat=rc) ez(i)
-        if (rc /= 0) stop 'Error reading file ez.txt'
+        if (rc /= 0) stop 'Error reading file ez.csv'
     end do
 
     close(fu)
@@ -167,10 +169,12 @@ subroutine housekeeping()
                 if ( j < nJ ) then
                     pf_c(i_A, i_Z, j) = 0d0
                     pf_A(i_A, i_Z, j) = 0d0
+                    pf_A_ind(i_A, i_Z, j) = 0
                     pf_v(i_A, i_Z, j) = 0d0
                 else
                     pf_c(i_A, i_Z, j) = grid_A(i_A)*(1 + r) + b
                     pf_A(i_A, i_Z, j) = 0d0
+                    pf_A_ind(i_A, i_Z, j) = 1
                     pf_v(i_A, i_Z, j) = pf_c(i_A, i_Z, j)**(GAMMA * (1 - SIGMA)) / (1 - SIGMA)
                 end if 
             end do
@@ -205,6 +209,7 @@ subroutine V_Func_Ret()
                     if (v_current > cand_max) then  ! Update the candidate maximizer
                         cand_max = v_current
                         a_maxim = a_next
+                        a_ind_maxim = i_Anext
                     end if
                 else
                     exit ! If consumption is negative, then stop searching
@@ -216,6 +221,8 @@ subroutine V_Func_Ret()
             pf_A(i_A, 2, j) = a_max
             pf_c(i_A, 1, j) = c_current
             pf_c(i_A, 2, j) = c_current
+            pf_A_ind(i_A, 1, j) = a_ind_maxim
+            pf_A_ind(i_A, 2, j) = a_ind_maxim
         end do ! End of loop over i_A
     end do ! End of loop over j
     
@@ -249,33 +256,50 @@ subroutine V_Func_Work()
                 Pr(2) = PI_LL
             end if
             do i_A = 1, nA   ! Loop over the asset grid
+                a_ind_maxim = -100
+                a_maxim = -100d0 ! Initialize the value function for this age group
+                cand_max = -100d0 ! A large negative number for candidate to maximum
+                ! a_maxim  = -100000000d0 ! A large negative number for the asset level that maximizes the value function
                 a_current = grid_A(i_A) ! Compute the current asset level
                 do i_Anext = 1, nA ! Loop over all possible choises of the next asset level
+
+                    ! *********************
+                    ! Compute agent choices
+                    ! *********************
                     a_next = grid_A(i_Anext)
                     l_opt = (GAMMA*(1-THETA)*e*w-(1-GAMMA)*((1+r)*a_current-a_next))/((1-THETA)*e*w) ! Compute the labor supply
                     c_current = w*(1-THETA)*e*l_opt+(1+r)*a_current-a_next ! Compute the consumption
-                    if (l_opt < 0d0 .OR. l_opt > 1d0 .or. c_current < 0d0) then ! Check if consumption and labor supply are are within the bounds
-                        u_current = ( (c_current**GAMMA ) * ( (1 - l_opt) ** (1 - GAMMA)) ** (1 - SIGMA)) / (1 - SIGMA) !  Compute the utility
-                        v_next = pf_v(i_Anext, 1, j+1) * Pr(1) + pf_v(i_Anext, 2, j+1) * Pr(2) ! Compute the expected value of next period
-                        v_current = u_current + BETA * v_next
-                        if (isnan(v_current)) then
-                            cycle
-                        if ( j == 20) then
-                            if (i_A == 500) then
-                                print *,"a=",a_current,"l_opt =",l_opt,"c_current=",c_current,"a_next=",a_next,"v=",v_current
-                            end if
-                        end if
-                        else
-                            if (v_current > cand_max) then  ! Update the candidate maximizer
-                                cand_max = v_current
-                                a_maxim = a_next
-                            end if
-                        end if
+                    ! *******************************************************
+                    ! Compute the fesibility of labor and consumption choices
+                    ! *******************************************************
+                    if (c_current < 0d0) then ! If consumption is negative, then go to the next iteration
+                        CYCLE
+                    end if 
+                    if (l_opt < 0d0) then ! If labor supply is negative, then go to the next iteration
+                        CYCLE
                     end if
-                end do ! End of loop over i_Anext
-                pf_v(i_A, i_Z, j) = cand_max
-                pf_A(i_A, i_Z, j) = a_maxim
-                pf_c(i_A, i_Z, j) = c_current
+                    if (l_opt > 1.0d0) then ! If labor supply is greater than the maximum, then go to the next iteration
+                        CYCLE
+                    end if
+                    ! **************************
+                    ! Compute the value function
+                    ! **************************
+                    u_current = ( (c_current**GAMMA ) * ( (1 - l_opt) ** (1 - GAMMA)) ** (1 - SIGMA)) / (1 - SIGMA) !  Compute the utility
+                    v_next = pf_v(i_Anext, 1, j+1) * Pr(1) + pf_v(i_Anext, 2, j+1) * Pr(2) ! Compute the expected value of next period
+                    v_current = u_current + BETA * v_next
+
+                    ! Check if the current value is greater than the previous one and update the value function
+                    if (v_current > cand_max) then 
+                        cand_max = v_current
+                        a_maxim = a_next
+                        a_ind_maxim = i_Anext
+                    end if
+            
+                    pf_v(i_A, i_Z, j) = cand_max
+                    pf_A(i_A, i_Z, j) = a_maxim
+                    pf_A_ind(i_A, i_Z, j) = a_ind_maxim
+                    pf_c(i_A, i_Z, j) = c_current
+                end do ! End of loop over i_Anext 
             end do ! End of loop over i_A
         end do ! End of loop over i_Z
     end do ! End of loop over j
@@ -295,14 +319,14 @@ subroutine coda()
     use params_grid
     INTEGER                         :: rc ! Identifier for error checking
 
-    open(unit=2, file='/home/mitch/Work/ECON-899/PS3/FortranCode/results.csv', status='replace', action='write', iostat=rc)
+    open(unit=2, file='./PS3/FortranCode/results.csv', status='replace', action='write', iostat=rc)
     if (rc /= 0) stop 'Unable to open file results.csv'
-    200 format(i2,2x, f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x)
+    200 format(i2,2x, f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,i4,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x)
     
     do j = 1, nJ
         do i_Z = 1, nZ
             do i_A = 1, nA
-                write(2,200) j, grid_Z(i_Z), grid_A(i_A), pf_c(i_A, i_Z, j), pf_A(i_A, i_Z, j), pf_v(i_A, i_Z, j)
+                write(2,200)j,grid_Z(i_Z),grid_A(i_A),pf_c(i_A, i_Z, j),pf_A(i_A, i_Z, j),pf_A_ind(i_A, i_Z, j),pf_v(i_A, i_Z, j)
             end do
         end do
     end do
