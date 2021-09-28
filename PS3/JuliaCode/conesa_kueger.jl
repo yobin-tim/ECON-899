@@ -1,7 +1,7 @@
-using Parameters, DelimitedFiles, ProgressBars
+@everywhere using Parameters, DelimitedFiles, ProgressBars, SharedArrays, LinearAlgebra
 
 # Define the primitives of the model
-@with_kw mutable struct  Primitives
+@everywhere @with_kw mutable struct  Primitives
     N_final ::Int64             = 66         # Lifespan of the agents
     J_R     ::Int64             = 46         # Retirement age
     n       ::Float64           = 0.011      # Population growth rate
@@ -43,7 +43,7 @@ using Parameters, DelimitedFiles, ProgressBars
     r_mkt   ::Function          = (K, L) -> α*(K^(α-1))*(L^(1-α))
     
     # Government budget constraint
-    b_mkt   ::Function          = (L, m) -> θ*L/m   # m is mass of retirees
+    b_mkt   ::Function          = (L, w, m) -> θ*w*L/m   # m is mass of retirees
 
     # Grids
     # Age efficiency profile
@@ -56,15 +56,16 @@ using Parameters, DelimitedFiles, ProgressBars
 end # Primitives
 
 # Structure mutable parameters and results of the model 
-mutable struct Results
+@everywhere mutable struct Results
     w       ::Float64                       # Wage        
     r       ::Float64                       # Interest rate
     b       ::Float64                       # Benefits
     K       ::Float64                       # aggregate capital 
     L       ::Float64                       # aggregate labor
-    μ       ::Array{Float64, 1}            # Distibution of age cohorts
-    val_fun ::Array{Float64,3}              # Value function
-    pol_fun ::Array{Float64,3}              # Policy function
+    μ       ::Array{Float64, 1}             # Distibution of age cohorts
+    val_fun ::Array{Float64, 3}             # Value function
+    pol_fun ::Array{Float64, 3}             # Policy function
+    l_fun   ::Array{Float64, 3}             # Labor policy function
 
     # ! This is a experiment, maybe it is useful to also save 
     # ! the indices of the optimal policy function
@@ -80,9 +81,10 @@ function Initialize()
     b = 0.2                                         # Benefits guess
     K = 100                                         # inital capital guess
     L = 50                                          # initial labor guess
-    val_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the value function
-    pol_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the policy function
-    pol_fun_ind = zeros(prim.nA, prim.nZ, prim.N_final)# Initialize the policy function indices
+    val_fun = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)    # Initialize the value function
+    pol_fun = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)    # Initialize the policy function
+    pol_fun_ind = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)# Initialize the policy function indices
+    l_fun = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)
     
     # Before the model starts, we can set the initial value function at the end stage
     # We set the last age group to have a value function consuming all the assets and
@@ -104,7 +106,7 @@ function Initialize()
     F[2:end, :, 1] .= 0  
 
     # Initialize the results
-    res = Results(w, r, b, μ, val_fun, pol_fun, pol_fun_ind, F)        
+    res = Results(w, r, b, K, L, μ, val_fun, pol_fun, l_fun, pol_fun_ind, F)        
     
     return (prim, res)                              # Return the primitives and results
 end
@@ -126,6 +128,7 @@ function V_ret(prim::Primitives, res::Results)
             res.pol_fun_ind[a_index, :, j] .= pol_ind
             res.pol_fun[a_index, :, j] .= a_grid[pol_ind]
             res.val_fun[a_index, :, j] .= val_max
+            res.l_fun[a_index, :, j] .= 0
         end # for a_index 
     end # for j
 
@@ -136,7 +139,7 @@ function V_workers(prim::Primitives, res::Results)
 
     # Unopack the primitives
     @unpack nA, nZ, z_Vals, η, N_final, J_R, util, β, θ, a_grid, Π, l_opt = prim
-    @unpack r, w, b, val_fun, pol_fun, pol_fun_ind = res
+    @unpack r, w, b, val_fun, pol_fun, pol_fun_ind, l_fun = res
 
     # First we iterate over the productivity levels
     for z_index in 1:nZ
@@ -146,15 +149,16 @@ function V_workers(prim::Primitives, res::Results)
         # Next we iterate over the age groups
         for j in ProgressBar(J_R-1:-1:1) # Progressbar for running in console
 
-        # for j in N_final-1:-1:1 # Without progressbar for running in jupyter notebook
+        #for j in N_final-1:-1:1 # Without progressbar for running in jupyter notebook
             e = ( j < J_R ) ? z * η[j] : 0 # Worker productivity level (only for working age)
 
             # Next we iterate over the asset grid
             for a_index in 1:nA
                 a = a_grid[a_index] # Current asset level
-                cand_val = -Inf # Initialize the candidate value
-                cand_pol = 0 # Initialize the candidate policy
-                cand_pol_ind = 0 # Initialize the candidate policy index
+                cand_val = -Inf     # Initialize the candidate value
+                cand_pol = 0        # Initialize the candidate policy
+                cand_pol_ind = 0    # Initialize the candidate policy index
+                l_pol = 0           # Initialize the labor policy
 
                 # Next we iterate over the possible choices of the next period's asset
                 l_grid = l_opt.(e, w, r, a, a_grid) # Labor supply grid
@@ -188,16 +192,17 @@ function V_workers(prim::Primitives, res::Results)
 
                     if v_next > cand_val
                         cand_val = v_next       # Update the candidate value
-                        cand_pol = a_next          # Candidate to policy function
+                        cand_pol = a_next       # Candidate to policy function
                         cand_pol_ind = an_index # Candidate to policy function index
+                        l_pol = l               # Candidate to labor policy function
                     end # if v_next > cand_val
 
                 end # Next period asset choice loop
 
-                val_fun[a_index, z_index, j] = cand_val # Update the value function
-                pol_fun[a_index, z_index, j] = cand_pol # Update the policy function
+                val_fun[a_index, z_index, j] = cand_val         # Update the value function
+                pol_fun[a_index, z_index, j] = cand_pol         # Update the policy function
                 pol_fun_ind[a_index, z_index, j] = cand_pol_ind # Update the policy function index
-
+                l_fun[a_index, z_index, j] = l_pol              # Update the labor policy function
             end # Current asset holdings loop
         end # Age loop
     end # Productivity loop
@@ -205,6 +210,7 @@ function V_workers(prim::Primitives, res::Results)
     res.val_fun = val_fun
     res.pol_fun = pol_fun
     res.pol_fun_ind = pol_fun_ind
+    res.l_fun = l_fun
 end # V_workers
 
 # If we want to speed up the code we can use Fortran
@@ -256,8 +262,8 @@ function SteadyStateDist(prim::Primitives, res::Results)
                 if a_next_ind == 0 # Level not reached
                     continue
                 end
-
-                for zi = 1:nz 
+                
+                for zi = 1:nZ
                     res.F[a_next_ind, zi, j] += res.F[a_ind, z_ind, j-1] * Π[z_ind, zi] * (res.μ[j]/res.μ[j-1])
                 end # zi 
 
@@ -268,17 +274,42 @@ function SteadyStateDist(prim::Primitives, res::Results)
 end # SteadyStateDist
 
 # Function to solve for market prices
-function MarketClearing(prim::Primitives, res::Results; λ = 0.7, tol = 1e-3, err = 100)
+function MarketClearing(prim::Primitives, res::Results; λ = 0.01, tol = 1e-3, err = 100)
 
     # unpack relevant variables and functions
-    @unpack w_mkt, r_mkt, b_mkt, J_R = prim
+    @unpack w_mkt, r_mkt, b_mkt, J_R, a_grid = prim
     @unpack F = res
+
+    n = 0 # loop counter
 
     # iteratively solve the model until excess savings converge to zero
     while err > tol 
+
+        # calculate prices and payments at current K, L, and F
         res.r = r_mkt(res.K, res.L)
         res.w = w_mkt(res.K, res.L)
-        res.b = b_mkt(res.L, sum(F[:, :, J_R:end]))
+        res.b = b_mkt(res.L, res.w, sum(F[:, :, J_R:end]))
+
+        # solve model with current model and payments
+        V_ret(prim, res);
+        V_workers(prim, res);
+        SteadyStateDist(prim, res);
+
+        # calculate aggregate capital and labor
+        K = sum(F[:, :, :] .* a_grid)
+        L = sum(F[:, :, :] .* res.l_fun) # Labor supply grid)
+
+        # calculate error
+        err = norm([res.K, res.L] - [K, L])
+
+        # update guess 
+        res.K = λ*K + (1-λ)*res.K 
+        res.L = λ*L + (1-λ)*res.L
+
+        n+=1
+
+        println("$n iterations; err = $err, K = ", res.K, ", L = ", res.L)
+
     end # while err > tol 
 
 end # MarketClearing
