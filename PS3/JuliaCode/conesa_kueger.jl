@@ -37,7 +37,14 @@ using Parameters, DelimitedFiles, ProgressBars
 
     # Optimal labor supply note that last argument is x = (1+r)*a-a_next
     l_opt   ::Function          = (e, w, r, a, a_next) ->  (γ *(1-θ)*e*w-(1-γ)*( (1+r)*a - a_next ) ) /( (1 - θ)*w*e) 
+
+    # Production technology
+    w_mkt   ::Function          = (K, L) -> (1-α)*(K^α)*(L^(-α))
+    r_mkt   ::Function          = (K, L) -> α*(K^(α-1))*(L^(1-α))
     
+    # Government budget constraint
+    b_mkt   ::Function          = (L, m) -> θ*L/m   # m is mass of retirees
+
     # Grids
     # Age efficiency profile
     η       ::Matrix{Float64}   = readdlm("./PS3/Data/ef.txt") 
@@ -53,6 +60,8 @@ mutable struct Results
     w       ::Float64                       # Wage        
     r       ::Float64                       # Interest rate
     b       ::Float64                       # Benefits
+    K       ::Float64                       # aggregate capital 
+    L       ::Float64                       # aggregate labor
     μ       ::Array{Float64, 1}            # Distibution of age cohorts
     val_fun ::Array{Float64,3}              # Value function
     pol_fun ::Array{Float64,3}              # Policy function
@@ -69,6 +78,8 @@ function Initialize()
     w = 1.05                                        # Wage guess
     r = 0.05                                        # Interest rate guess
     b = 0.2                                         # Benefits guess
+    K = 100                                         # inital capital guess
+    L = 50                                          # initial labor guess
     val_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the value function
     pol_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the policy function
     pol_fun_ind = zeros(prim.nA, prim.nZ, prim.N_final)# Initialize the policy function indices
@@ -122,6 +133,7 @@ end # V_ret
 
 # Value function for the workers
 function V_workers(prim::Primitives, res::Results)
+
     # Unopack the primitives
     @unpack nA, nZ, z_Vals, η, N_final, J_R, util, β, θ, a_grid, Π, l_opt = prim
     @unpack r, w, b, val_fun, pol_fun, pol_fun_ind = res
@@ -254,3 +266,19 @@ function SteadyStateDist(prim::Primitives, res::Results)
     end # j loop
 
 end # SteadyStateDist
+
+# Function to solve for market prices
+function MarketClearing(prim::Primitives, res::Results; λ = 0.7, tol = 1e-3, err = 100)
+
+    # unpack relevant variables and functions
+    @unpack w_mkt, r_mkt, b_mkt, J_R = prim
+    @unpack F = res
+
+    # iteratively solve the model until excess savings converge to zero
+    while err > tol 
+        res.r = r_mkt(res.K, res.L)
+        res.w = w_mkt(res.K, res.L)
+        res.b = b_mkt(res.L, sum(F[:, :, J_R:end]))
+    end # while err > tol 
+
+end # MarketClearing
