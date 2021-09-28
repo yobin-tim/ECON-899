@@ -1,4 +1,5 @@
 using Parameters, DelimitedFiles, ProgressBars
+
 # Define the primitives of the model
 @with_kw mutable struct  Primitives
     N_final ::Int64             = 66         # Lifespan of the agents
@@ -7,7 +8,7 @@ using Parameters, DelimitedFiles, ProgressBars
     a_1     ::Float64           = 0          # Initial assets holding for newborns
     θ       ::Float64           = 0.11       # Labor income tax rate
     γ       ::Float64           = 0.42       # Utillity weight on consumption
-    σ       ::Float64           = 2.0        # Coefcient of relative risk aversion
+    σ       ::Float64           = 2.0        # Coefficient of relative risk aversion
     α       ::Float64           = 0.36       # Capital share in production
     δ       ::Float64           = 0.06       # Capital depreciation rate
     β       ::Float64           = 0.97       # Discount factor
@@ -19,6 +20,7 @@ using Parameters, DelimitedFiles, ProgressBars
     nZ      ::Int64             = 2          # Number of idiosynctatic productivity levels
     p_H     ::Float64           = 0.2037     # Probability of z_H at birth
     p_L     ::Float64           = 0.7963     # Probability of z_L at birth
+
     # Markov transition matrix for z
     Π       ::Array{Float64,2}  = [0.9261 1-0.9261; 1- 0.9811  0.9811] 
 
@@ -27,6 +29,7 @@ using Parameters, DelimitedFiles, ProgressBars
     # * Previously calle util_w 
     # Todo: Change name to util_w if there is a problem
     util  ::Function          = (c, l) -> ( c > 0 ) ? (c^γ * (1 - l)^γ)^(1-σ)/(1-σ) : -Inf
+
     # Utility of a retiree
     # Todo: Remove the next 3 lines if everything is working
     # * Note im only using the utility of a worker and setign l = 0 to obtain the utility of a retiree
@@ -50,10 +53,11 @@ mutable struct Results
     w       ::Float64                       # Wage        
     r       ::Float64                       # Interest rate
     b       ::Float64                       # Benefits
-    μ       :: Array{Float64, 1}            # Distibution of age cohorts
+    μ       ::Array{Float64, 1}            # Distibution of age cohorts
     val_fun ::Array{Float64,3}              # Value function
     pol_fun ::Array{Float64,3}              # Policy function
-    # ! This is a experiment, maybe it is usefull to also save 
+
+    # ! This is a experiment, maybe it is useful to also save 
     # ! the indices of the optimal policy function
     pol_fun_ind ::Array{Int64,3}            # Policy function indices
     F       ::Array{Float64,3}              # Distribution of agents over asset holdings
@@ -62,9 +66,9 @@ end # Results
 # Function that initializes the model
 function Initialize()
     prim = Primitives()                             # Initialize the primitives
-    w = 1.05                                        # Wage
-    r = 0.05                                        # Interest rate
-    b = 0.2                                         # Benefits
+    w = 1.05                                        # Wage guess
+    r = 0.05                                        # Interest rate guess
+    b = 0.2                                         # Benefits guess
     val_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the value function
     pol_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the policy function
     pol_fun_ind = zeros(prim.nA, prim.nZ, prim.N_final)# Initialize the policy function indices
@@ -75,7 +79,7 @@ function Initialize()
     last_period_value = prim.util.( prim.a_grid .* (1 + r) .+ b, 0 ) 
     val_fun[: ,: , end] = hcat(last_period_value, last_period_value) 
     
-    # Calculate distribution of age cohorts
+    # Calculate population distribution across age cohorts
     μ = [1.0]
     for i in 2:prim.N_final
         push!(μ, μ[i-1]/(1.0 + prim.n))
@@ -96,14 +100,16 @@ end
 
 # Value funtion for the retirees
 function V_ret(prim::Primitives, res::Results)
+
     # unpack the primitives and the results
     @unpack nA, a_grid, N_final, J_R, util = prim
     @unpack b, r = res
-    # We obtain for every age group and asset holdigs level the value function using backward induction
+
+    # We obtain for every age group and asset holdings level the value function using backward induction
     for j in N_final-1:-1:J_R
         for a_index in 1:nA
             a = a_grid[a_index]
-            vals = util.(((1+r)*a + b ).- a_grid, 0) .- res.val_fun[:, 1, j+1]
+            vals = util.(((1+r)*a + b ).- a_grid, 0) .+ res.val_fun[:, 1, j+1]
             pol_ind = argmax(vals)
             val_max = vals[pol_ind]
             res.pol_fun_ind[a_index, :, j] .= pol_ind
@@ -111,6 +117,7 @@ function V_ret(prim::Primitives, res::Results)
             res.val_fun[a_index, :, j] .= val_max
         end # for a_index 
     end # for j
+
 end # V_ret
 
 # Value function for the workers
@@ -123,10 +130,13 @@ function V_workers(prim::Primitives, res::Results)
     for z_index in 1:nZ
         z = z_Vals[z_index] # Current idiosyncratic productivity level
         println("Solving for productivity type $z")
+
         # Next we iterate over the age groups
         for j in ProgressBar(J_R-1:-1:1) # Progressbar for runing in console
+
         # for j in N_final-1:-1:1 # Without progressbar for runing in jupyter notebook
             e = ( j < J_R ) ? z * η[j] : 0 # Worker productivity level (only for working age)
+
             # Next we iterate over the asset grid
             for a_index in 1:nA
                 a = a_grid[a_index] # Current asset level
