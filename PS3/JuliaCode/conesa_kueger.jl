@@ -14,7 +14,7 @@ using Parameters, DelimitedFiles, ProgressBars
     β       ::Float64           = 0.97       # Discount factor
     
     # Parameters regarding stochastic processes
-    z_H     ::Float64           = 1.0        # Idiosyncratic productivity High
+    z_H     ::Float64           = 3.0        # Idiosyncratic productivity High
     z_L     ::Float64           = 0.5        # Idiosyncratic productivity Low
     z_Vals  ::Array{Float64}    = [z_H, z_L] # Vector of idiosyncratic productivity values
     nZ      ::Int64             = 2          # Number of idiosynctatic productivity levels
@@ -132,9 +132,9 @@ function V_workers(prim::Primitives, res::Results)
         println("Solving for productivity type $z")
 
         # Next we iterate over the age groups
-        for j in ProgressBar(J_R-1:-1:1) # Progressbar for runing in console
+        for j in ProgressBar(J_R-1:-1:1) # Progressbar for running in console
 
-        # for j in N_final-1:-1:1 # Without progressbar for runing in jupyter notebook
+        # for j in N_final-1:-1:1 # Without progressbar for running in jupyter notebook
             e = ( j < J_R ) ? z * η[j] : 0 # Worker productivity level (only for working age)
 
             # Next we iterate over the asset grid
@@ -143,35 +143,53 @@ function V_workers(prim::Primitives, res::Results)
                 cand_val = -Inf # Initialize the candidate value
                 cand_pol = 0 # Initialize the candidate policy
                 cand_pol_ind = 0 # Initialize the candidate policy index
+
                 # Next we iterate over the possible choices of the next period's asset
                 l_grid = l_opt.(e, w, r, a, a_grid) # Labor supply grid
+
                 for an_index in 1:nA
-                    a_next = a_grid[an_index] # Next period's asset level
-                    l = l_grid[an_index] # Current labor supply
+
+                    a_next = a_grid[an_index]   # Next period's asset level
+                    l = l_grid[an_index]        # Implied labor supply in current period
+
                     if ( j < J_R ) # If the agent is working
-                        c = w * (1 - θ) * e * l + (1 + r)a - a_next # Consumption
+                        c = w * (1 - θ) * e * l + (1 + r)a - a_next # Consumption of worker
                     else # If the agent is not working
-                        c = (1 + r) * a - a_next # Consumption of retiree
+                        c = (1 + r) * a - a_next                    # Consumption of retiree
                     end
-                    # TODO: Check if this is correct this may be a source of error since selections of a and a_next influence labor supply 
-                    if c < 0 # If the consumption is negative, stop the exploration
+
+                    # Check if this is correct this may be a source of error since selections of a and a_next influence labor supply 
+                    if c < 0 || l > 1 # If the consumption is negative or labor exceeds 1, stop the exploration
                         continue
                     end
+
                     # exp_v_next = val_fun[an_index, :, j+1] * Π[z_index , :] # Expected value of next period
-                    exp_v_next = val_fun[an_index, 1, j+1] * Π[z_index , 1] + val_fun[an_index, 2, j+1] * Π[z_index , 2] # Expected value of next period
+                    # exp_v_next = val_fun[an_index, 1, j+1] * Π[z_index , 1] + val_fun[an_index, 2, j+1] * Π[z_index , 2] # Expected value of next period
+
+                    # calculate expected value of next period 
+                    exp_v_next = 0
+                    for zi = 1:nZ 
+                        exp_v_next = exp_v_next + val_fun[an_index, zi, j+1] * Π[z_index , zi]
+                    end # zi
+
                     v_next = util(c, l) + β * exp_v_next # next candidate to value function
+
                     if v_next > cand_val
-                        cand_val = v_next # Update the candidate value
-                        cand_pol = a_next # Candidate to policy function
+                        cand_val = v_next       # Update the candidate value
+                        cand_pol = a_next          # Candidate to policy function
                         cand_pol_ind = an_index # Candidate to policy function index
-                    end # if
+                    end # if v_next > cand_val
+
                 end # Next period asset choice loop
+
                 val_fun[a_index, z_index, j] = cand_val # Update the value function
                 pol_fun[a_index, z_index, j] = cand_pol # Update the policy function
                 pol_fun_ind[a_index, z_index, j] = cand_pol_ind # Update the policy function index
+
             end # Current asset holdings loop
         end # Age loop
     end # Productivity loop
+
     res.val_fun = val_fun
     res.pol_fun = pol_fun
     res.pol_fun_ind = pol_fun_ind
@@ -211,21 +229,28 @@ end # run_Fortran()
 
 # Function to obtain the steady state distribution
 function SteadyStateDist(prim::Primitives, res::Results)
+
     # Unpack the primitives
     @unpack N_final, n, p_L, p_H, nZ, nA, Π = prim
+
     # Finding relative size of each age cohort
 
     # Finding the steady state distribution
     for j in 2:N_final
         for z_ind in 1:nZ
             for a_ind in 1:nA
+
                 a_next_ind = res.pol_fun_ind[a_ind, z_ind, j]
                 if a_next_ind == 0 # Level not reached
                     continue
                 end
-                res.F[a_next_ind, 1, j] += res.F[a_ind, z_ind, j-1] * Π[z_ind, 1] * (res.μ[j]/res.μ[j-1])
-                res.F[a_next_ind, 2, j] += res.F[a_ind, z_ind, j-1] * Π[z_ind, 2] * (res.μ[j]/res.μ[j-1])
+
+                for zi = 1:nz 
+                    res.F[a_next_ind, zi, j] += res.F[a_ind, z_ind, j-1] * Π[z_ind, zi] * (res.μ[j]/res.μ[j-1])
+                end # zi 
+
             end 
         end # z_ind
     end # j loop
+
 end # SteadyStateDist

@@ -33,7 +33,7 @@ module params_grid
     ! Parameters regarding stochastic processe
     ! Set up for discritizing the state space (Productivity Grid)
     INTEGER                     :: i_z                        ! Indexes for productivity                 ! Number of points in the grid
-    DOUBLE PRECISION, PARAMETER :: z_H     = 1.0d0            ! Idiosyncratic productivity High
+    DOUBLE PRECISION, PARAMETER :: z_H     = 3.0d0            ! Idiosyncratic productivity High
     DOUBLE PRECISION, PARAMETER :: z_L     = 0.5d0            ! Idiosyncratic productivity Low
     INTEGER, PARAMETER          :: nZ      = 2                ! Number of points in the grid for z
     DOUBLE PRECISION            :: grid_Z(nZ)                 ! Grid for productivity
