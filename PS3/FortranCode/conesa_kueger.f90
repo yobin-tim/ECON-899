@@ -88,9 +88,9 @@ program conesa_krueger
     ! Begin Computational Timer
     INTEGER                     :: beginning, rate! ,end
     ! Variables for reading parameters from comand line
-    CHARACTER(100) 			    :: 				r_char
-    CHARACTER(100) 			    :: 				w_char
-    CHARACTER(100) 			    :: 				b_char
+    CHARACTER(100)              :: 				r_char
+    CHARACTER(100)              :: 				w_char
+    CHARACTER(100)              :: 				b_char
 
     call system_clock(beginning, rate)
 
@@ -122,7 +122,7 @@ program conesa_krueger
     CALL GET_COMMAND_ARGUMENT(3,b_char)
     READ(b_char,*)b
 
-    write(*,*) 'r = ', r, ' w = ', w, ' b = ', b
+    ! write(*,*) 'r = ', r, ' w = ', w, ' b = ', b
 
     call housekeeping()                 ! Set up the grids and allocate space for the policy functions
     

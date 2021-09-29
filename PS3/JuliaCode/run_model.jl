@@ -14,8 +14,13 @@ prim, res = Initialize();
 @elapsed SteadyStateDist(prim, res);
 =#
 
+agridf, consumption = V_Fortran(res.r, res.w, res.b);
 
-@elapsed MarketClearing(prim, res);
+agridf
+prim.a_grid
+hcat(prim.a_grid, agridf, prim.a_grid - agridf)
+
+@elapsed MarketClearing(prim, res, use_Fortran=true);
 
 plot(res.pol_fun[500,1,:])
 

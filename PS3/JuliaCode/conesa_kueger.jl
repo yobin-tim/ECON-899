@@ -39,8 +39,8 @@
     l_opt   ::Function          = (e, w, r, a, a_next) ->  (γ *(1-θ)*e*w-(1-γ)*( (1+r)*a - a_next ) ) /( (1 - θ)*w*e) 
 
     # Production technology
-    w_mkt   ::Function          = (K, L) -> (1-α)*(K^α)*(L^(-α))
-    r_mkt   ::Function          = (K, L) -> α*(K^(α-1))*(L^(1-α))
+    w_mkt   ::Function          = (K, L) -> (1-α)*(K^α)*(L^(-α)) # Labor first order condition
+    r_mkt   ::Function          = (K, L) -> α*(K^(α-1))*(L^(1-α)) # Capital first order condition
     
     # Government budget constraint
     b_mkt   ::Function          = (L, w, m) -> θ*w*L/m   # m is mass of retirees
@@ -275,7 +275,7 @@ function SteadyStateDist(prim::Primitives, res::Results)
 end # SteadyStateDist
 
 # Function to solve for market prices
-function MarketClearing(prim::Primitives, res::Results; λ = 0.01, tol = 1e-3, err = 100)
+function MarketClearing(prim::Primitives, res::Results;use_Fortran::Bool=false, λ::Float64=0.01, tol::Float64=1e-3, err=100)
 
     # unpack relevant variables and functions
     @unpack w_mkt, r_mkt, b_mkt, J_R, a_grid = prim
@@ -291,8 +291,12 @@ function MarketClearing(prim::Primitives, res::Results; λ = 0.01, tol = 1e-3, e
         res.b = b_mkt(res.L, res.w, sum(res.F[:, :, J_R:end]))
 
         # solve model with current model and payments
-        V_ret(prim, res);
-        V_workers(prim, res);
+        if use_Fortran
+            A_grid_fortran, consumption = V_Fortran(res.r, res.w, res.b)
+        else
+            V_ret(prim, res);
+            V_workers(prim, res);
+        end
         SteadyStateDist(prim, res);
 
         # calculate aggregate capital and labor
