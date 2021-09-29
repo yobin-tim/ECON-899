@@ -7,7 +7,6 @@ using Plots, Distributed, SharedArrays
 theme(:juno)
 @Distributed.everywhere include("conesa_kueger.jl");
 
-prim, res = Initialize();
 
 @elapsed V_ret(prim, res);
 @elapsed V_workers(prim, res);
@@ -20,8 +19,7 @@ agridf
 prim.a_grid
 hcat(prim.a_grid, agridf, prim.a_grid - agridf)
 =#
-@elapsed MarketClearing(prim, res, use_Fortran=true);
-
+@elapsed MarketClearing(prim, res, use_Fortran=false);
 
 plot(res.val_fun[:,:, end])
 plot!(res.val_fun[:,:, end-1])

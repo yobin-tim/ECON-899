@@ -182,16 +182,13 @@ function V_workers(prim::Primitives, res::Results)
                         continue
                     end
                     
-                    # if j == 20 && z_index == 2
-                    #     print("$a_next -- ")
-                    # end
                     # exp_v_next = val_fun[an_index, :, j+1] * Π[z_index , :] # Expected value of next period
                     # exp_v_next = val_fun[an_index, 1, j+1] * Π[z_index , 1] + val_fun[an_index, 2, j+1] * Π[z_index , 2] # Expected value of next period
 
                     # calculate expected value of next period 
                     exp_v_next = 0
                     for zi = 1:nZ 
-                        exp_v_next = exp_v_next + val_fun[an_index, zi, j+1] * Π[z_index , zi]
+                        exp_v_next += val_fun[an_index, zi, j+1] * Π[z_index , zi]
                     end # zi
 
                     v_next = util(c, l) + β * exp_v_next # next candidate to value function
@@ -254,7 +251,7 @@ end # run_Fortran()
 
 # Function to obtain the steady state distribution
 function SteadyStateDist(prim::Primitives, res::Results)
-
+    res.F[:,:,2:end] .= zeros(prim.nA, prim.nZ)
     # Unpack the primitives
     @unpack N_final, n, p_L, p_H, nZ, nA, Π = prim
 
