@@ -25,9 +25,7 @@
     Π       ::Array{Float64,2}  = [0.9261 1-0.9261; 1- 0.9811  0.9811] 
 
     # Functions
-    # Utility of a worker
-    # * Previously called util_w 
-    # Todo: Change name to util_w if there is a problem
+
     util  ::Function          = (c, l) -> ( c > 0 ) ? (c^γ * (1 - l)^γ)^(1-σ)/(1-σ) : -Inf
 
     # Utility of a retiree
