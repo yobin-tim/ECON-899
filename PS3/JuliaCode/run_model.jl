@@ -5,22 +5,22 @@ using Plots, Distributed, SharedArrays
 #addprocs(3)
 
 theme(:juno)
-@Distributed.everywhere include("conesa_kueger.jl");
+@Distributed.everywhere include("PS3/JuliaCode/conesa_kueger.jl");
 
 prim, res = Initialize();
-#=
+
 @elapsed V_ret(prim, res);
 @elapsed V_workers(prim, res);
 @elapsed SteadyStateDist(prim, res);
-=#
 
-agridf, consumption = V_Fortran(res.r, res.w, res.b);
 
+#agridf, consumption = V_Fortran(res.r, res.w, res.b);
+#=
 agridf
 prim.a_grid
 hcat(prim.a_grid, agridf, prim.a_grid - agridf)
-
-@elapsed MarketClearing(prim, res, use_Fortran=true);
+=#
+@elapsed MarketClearing(prim, res);
 
 plot(res.pol_fun[500,1,:])
 

@@ -77,8 +77,8 @@ function Initialize()
     w = 1.05                                        # Wage guess
     r = 0.05                                        # Interest rate guess
     b = 0.2                                         # Benefits guess
-    K = 200                                         # inital capital guess
-    L = 100                                         # initial labor guess
+    K = 4                                           # inital capital guess
+    L = 0.9                                         # initial labor guess
     val_fun = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)    # Initialize the value function
     pol_fun = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)    # Initialize the policy function
     pol_fun_ind = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)# Initialize the policy function indices
@@ -119,7 +119,7 @@ function V_ret(prim::Primitives, res::Results)
     for j in N_final-1:-1:J_R
         for a_index in 1:nA
             a = a_grid[a_index]
-            vals = util.(((1+r)*a + b ).- a_grid, 0) .+ res.val_fun[:, 1, j+1]
+            vals = util.(((1+r)*a + b).- a_grid, 0) .+ res.val_fun[:, 1, j+1]
             pol_ind = argmax(vals)
             val_max = vals[pol_ind]
             res.pol_fun_ind[a_index, :, j] .= pol_ind
@@ -168,7 +168,7 @@ function V_workers(prim::Primitives, res::Results)
                     if ( j < J_R ) # If the agent is working
                         c = w * (1 - θ) * e * l + (1 + r)a - a_next # Consumption of worker
                     else # If the agent is not working
-                        c = (1 + r) * a - a_next                    # Consumption of retiree
+                        c = (1 + r) * a - a_next + b                # Consumption of retiree
                     end
 
                     # Check if this is correct this may be a source of error since selections of a and a_next influence labor supply 
@@ -256,7 +256,8 @@ function SteadyStateDist(prim::Primitives, res::Results)
         for z_ind in 1:nZ
             for a_ind in 1:nA
 
-                a_next_ind = res.pol_fun_ind[a_ind, z_ind, j]
+                a_next_ind = res.pol_fun_ind[a_ind, z_ind, j-1]
+
                 if a_next_ind == 0 # Level not reached
                     continue
                 end
@@ -272,7 +273,7 @@ function SteadyStateDist(prim::Primitives, res::Results)
 end # SteadyStateDist
 
 # Function to solve for market prices
-function MarketClearing(prim::Primitives, res::Results;use_Fortran::Bool=false, λ::Float64=0.01, tol::Float64=1e-3, err=100)
+function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false, λ::Float64=0.01, tol::Float64=1e-3, err=100)
 
     # unpack relevant variables and functions
     @unpack w_mkt, r_mkt, b_mkt, J_R, a_grid = prim
@@ -285,7 +286,7 @@ function MarketClearing(prim::Primitives, res::Results;use_Fortran::Bool=false, 
         # calculate prices and payments at current K, L, and F
         res.r = r_mkt(res.K, res.L)
         res.w = w_mkt(res.K, res.L)
-        res.b = b_mkt(res.L, res.w, sum(res.F[:, :, J_R:end]))
+        res.b = b_mkt(res.L, res.w, sum(res.μ[J_R:end]))
 
         # solve model with current model and payments
         if use_Fortran
