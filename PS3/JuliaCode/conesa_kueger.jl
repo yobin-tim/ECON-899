@@ -101,7 +101,6 @@ function Initialize()
     F = zeros(prim.nA, prim.nZ, prim.N_final)
     F[1, 1, 1] = μ[1] * prim.p_H  
     F[1, 2, 1] = μ[1] * prim.p_L
-    F[2:end, :, 1] .= 0  
 
     # Initialize the results
     res = Results(w, r, b, K, L, μ, val_fun, pol_fun, l_fun, pol_fun_ind, F)        
