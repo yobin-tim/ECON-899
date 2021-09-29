@@ -239,11 +239,13 @@ function V_Fortran(r::Float64, w::Float64, b::Float64)
         pol_fun_ind[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end-1], results_raw[range_a[prim.nA+1:end],end-1])
         pol_fun[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end-2], results_raw[range_a[prim.nA+1:end],end-2])
         consumption[:,:,j]   = hcat(results_raw[range_a[1:prim.nA],end-3], results_raw[range_a[prim.nA+1:end],end-3])
+        l_fun[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end-4], results_raw[range_a[prim.nA+1:end],end-4])
     end
-    A_grid_fortran = results_raw[1:prim.nA,end-4]
+    A_grid_fortran = results_raw[1:prim.nA,end-5]
     res.val_fun = val_fun
     res.pol_fun = pol_fun
     res.pol_fun_ind = pol_fun_ind
+    res.l_fun = l_fun
     return A_grid_fortran, consumption
     
 end # run_Fortran()
