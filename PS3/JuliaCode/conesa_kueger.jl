@@ -312,7 +312,7 @@ function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false,
         L = sum(res.F[:, :, :] .* res.l_fun) # Labor supply grid
 
         # calculate error
-        err = norm([res.K, res.L] - [K, L])
+        err = max(abs([res.K, res.L] - [K, L]))
 
         if (err > tol*100) & (λ <= 0.85)
             λ = 0.85
