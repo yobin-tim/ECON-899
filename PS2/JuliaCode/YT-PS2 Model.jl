@@ -4,7 +4,7 @@
 #########################################
 
 #ReadMe: This file contains functions and variables. Run the code from the file PS2 compute.
-# using Plots, Parameters, Pkg
+using Plots, Parameters, Pkg
 #Keyword-enabled structure to hold model primitives
 
 @with_kw struct Primitives
@@ -136,10 +136,10 @@ function set_price(prim::Primitives, res::Results, tol::Float64 = 1e-4)
     xs_supply = dot(μ, pol_func)
     adj = 0.001 * q
     if abs(xs_supply) > tol && xs_supply > 0
-        q_new = q - adj
+        q_new = q + adj
         return(false)
     elseif abs(xs_supply) > tol && xs_supply < 0
-        q_new = q + adj
+        q_new = q - adj
         return(false)
     else
         println("Price is within tolerance: q = ", q)

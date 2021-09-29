@@ -233,17 +233,20 @@ function V_Fortran(r::Float64, w::Float64, b::Float64)
     pol_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the policy function
     pol_fun_ind = zeros(prim.nA, prim.nZ, prim.N_final + 1)    # Initialize the policy function index
     consumption = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the consumption function
+    l_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the labor policy function
     for j in 1:prim.N_final
         range_a = (j-1) * 2*prim.nA + 1 : j * 2*prim.nA |> collect
         val_fun[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end], results_raw[range_a[prim.nA+1:end],end])
         pol_fun_ind[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end-1], results_raw[range_a[prim.nA+1:end],end-1])
         pol_fun[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end-2], results_raw[range_a[prim.nA+1:end],end-2])
         consumption[:,:,j]   = hcat(results_raw[range_a[1:prim.nA],end-3], results_raw[range_a[prim.nA+1:end],end-3])
+        l_fun[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end-4], results_raw[range_a[prim.nA+1:end],end-4])
     end
-    A_grid_fortran = results_raw[1:prim.nA,end-4]
+    A_grid_fortran = results_raw[1:prim.nA,end-5]
     res.val_fun = val_fun
     res.pol_fun = pol_fun
     res.pol_fun_ind = pol_fun_ind
+    res.l_fun = l_fun
     return A_grid_fortran, consumption
     
 end # run_Fortran()
@@ -251,6 +254,7 @@ end # run_Fortran()
 
 # Function to obtain the steady state distribution
 function SteadyStateDist(prim::Primitives, res::Results)
+    # Initialize the steady state distribution
     res.F[:,:,2:end] .= zeros(prim.nA, prim.nZ)
     # Unpack the primitives
     @unpack N_final, n, p_L, p_H, nZ, nA, Π = prim
@@ -279,7 +283,7 @@ function SteadyStateDist(prim::Primitives, res::Results)
 end # SteadyStateDist
 
 # Function to solve for market prices
-function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false, λ::Float64=0.01, tol::Float64=1e-3, err=100)
+function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false, λ::Float64=0.7, tol::Float64=1e-3, err=100)
 
     # unpack relevant variables and functions
     @unpack w_mkt, r_mkt, b_mkt, J_R, a_grid = prim
@@ -305,14 +309,22 @@ function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false,
 
         # calculate aggregate capital and labor
         K = sum(res.F[:, :, :] .* a_grid)
-        L = sum(res.F[:, :, :] .* res.l_fun) # Labor supply grid)
+        L = sum(res.F[:, :, :] .* res.l_fun) # Labor supply grid
 
         # calculate error
-        err = norm([res.K, res.L] - [K, L])
+        err = max(abs([res.K, res.L] - [K, L]))
+
+        if (err > tol*100) & (λ <= 0.85)
+            λ = 0.85
+        elseif (err > tol*10) & (λ <= 0.95)
+            λ = 0.95
+        elseif λ <= 0.99
+            λ = 0.99
+        end
 
         # update guess 
-        res.K = λ*K + (1-λ)*res.K 
-        res.L = λ*L + (1-λ)*res.L
+        res.K = (1-λ)*K + λ*res.K 
+        res.L = (1-λ)*L + λ*res.L
 
         n+=1
 

@@ -65,15 +65,17 @@ module params_grid
     DOUBLE PRECISION            :: a_maxim                    ! Initialize canditate maximizer asset holding level
     INTEGER                     :: a_ind_maxim                ! Initialize canditate maximizer asset holding index
     DOUBLE PRECISION            :: l_opt                      ! Initialize optimal labor supply
+    DOUBLE PRECISION            :: l_opt_cand                 ! Initialize optimal labor supply candidate
     DOUBLE PRECISION            :: v_next                     ! Initialize continuation value of the value function
     DOUBLE PRECISION            :: u_current                  ! Initialize current value of utility
     DOUBLE PRECISION            :: Pr(nZ)                     ! Initialize probability of productivity transition     
     DOUBLE PRECISION            :: e                          ! Initialize the age efficiency
     ! Allocating space for Policy Functions
-    DOUBLE PRECISION            :: pf_c(nA, nZ, nJ)
-    DOUBLE PRECISION            :: pf_A(nA, nZ, nJ)
-    INTEGER                     :: pf_A_ind(nA, nZ, nJ)
-    DOUBLE PRECISION            :: pf_v(nA, nZ, nJ)
+    DOUBLE PRECISION            :: pf_c(nA, nZ, nJ)           ! Policy function for consumption
+    DOUBLE PRECISION            :: pf_A(nA, nZ, nJ)           ! Policy function for asset
+    INTEGER                     :: pf_A_ind(nA, nZ, nJ)       ! Policy function for asset index
+    DOUBLE PRECISION            :: pf_v(nA, nZ, nJ)           ! Policy function for value
+    DOUBLE PRECISION            :: pf_l(nA, nZ, nJ)           ! Policy function for labor
     INTEGER                     :: i_stat
     INTEGER                     :: iMaxThreads
     ! Variables for paralellization
@@ -122,8 +124,6 @@ program conesa_krueger
         READ(b_char,*)b
     END IF
 
-
-    ! write(*,*) 'r = ', r, ' w = ', w, ' b = ', b
 
     call housekeeping()                 ! Set up the grids and allocate space for the policy functions
     
@@ -197,11 +197,13 @@ subroutine housekeeping()
                     pf_A(i_A, i_Z, j) = 0d0
                     pf_A_ind(i_A, i_Z, j) = 0
                     pf_v(i_A, i_Z, j) = 0d0
+                    pf_l(i_A, i_Z, j) = 0d0
                 else
                     pf_c(i_A, i_Z, j) = grid_A(i_A)*(1 + r) + b
                     pf_A(i_A, i_Z, j) = 0d0
                     pf_A_ind(i_A, i_Z, j) = 1
                     pf_v(i_A, i_Z, j) = pf_c(i_A, i_Z, j)**(GAMMA * (1 - SIGMA)) / (1 - SIGMA)
+                    pf_l(i_A, i_Z, j) = 0d0
                 end if 
             end do
         end do
@@ -283,6 +285,7 @@ subroutine V_Func_Work()
             end if
             do i_A = 1, nA   ! Loop over the asset grid
                 a_ind_maxim = -100
+                l_opt_cand = -100000000d0 ! some non-sense large number
                 a_maxim = -100d0 ! Initialize the value function for this age group
                 cand_max = -100d0 ! A large negative number for candidate to maximum
                 ! a_maxim  = -100000000d0 ! A large negative number for the asset level that maximizes the value function
@@ -313,21 +316,20 @@ subroutine V_Func_Work()
                     u_current = ( ( (c_current**GAMMA ) * ( (1 - l_opt) ** (1 - GAMMA))) ** (1 - SIGMA) ) / (1 - SIGMA) !  Compute the utility
                     v_next = pf_v(i_Anext, 1, j+1) * Pr(1) + pf_v(i_Anext, 2, j+1) * Pr(2) ! Compute the expected value of next period
                     v_current = u_current + BETA * v_next
-                    ! if (j == J_R - 1 .and. i_A == 200) then
-                    !     WRITE(*,*) 'a=',a_current,'c=',c_current,"l=",l_opt,"a'=",a_next,"u=",u_current,"v'=",v_next
-                    ! end if
-
+                
                     ! Check if the current value is greater than the previous one and update the value function
                     if (v_current > cand_max) then 
                         cand_max = v_current
                         a_maxim = a_next
                         a_ind_maxim = i_Anext
+                        l_opt_cand = l_opt
                     end if
             
                     pf_v(i_A, i_Z, j) = cand_max
                     pf_A(i_A, i_Z, j) = a_maxim
                     pf_A_ind(i_A, i_Z, j) = a_ind_maxim
                     pf_c(i_A, i_Z, j) = c_current
+                    pf_l(i_A, i_Z, j) = l_opt_cand
                 end do ! End of loop over i_Anext 
             end do ! End of loop over i_A
         end do ! End of loop over i_Z
@@ -350,12 +352,12 @@ subroutine coda()
 
     open(unit=2, file='./PS3/FortranCode/results.csv', status='replace', action='write', iostat=rc)
     if (rc /= 0) stop 'Unable to open file results.csv'
-    200 format(i2,2x, f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,i4,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x)
+    200 format(i2,2x, f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,i4,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x)
     
     do j = 1, nJ
         do i_Z = 1, nZ
             do i_A = 1, nA
-                write(2,200)j,grid_Z(i_Z),grid_A(i_A),pf_c(i_A, i_Z, j),pf_A(i_A, i_Z, j),pf_A_ind(i_A, i_Z, j),pf_v(i_A, i_Z, j)
+write(2,200)j,grid_Z(i_Z),grid_A(i_A),pf_c(i_A, i_Z, j),pf_c(i_A, i_Z, j),pf_A(i_A, i_Z, j),pf_A_ind(i_A, i_Z, j),pf_v(i_A, i_Z, j)
             end do
         end do
     end do
