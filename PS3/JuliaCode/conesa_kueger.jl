@@ -279,7 +279,7 @@ function SteadyStateDist(prim::Primitives, res::Results)
 end # SteadyStateDist
 
 # Function to solve for market prices
-function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false, λ::Float64=0.01, tol::Float64=1e-3, err=100)
+function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false, λ::Float64=0.7, tol::Float64=1e-3, err=100)
 
     # unpack relevant variables and functions
     @unpack w_mkt, r_mkt, b_mkt, J_R, a_grid = prim
@@ -310,9 +310,17 @@ function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false,
         # calculate error
         err = norm([res.K, res.L] - [K, L])
 
+        if (err > tol*100) & (λ <= 0.85)
+            λ = 0.85
+        elseif (err > tol*10) & (λ <= 0.95)
+            λ = 0.95
+        elseif λ <= 0.99
+            λ = 0.99
+        end
+
         # update guess 
-        res.K = λ*K + (1-λ)*res.K 
-        res.L = λ*L + (1-λ)*res.L
+        res.K = (1-λ)*K + λ*res.K 
+        res.L = (1-λ)*L + λ*res.L
 
         n+=1
 
