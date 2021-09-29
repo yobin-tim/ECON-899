@@ -122,7 +122,7 @@ function V_ret(prim::Primitives, res::Results)
     for j in N_final-1:-1:J_R
         for a_index in 1:nA
             a = a_grid[a_index]
-            vals = util.(((1+r)*a + b ).- a_grid, 0) .+ res.val_fun[:, 1, j+1]
+            vals = util.(((1+r)*a + b).- a_grid, 0) .+ res.val_fun[:, 1, j+1]
             pol_ind = argmax(vals)
             val_max = vals[pol_ind]
             res.pol_fun_ind[a_index, :, j] .= pol_ind
@@ -171,7 +171,7 @@ function V_workers(prim::Primitives, res::Results)
                     if ( j < J_R ) # If the agent is working
                         c = w * (1 - θ) * e * l + (1 + r)a - a_next # Consumption of worker
                     else # If the agent is not working
-                        c = (1 + r) * a - a_next                    # Consumption of retiree
+                        c = (1 + r) * a - a_next + b                # Consumption of retiree
                     end
 
                     # Check if this is correct this may be a source of error since selections of a and a_next influence labor supply 
