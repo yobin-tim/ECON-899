@@ -65,7 +65,7 @@ end # Primitives
     μ       ::Array{Float64, 1}             # Distibution of age cohorts
     val_fun ::Array{Float64, 3}             # Value function
     pol_fun ::Array{Float64, 3}             # Policy function
-    l_fun   ::Array{Float64, 3}             # Labor policy function
+    l_fun   ::Array{Float64, 3}             # (effective) Labor policy function
 
     # ! This is a experiment, maybe it is useful to also save 
     # ! the indices of the optimal policy function
@@ -79,8 +79,8 @@ function Initialize()
     w = 1.05                                        # Wage guess
     r = 0.05                                        # Interest rate guess
     b = 0.2                                         # Benefits guess
-    K = 100                                         # inital capital guess
-    L = 50                                          # initial labor guess
+    K = 200                                         # inital capital guess
+    L = 100                                         # initial labor guess
     val_fun = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)    # Initialize the value function
     pol_fun = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)    # Initialize the policy function
     pol_fun_ind = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)# Initialize the policy function indices
@@ -175,7 +175,7 @@ function V_workers(prim::Primitives, res::Results)
                     end
 
                     # Check if this is correct this may be a source of error since selections of a and a_next influence labor supply 
-                    if c < 0 || l > 1 # If the consumption is negative or labor exceeds 1, stop the exploration
+                    if c < 0 || l > 1 || l<0 # If the consumption is negative or labor is outside its bounds, stop the exploration
                         continue
                     end
 
@@ -194,7 +194,7 @@ function V_workers(prim::Primitives, res::Results)
                         cand_val = v_next       # Update the candidate value
                         cand_pol = a_next       # Candidate to policy function
                         cand_pol_ind = an_index # Candidate to policy function index
-                        l_pol = l               # Candidate to labor policy function
+                        l_pol = e*l             # Candidate to labor policy function
                     end # if v_next > cand_val
 
                 end # Next period asset choice loop
@@ -278,7 +278,6 @@ function MarketClearing(prim::Primitives, res::Results; λ = 0.01, tol = 1e-3, e
 
     # unpack relevant variables and functions
     @unpack w_mkt, r_mkt, b_mkt, J_R, a_grid = prim
-    @unpack F = res
 
     n = 0 # loop counter
 
@@ -288,7 +287,7 @@ function MarketClearing(prim::Primitives, res::Results; λ = 0.01, tol = 1e-3, e
         # calculate prices and payments at current K, L, and F
         res.r = r_mkt(res.K, res.L)
         res.w = w_mkt(res.K, res.L)
-        res.b = b_mkt(res.L, res.w, sum(F[:, :, J_R:end]))
+        res.b = b_mkt(res.L, res.w, sum(res.F[:, :, J_R:end]))
 
         # solve model with current model and payments
         V_ret(prim, res);
@@ -296,8 +295,8 @@ function MarketClearing(prim::Primitives, res::Results; λ = 0.01, tol = 1e-3, e
         SteadyStateDist(prim, res);
 
         # calculate aggregate capital and labor
-        K = sum(F[:, :, :] .* a_grid)
-        L = sum(F[:, :, :] .* res.l_fun) # Labor supply grid)
+        K = sum(res.F[:, :, :] .* a_grid)
+        L = sum(res.F[:, :, :] .* res.l_fun) # Labor supply grid)
 
         # calculate error
         err = norm([res.K, res.L] - [K, L])
@@ -308,7 +307,7 @@ function MarketClearing(prim::Primitives, res::Results; λ = 0.01, tol = 1e-3, e
 
         n+=1
 
-        println("$n iterations; err = $err, K = ", res.K, ", L = ", res.L)
+        println("$n iterations; err = $err, K = ", round(res.K, digits = 2), ", L = ", round(res.L, digits = 2))
 
     end # while err > tol 
 
