@@ -26,7 +26,7 @@
 
     # Functions
     # Utility of a worker
-    # * Previously calle util_w 
+    # * Previously called util_w 
     # Todo: Change name to util_w if there is a problem
     util  ::Function          = (c, l) -> ( c > 0 ) ? (c^γ * (1 - l)^γ)^(1-σ)/(1-σ) : -Inf
 
@@ -216,13 +216,13 @@ end # V_workers
 # If we want to speed up the code we can use Fortran
 # the following function is a wrapper for the Fortran code
 
-function V_Fortran(w::Float64, r::Float64, b::Float64)
+function V_Fortran(r::Float64, w::Float64, b::Float64)
     # PS3/FortranCode/conesa_kueger.f90
     # Compile Fortran code
     path = "./PS3/FortranCode/"
     run(`gfortran -fopenmp -O2 -o $(path)V_Fortran $(path)conesa_kueger.f90`)
     # run(`./T_op $q $n_iter`) 
-    run(`$(path)V_Fortran`)
+    run(`$(path)V_Fortran $r $w $b`)
 
     results_raw =  readdlm("$(path)results.csv");
 
@@ -244,6 +244,7 @@ function V_Fortran(w::Float64, r::Float64, b::Float64)
     return A_grid_fortran, consumption
     
 end # run_Fortran()
+
 
 # Function to obtain the steady state distribution
 function SteadyStateDist(prim::Primitives, res::Results)

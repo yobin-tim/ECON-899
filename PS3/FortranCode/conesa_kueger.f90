@@ -88,17 +88,42 @@ program conesa_krueger
     ! Begin Computational Timer
     INTEGER                     :: beginning, rate! ,end
     ! Variables for reading parameters from comand line
-    ! CHARACTER(100) 			    :: 				q_char, iter_char
-    ! DOUBLE PRECISION 		    :: 				q_double
+    CHARACTER(100) 			    :: 				r_char
+    CHARACTER(100) 			    :: 				w_char
+    CHARACTER(100) 			    :: 				b_char
 
     call system_clock(beginning, rate)
 
     call read_ez() ! Read in the ez array
     
-    ! For question 1 and 2
-    r = 0.05d0
-    w = 1.05d0
-    b = 0.2d0
+    ! Read in the parameters from the command line
+    IF (COMMAND_ARGUMENT_COUNT() < 1) THEN
+        ! If no command line arguments are given, use the default values
+        ! default values correspond to the values on Questions 1 and 2
+        r = 0.05d0
+        w = 1.05d0
+        b = 0.2d0
+    ELSE IF (COMMAND_ARGUMENT_COUNT() < 3 ) THEN
+        ! If less than three command line arguments are given throw an error and stop
+        WRITE(*,*) 'ERROR: WAS EXPECTING 3 COMAND LINE ARGUMENTS, ONLY GOT', COMMAND_ARGUMENT_COUNT()
+        WRITE(*,*) 'IF YOU WANT TO USE THE DEFAULT VALUES, RUN THE PROGRAM WITHOUT ANY ARGUMENTS'
+        WRITE(*,*) 'IF YOU WANT TO SUPPLY ARGUMENTS TO THE PROGRAM USE: ./program $r $w $b'
+        WRITE(*,*) 'EXITING...'
+        STOP
+    END IF
+
+    ! Read User supplied values for r, w, b
+    CALL GET_COMMAND_ARGUMENT(1,r_char)
+    READ(r_char,*)r
+
+    CALL GET_COMMAND_ARGUMENT(2,w_char)
+    READ(w_char,*)w
+
+    CALL GET_COMMAND_ARGUMENT(3,b_char)
+    READ(b_char,*)b
+
+    write(*,*) 'r = ', r, ' w = ', w, ' b = ', b
+
     call housekeeping()                 ! Set up the grids and allocate space for the policy functions
     
     call V_Func_Ret()                   ! Solve for the value function for retirees

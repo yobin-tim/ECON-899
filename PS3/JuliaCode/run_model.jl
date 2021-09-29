@@ -5,7 +5,7 @@ using Plots, Distributed, SharedArrays
 #addprocs(3)
 
 theme(:juno)
-@Distributed.everywhere include("PS3/JuliaCode/conesa_kueger.jl");
+@Distributed.everywhere include("conesa_kueger.jl");
 
 prim, res = Initialize();
 #=
@@ -13,6 +13,8 @@ prim, res = Initialize();
 @elapsed V_workers(prim, res);
 @elapsed SteadyStateDist(prim, res);
 =#
+
+
 @elapsed MarketClearing(prim, res);
 
 plot(res.pol_fun[500,1,:])
