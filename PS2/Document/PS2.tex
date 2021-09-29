@@ -25,6 +25,7 @@
 \usepackage{parskip}
 \usepackage[us]{datetime} %package for setting due date in US format
 \newdate{duedate}{27}{04}{2021} %to set a due date
+\usepackage{jlcode}
 \allowdisplaybreaks
 \usepackage[margin=1in]{geometry}
 \pagestyle{fancy}
@@ -56,6 +57,8 @@
 \newenvironment{solutions}[1][Proof]{\begin{singlespace}\underline{\textbf{#1:}}\quad }{\ \rule{0.3em}{0.3em}\end{singlespace}} % Answer format
 
 \begin{document}
+
+This problem set was completed by Danny Edgel, Mitchell Valdes Bobes, Ryan Mather, and Yobin Timilsena.
 	\begin{enumerate}[I.]
 		\item Consider the same environment as Huggett (1993, JEDC) except assume that there are enforceable insurance markets regarding the idiosyncratic shocks to earnings and that there are no initial asset holdings. Solve for a competitive equilibrium. What are prices? What is the allocation? (Hint: think about the planner’s problem and then decentralize).
 		\begin{solution}
@@ -85,7 +88,12 @@
 				$ g(\hat{a}, s) < \hat{a} $ as in Figure 1 of Huggett. (Recall this condition establishes an upper bound on
 				the set $ A $ necessary to obtain an invariant distribution).
 				\begin{solution}
-					
+					The policy function is graphed below in Figure \ref{4a}. As can be seen, there does exist an $\hat{a}$ beyond which modeled agents always, whether employed or unemployed, dissave on net. 
+					\begin{figure}[htbp!]
+					\centering
+					\includegraphics[scale=.5]{ForIncludingInDocument/02_ryan_Policy_Functions.png}
+					\caption{Problem 4(a) \label{4a}}
+					\end{figure}
 				\end{solution}
 			
 				\item What is the equilibrium bond price? Plot the cross-sectional distribution of wealth for those employed and those unemployed on the same graph.
@@ -117,4 +125,12 @@
 			\end{solution}
 		\end{enumerate}
 	\end{enumerate}
+\section*{Code Appendix}
+This is the ``computation'' code that does most of the numerical work involved for the solutions above:
+\jlinputlisting{./ForIncludingInDocument/Compute_Draft1.jl}
+
+This code calls the ``computation'' code above and then prints some figures:
+\jlinputlisting{./ForIncludingInDocument/RunCode_Draft1.jl}
+
+
 \end{document}
