@@ -19,9 +19,9 @@ Plots.plot(a_grid, val_func[:,1], title="Value Function", label="Employed")
     Plots.savefig("Value_Functions.png")
     #Plotting Policy functions
         a_hat=[0, 0]
-        for 1:na
+        # for 1:na
 
-        end
+        # end
         Plots.plot(a_grid, a_grid[Int64.(pol_func[:,1])], title="Policy Functions", label="Employed")
             plot!(a_grid, a_grid[Int64.(pol_func[:,2])], label="Unemployed")
             plot!(a_grid,a_grid, label="45° line", legend=:bottomright)
