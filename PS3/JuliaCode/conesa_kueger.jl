@@ -233,6 +233,7 @@ function V_Fortran(r::Float64, w::Float64, b::Float64)
     pol_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the policy function
     pol_fun_ind = zeros(prim.nA, prim.nZ, prim.N_final + 1)    # Initialize the policy function index
     consumption = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the consumption function
+    l_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the labor policy function
     for j in 1:prim.N_final
         range_a = (j-1) * 2*prim.nA + 1 : j * 2*prim.nA |> collect
         val_fun[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end], results_raw[range_a[prim.nA+1:end],end])
@@ -253,6 +254,7 @@ end # run_Fortran()
 
 # Function to obtain the steady state distribution
 function SteadyStateDist(prim::Primitives, res::Results)
+    # Initialize the steady state distribution
     res.F[:,:,2:end] .= zeros(prim.nA, prim.nZ)
     # Unpack the primitives
     @unpack N_final, n, p_L, p_H, nZ, nA, Π = prim
@@ -307,7 +309,7 @@ function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false,
 
         # calculate aggregate capital and labor
         K = sum(res.F[:, :, :] .* a_grid)
-        L = sum(res.F[:, :, :] .* res.l_fun) # Labor supply grid)
+        L = sum(res.F[:, :, :] .* res.l_fun) # Labor supply grid
 
         # calculate error
         err = norm([res.K, res.L] - [K, L])

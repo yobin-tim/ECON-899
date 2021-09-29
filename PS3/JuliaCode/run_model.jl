@@ -7,7 +7,7 @@ using Plots, Distributed, SharedArrays
 theme(:juno)
 @Distributed.everywhere include("conesa_kueger.jl");
 
-
+prim, res = Initialize();
 @elapsed V_ret(prim, res);
 @elapsed V_workers(prim, res);
 @time V_Fortran(res.r, res.w, res.b);
