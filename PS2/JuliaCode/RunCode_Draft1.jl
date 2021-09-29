@@ -7,7 +7,7 @@
 #Saving Details
     include("Compute_Draft1.jl")
 #Solve the Model
-     #initialize primitive and results structs
+    #initialize primitive and results structs
     @time out_primitives, out_results = Solve_model() #solve the model!
     @unpack val_func, pol_func = out_results
     @unpack a_grid, na, S_grid = out_primitives

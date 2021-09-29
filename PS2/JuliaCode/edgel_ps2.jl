@@ -15,7 +15,7 @@ Plots.plot(a_grid, transpose(Q))
 Plots.savefig("./PS2/Figures/02_stationary_pdf_edgel.png")
 Plots.plot(a_grid, transpose(μ))
 
-cumQ = cumsum(Q, dims = 2)
+cumQ = cumsum(  Q, dims = 2)
 Plots.plot(a_grid, transpose(cumQ))
 Plots.savefig("./PS2/Figures/02_stationary_cdf_edgel.png")
 
@@ -66,3 +66,4 @@ fig_polfun = plot(a_grid, transpose(pol_func), title="Policy Functions", xlabel=
         label = ["S = e" "S = u"], legend=:topleft, tickfontsize = upscale * 8)
 
 savefig(fig_polfun, "./PS2/Figures/02_pubready_polfun_edgel.tex")        
+
