@@ -41,7 +41,7 @@ module params_grid
     DOUBLE PRECISION, PARAMETER :: p_L     = 0.7963d0         ! Probability of z_L at birth
     DOUBLE PRECISION, PARAMETER :: PI_HH   = 0.9261d0         ! Probability of transision from z_H to z_H
     DOUBLE PRECISION, PARAMETER :: PI_HL   = 1.0d0 - PI_HH    ! Probability of transision from z_H to z_L
-    DOUBLE PRECISION, PARAMETER :: PI_LL   = 0.0739d0         ! Probability of transision from z_L to z_L
+    DOUBLE PRECISION, PARAMETER :: PI_LL   = 0.9811d0         ! Probability of transision from z_L to z_L
     DOUBLE PRECISION, PARAMETER :: PI_LH   = 1.0d0 - PI_LL    ! Probability of transision from z_L to z
 	! Set up for discritizing the state space (Asset Grid)
     INTEGER                     :: i_A, i_Anext               ! Indexes for the asset grid
@@ -86,11 +86,11 @@ program conesa_krueger
     implicit none
 
     ! Begin Computational Timer
-    INTEGER                     :: beginning, rate! ,end
+    INTEGER                     ::  beginning, rate! ,end
     ! Variables for reading parameters from comand line
-    CHARACTER(100)              :: 				r_char
-    CHARACTER(100)              :: 				w_char
-    CHARACTER(100)              :: 				b_char
+    CHARACTER(100)              ::  r_char
+    CHARACTER(100)              ::  w_char
+    CHARACTER(100)              ::  b_char
 
     call system_clock(beginning, rate)
 
@@ -110,17 +110,18 @@ program conesa_krueger
         WRITE(*,*) 'IF YOU WANT TO SUPPLY ARGUMENTS TO THE PROGRAM USE: ./program $r $w $b'
         WRITE(*,*) 'EXITING...'
         STOP
+    ELSE
+        ! Read User supplied values for r, w, b
+        CALL GET_COMMAND_ARGUMENT(1,r_char)
+        READ(r_char,*)r
+    
+        CALL GET_COMMAND_ARGUMENT(2,w_char)
+        READ(w_char,*)w
+    
+        CALL GET_COMMAND_ARGUMENT(3,b_char)
+        READ(b_char,*)b
     END IF
 
-    ! Read User supplied values for r, w, b
-    CALL GET_COMMAND_ARGUMENT(1,r_char)
-    READ(r_char,*)r
-
-    CALL GET_COMMAND_ARGUMENT(2,w_char)
-    READ(w_char,*)w
-
-    CALL GET_COMMAND_ARGUMENT(3,b_char)
-    READ(b_char,*)b
 
     ! write(*,*) 'r = ', r, ' w = ', w, ' b = ', b
 
@@ -229,7 +230,7 @@ subroutine V_Func_Ret()
                 a_next = grid_A(i_Anext)
                 c_current = (1 + r) * a_current + b - a_next
                 if (c_current > 0d0) then ! Check if consumption is positive
-                    u_current = c_current**(1 - GAMMA) / (1 - GAMMA)
+                    u_current = c_current**( GAMMA * (1 - SIGMA) ) / (1 - SIGMA)
                     v_current = u_current + BETA * pf_v(i_Anext, 1, j+1)
                     if (v_current > cand_max) then  ! Update the candidate maximizer
                         cand_max = v_current
@@ -293,25 +294,28 @@ subroutine V_Func_Work()
                     ! *********************
                     a_next = grid_A(i_Anext)
                     l_opt = (GAMMA*(1-THETA)*e*w-(1-GAMMA)*((1+r)*a_current-a_next))/((1-THETA)*e*w) ! Compute the labor supply
-                    c_current = w*(1-THETA)*e*l_opt+(1+r)*a_current-a_next ! Compute the consumption
                     ! *******************************************************
                     ! Compute the fesibility of labor and consumption choices
                     ! *******************************************************
+                    if (l_opt < 0d0) then ! If labor supply is negative, we set it to zero
+                        l_opt = 0d0
+                    end if
+                    if (l_opt > 1.0d0) then ! If labor supply is greater than 1, we set it to 1
+                        l_opt = 1.0d0
+                    end if
+                    c_current = w*(1-THETA)*e*l_opt+(1+r)*a_current-a_next ! Compute the consumption
                     if (c_current < 0d0) then ! If consumption is negative, then go to the next iteration
                         CYCLE
                     end if 
-                    if (l_opt < 0d0) then ! If labor supply is negative, then go to the next iteration
-                        CYCLE
-                    end if
-                    if (l_opt > 1.0d0) then ! If labor supply is greater than the maximum, then go to the next iteration
-                        CYCLE
-                    end if
                     ! **************************
                     ! Compute the value function
                     ! **************************
-                    u_current = ( (c_current**GAMMA ) * ( (1 - l_opt) ** (1 - GAMMA)) ** (1 - SIGMA)) / (1 - SIGMA) !  Compute the utility
+                    u_current = ( ( (c_current**GAMMA ) * ( (1 - l_opt) ** (1 - GAMMA))) ** (1 - SIGMA) ) / (1 - SIGMA) !  Compute the utility
                     v_next = pf_v(i_Anext, 1, j+1) * Pr(1) + pf_v(i_Anext, 2, j+1) * Pr(2) ! Compute the expected value of next period
                     v_current = u_current + BETA * v_next
+                    ! if (j == J_R - 1 .and. i_A == 200) then
+                    !     WRITE(*,*) 'a=',a_current,'c=',c_current,"l=",l_opt,"a'=",a_next,"u=",u_current,"v'=",v_next
+                    ! end if
 
                     ! Check if the current value is greater than the previous one and update the value function
                     if (v_current > cand_max) then 

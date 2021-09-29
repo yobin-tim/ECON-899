@@ -1,3 +1,4 @@
+
 @everywhere using Parameters, DelimitedFiles, ProgressBars, SharedArrays, LinearAlgebra
 
 # Define the primitives of the model
@@ -159,23 +160,31 @@ function V_workers(prim::Primitives, res::Results)
 
                 # Next we iterate over the possible choices of the next period's asset
                 l_grid = l_opt.(e, w, r, a, a_grid) # Labor supply grid
-
+                # if j == 20 && z_index == 2
+                #     print("\n a = $a a_next reached:")
+                # end
                 for an_index in 1:nA
 
                     a_next = a_grid[an_index]   # Next period's asset level
                     l = l_grid[an_index]        # Implied labor supply in current period
-
+                    if l < 0                    # If the labor supply is negative, we set it to zero
+                        l = 0
+                    elseif l > 1                # If the labor supply is greater than one, we set it to one
+                        l = 1
+                    end 
                     if ( j < J_R ) # If the agent is working
                         c = w * (1 - θ) * e * l + (1 + r)a - a_next # Consumption of worker
                     else # If the agent is not working
                         c = (1 + r) * a - a_next + b                # Consumption of retiree
                     end
 
-                    # Check if this is correct this may be a source of error since selections of a and a_next influence labor supply 
-                    if c < 0 || l > 1 || l<0 # If the consumption is negative or labor is outside its bounds, stop the exploration
+                    if c < 0 # If consumption is negative we ignore this choice
                         continue
                     end
-
+                    
+                    # if j == 20 && z_index == 2
+                    #     print("$a_next -- ")
+                    # end
                     # exp_v_next = val_fun[an_index, :, j+1] * Π[z_index , :] # Expected value of next period
                     # exp_v_next = val_fun[an_index, 1, j+1] * Π[z_index , 1] + val_fun[an_index, 2, j+1] * Π[z_index , 2] # Expected value of next period
 
@@ -219,7 +228,7 @@ function V_Fortran(r::Float64, w::Float64, b::Float64)
     path = "./PS3/FortranCode/"
     run(`gfortran -fopenmp -O2 -o $(path)V_Fortran $(path)conesa_kueger.f90`)
     # run(`./T_op $q $n_iter`) 
-    run(`$(path)V_Fortran $r $w $b`)
+    run(`$(path)V_Fortran`)
 
     results_raw =  readdlm("$(path)results.csv");
 
