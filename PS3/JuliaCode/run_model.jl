@@ -5,7 +5,7 @@ using Plots, Distributed, SharedArrays
 #addprocs(3)
 
 theme(:juno)
-@Distributed.everywhere include("conesa_kueger.jl");
+@Distributed.everywhere include("./PS3/JuliaCode/conesa_kueger.jl");
 
 prim, res = Initialize();
 @elapsed V_ret(prim, res);

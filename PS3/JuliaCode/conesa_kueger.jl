@@ -13,7 +13,7 @@
     α       ::Float64           = 0.36       # Capital share in production
     δ       ::Float64           = 0.06       # Capital depreciation rate
     β       ::Float64           = 0.97       # Discount factor
-    
+
     # Parameters regarding stochastic processes
     z_H     ::Float64           = 3.0        # Idiosyncratic productivity High
     z_L     ::Float64           = 0.5        # Idiosyncratic productivity Low
@@ -23,7 +23,7 @@
     p_L     ::Float64           = 0.7963     # Probability of z_L at birth
 
     # Markov transition matrix for z
-    Π       ::Array{Float64,2}  = [0.9261 1-0.9261; 1- 0.9811  0.9811] 
+    Π       ::Array{Float64,2}  = [0.9261 1-0.9261; 1- 0.9811  0.9811]
 
     # Functions
 
@@ -35,18 +35,18 @@
     # util_R  ::Function          = (c) -> c^(γ*(1-σ))/(1-σ)
 
     # Optimal labor supply note that last argument is x = (1+r)*a-a_next
-    l_opt   ::Function          = (e, w, r, a, a_next) ->  (γ *(1-θ)*e*w-(1-γ)*( (1+r)*a - a_next ) ) /( (1 - θ)*w*e) 
+    l_opt   ::Function          = (e, w, r, a, a_next) ->  (γ *(1-θ)*e*w-(1-γ)*( (1+r)*a - a_next ) ) /( (1 - θ)*w*e)
 
     # Production technology
     w_mkt   ::Function          = (K, L) -> (1-α)*(K^α)*(L^(-α)) # Labor first order condition
     r_mkt   ::Function          = (K, L) -> α*(K^(α-1))*(L^(1-α)) # Capital first order condition
-    
+
     # Government budget constraint
     b_mkt   ::Function          = (L, w, m) -> θ*w*L/m   # m is mass of retirees
 
     # Grids
     # Age efficiency profile
-    η       ::Matrix{Float64}   = readdlm("./PS3/Data/ef.txt") 
+    η       ::Matrix{Float64}   = readdlm("./PS3/Data/ef.txt")
     nA      ::Int64             = 1000      # Size of the asset grid
     a_min   ::Float64           = 0.0       # lower bound of the asset grid
     a_max   ::Float64           = 75.0      # upper bound of the asset grid
@@ -54,19 +54,19 @@
 
 end # Primitives
 
-# Structure mutable parameters and results of the model 
+# Structure mutable parameters and results of the model
 @everywhere mutable struct Results
-    w       ::Float64                       # Wage        
+    w       ::Float64                       # Wage
     r       ::Float64                       # Interest rate
     b       ::Float64                       # Benefits
-    K       ::Float64                       # aggregate capital 
+    K       ::Float64                       # aggregate capital
     L       ::Float64                       # aggregate labor
     μ       ::Array{Float64, 1}             # Distibution of age cohorts
     val_fun ::Array{Float64, 3}             # Value function
     pol_fun ::Array{Float64, 3}             # Policy function
     l_fun   ::Array{Float64, 3}             # (effective) Labor policy function
 
-    # ! This is a experiment, maybe it is useful to also save 
+    # ! This is a experiment, maybe it is useful to also save
     # ! the indices of the optimal policy function
     pol_fun_ind ::Array{Int64,3}            # Policy function indices
     F       ::Array{Float64,3}              # Distribution of agents over asset holdings
@@ -84,13 +84,13 @@ function Initialize()
     pol_fun = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)    # Initialize the policy function
     pol_fun_ind = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)# Initialize the policy function indices
     l_fun = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)
-    
+
     # Before the model starts, we can set the initial value function at the end stage
     # We set the last age group to have a value function consuming all the assets and
     # with a labor supply 0 (i.e. no labor) and recieving a benefit of b
-    last_period_value = prim.util.( prim.a_grid .* (1 + r) .+ b, 0 ) 
-    val_fun[: ,: , end] = hcat(last_period_value, last_period_value) 
-    
+    last_period_value = prim.util.( prim.a_grid .* (1 + r) .+ b, 0 )
+    val_fun[: ,: , end] = hcat(last_period_value, last_period_value)
+
     # Calculate population distribution across age cohorts
     μ = [1.0]
     for i in 2:prim.N_final
@@ -100,12 +100,12 @@ function Initialize()
 
     # Finally we initialize the distribution of the agents
     F = zeros(prim.nA, prim.nZ, prim.N_final)
-    F[1, 1, 1] = μ[1] * prim.p_H  
+    F[1, 1, 1] = μ[1] * prim.p_H
     F[1, 2, 1] = μ[1] * prim.p_L
 
     # Initialize the results
-    res = Results(w, r, b, K, L, μ, val_fun, pol_fun, l_fun, pol_fun_ind, F)        
-    
+    res = Results(w, r, b, K, L, μ, val_fun, pol_fun, l_fun, pol_fun_ind, F)
+
     return (prim, res)                              # Return the primitives and results
 end
 
@@ -127,7 +127,7 @@ function V_ret(prim::Primitives, res::Results)
             res.pol_fun[a_index, :, j] .= a_grid[pol_ind]
             res.val_fun[a_index, :, j] .= val_max
             res.l_fun[a_index, :, j] .= 0
-        end # for a_index 
+        end # for a_index
     end # for j
 
 end # V_ret
@@ -171,7 +171,7 @@ function V_workers(prim::Primitives, res::Results)
                         l = 0
                     elseif l > 1                # If the labor supply is greater than one, we set it to one
                         l = 1
-                    end 
+                    end
                     if ( j < J_R ) # If the agent is working
                         c = w * (1 - θ) * e * l + (1 + r)a - a_next # Consumption of worker
                     else # If the agent is not working
@@ -181,13 +181,13 @@ function V_workers(prim::Primitives, res::Results)
                     if c < 0 # If consumption is negative we ignore this choice
                         continue
                     end
-                    
+
                     # exp_v_next = val_fun[an_index, :, j+1] * Π[z_index , :] # Expected value of next period
                     # exp_v_next = val_fun[an_index, 1, j+1] * Π[z_index , 1] + val_fun[an_index, 2, j+1] * Π[z_index , 2] # Expected value of next period
 
-                    # calculate expected value of next period 
+                    # calculate expected value of next period
                     exp_v_next = 0
-                    for zi = 1:nZ 
+                    for zi = 1:nZ
                         exp_v_next += val_fun[an_index, zi, j+1] * Π[z_index , zi]
                     end # zi
 
@@ -224,7 +224,7 @@ function V_Fortran(r::Float64, w::Float64, b::Float64)
     # Compile Fortran code
     path = "./PS3/FortranCode/"
     run(`gfortran -fopenmp -O2 -o $(path)V_Fortran $(path)conesa_kueger.f90`)
-    # run(`./T_op $q $n_iter`) 
+    # run(`./T_op $q $n_iter`)
     run(`$(path)V_Fortran`)
 
     results_raw =  readdlm("$(path)results.csv");
@@ -248,7 +248,7 @@ function V_Fortran(r::Float64, w::Float64, b::Float64)
     res.pol_fun_ind = pol_fun_ind
     res.l_fun = l_fun
     return A_grid_fortran, consumption
-    
+
 end # run_Fortran()
 
 
@@ -271,12 +271,12 @@ function SteadyStateDist(prim::Primitives, res::Results)
                 if a_next_ind == 0 # Level not reached
                     continue
                 end
-                
+
                 for zi = 1:nZ
                     res.F[a_next_ind, zi, j] += res.F[a_ind, z_ind, j-1] * Π[z_ind, zi] * (res.μ[j]/res.μ[j-1])
-                end # zi 
+                end # zi
 
-            end 
+            end
         end # z_ind
     end # j loop
 
@@ -291,7 +291,7 @@ function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false,
     n = 0 # loop counter
 
     # iteratively solve the model until excess savings converge to zero
-    while err > tol 
+    while err > tol
 
         # calculate prices and payments at current K, L, and F
         res.r = r_mkt(res.K, res.L)
@@ -322,14 +322,14 @@ function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false,
             λ = 0.99
         end
 
-        # update guess 
-        res.K = (1-λ)*K + λ*res.K 
+        # update guess
+        res.K = (1-λ)*K + λ*res.K
         res.L = (1-λ)*L + λ*res.L
 
         n+=1
 
         println("$n iterations; err = $err, K = ", round(res.K, digits = 2), ", L = ", round(res.L, digits = 2))
 
-    end # while err > tol 
+    end # while err > tol
 
 end # MarketClearing
