@@ -23,7 +23,7 @@
     p_L     ::Float64           = 0.7963     # Probability of z_L at birth
 
     # Markov transition matrix for z
-    Π       ::Array{Float64,2}  = [0.9261 1-0.9261; 1- 0.9811  0.9811]
+    Π       ::Array{Float64,2}  = [0.9261 1- 0.9811;1-0.9261   0.9811]
 
     # Functions
 
@@ -111,14 +111,25 @@ end
 
 # Value funtion for the retirees
 function V_ret(prim::Primitives, res::Results)
-
     # unpack the primitives and the results
     @unpack nA, a_grid, N_final, J_R, util = prim
     @unpack b, r = res
 
     # We obtain for every age group and asset holdings level the value function using backward induction
     for j in N_final-1:-1:J_R
+        LowestChoiceInd=1 #Exploiting monotonicity in the policy function
         for a_index in 1:nA
+            ap_index=copy(LowestChoiceInd)
+            while ap_index<nA && (util((1+r)*a_grid[a_index] + b-a_grid[ap_index] , 0) + res.val_fun[ap_index, 1, j+1] <
+                    util((1+r)*a_grid[a_index] + b- a_grid[(ap_index+1)] , 0) + res.val_fun[(ap_index +1) , 1, j+1] )
+                ap_index+=1 #Exploiting concavity in the value function over savings choice
+            end
+            res.pol_fun_ind[a_index, :, j] .= ap_index
+            res.pol_fun[a_index, :, j] .= a_grid[ap_index]
+            res.val_fun[a_index, :, j] .= util(((1+r)*a_grid[a_index] + b)- a_grid[ap_index], 0) + res.val_fun[ap_index, 1, j+1]
+            res.l_fun[a_index, :, j] .= 0
+            LowestChoiceInd=copy(ap_index)
+            #=  Here was the old code:
             a = a_grid[a_index]
             vals = util.(((1+r)*a + b).- a_grid, 0) .+ res.val_fun[:, 1, j+1]
             pol_ind = argmax(vals)
@@ -127,6 +138,7 @@ function V_ret(prim::Primitives, res::Results)
             res.pol_fun[a_index, :, j] .= a_grid[pol_ind]
             res.val_fun[a_index, :, j] .= val_max
             res.l_fun[a_index, :, j] .= 0
+            =#
         end # for a_index
     end # for j
 
@@ -139,17 +151,14 @@ function V_workers(prim::Primitives, res::Results)
     @unpack nA, nZ, z_Vals, η, N_final, J_R, util, β, θ, a_grid, Π, l_opt = prim
     @unpack r, w, b, val_fun, pol_fun, pol_fun_ind, l_fun = res
 
-    # First we iterate over the productivity levels
-    for z_index in 1:nZ
-        z = z_Vals[z_index] # Current idiosyncratic productivity level
-        println("Solving for productivity type $z")
-
-        # Next we iterate over the age groups
-        for j in ProgressBar(J_R-1:-1:1) # Progressbar for running in console
-
+    println("Solving for both productivity types")
+    # First we iterate over age groups
+    for j in ProgressBar(J_R-1:-1:1) # Progressbar for running in console
         #for j in N_final-1:-1:1 # Without progressbar for running in jupyter notebook
-            e = ( j < J_R ) ? z * η[j] : 0 # Worker productivity level (only for working age)
-
+        for z_index in 1:nZ
+            z = z_Vals[z_index] # Current idiosyncratic productivity level
+            e = z * η[j] # Worker productivity level (only for working age)
+            LowestChoiceInd=1 #Exploiting monotonicity in the policy function
             # Next we iterate over the asset grid
             for a_index in 1:nA
                 a = a_grid[a_index] # Current asset level
@@ -157,59 +166,49 @@ function V_workers(prim::Primitives, res::Results)
                 cand_pol = 0        # Initialize the candidate policy
                 cand_pol_ind = 0    # Initialize the candidate policy index
                 l_pol = 0           # Initialize the labor policy
-
                 # Next we iterate over the possible choices of the next period's asset
-                l_grid = l_opt.(e, w, r, a, a_grid) # Labor supply grid
+                #l_grid = l_opt.(e, w, r, a, a_grid) # Labor supply grid
                 # if j == 20 && z_index == 2
                 #     print("\n a = $a a_next reached:")
                 # end
-                for an_index in 1:nA
-
+                for an_index in LowestChoiceInd:nA
                     a_next = a_grid[an_index]   # Next period's asset level
-                    l = l_grid[an_index]        # Implied labor supply in current period
-                    if l < 0                    # If the labor supply is negative, we set it to zero
-                        l = 0
-                    elseif l > 1                # If the labor supply is greater than one, we set it to one
-                        l = 1
-                    end
-                    if ( j < J_R ) # If the agent is working
-                        c = w * (1 - θ) * e * l + (1 + r)a - a_next # Consumption of worker
-                    else # If the agent is not working
-                        c = (1 + r) * a - a_next + b                # Consumption of retiree
-                    end
-
+                    l = l_opt(e, w, r, a, a_next)       # Implied labor supply in current period
+                        if l < 0                    # If the labor supply is negative, we set it to zero
+                            l = 0
+                        elseif l > 1                # If the labor supply is greater than one, we set it to one
+                            l = 1
+                        end
+                    c = w * (1 - θ) * e * l + (1 + r)a - a_next # Consumption of worker (Note that all agents in this loop are working)
                     if c < 0 # If consumption is negative we ignore this choice
                         continue
                     end
-
                     # exp_v_next = val_fun[an_index, :, j+1] * Π[z_index , :] # Expected value of next period
                     # exp_v_next = val_fun[an_index, 1, j+1] * Π[z_index , 1] + val_fun[an_index, 2, j+1] * Π[z_index , 2] # Expected value of next period
-
                     # calculate expected value of next period
+                    #=
                     exp_v_next = 0
                     for zi = 1:nZ
-                        exp_v_next += val_fun[an_index, zi, j+1] * Π[z_index , zi]
+                        exp_v_next += val_fun[an_index, zi, j+1] * Π[zi, z_index]  # old was Π[z_index , zi]
                     end # zi
-
-                    v_next = util(c, l) + β * exp_v_next # next candidate to value function
-
+                    =#
+                    v_next = util(c, l) + β * dot([val_fun[an_index, 1, j+1] val_fun[an_index, 2, j+1]], Π[: , z_index]) # next candidate to value function
                     if v_next > cand_val
                         cand_val = v_next       # Update the candidate value
                         cand_pol = a_next       # Candidate to policy function
                         cand_pol_ind = an_index # Candidate to policy function index
                         l_pol = e*l             # Candidate to labor policy function
+                    else
+                        break #Exploiting Concavity of the value function over a'
                     end # if v_next > cand_val
-
                 end # Next period asset choice loop
-
                 val_fun[a_index, z_index, j] = cand_val         # Update the value function
                 pol_fun[a_index, z_index, j] = cand_pol         # Update the policy function
                 pol_fun_ind[a_index, z_index, j] = cand_pol_ind # Update the policy function index
                 l_fun[a_index, z_index, j] = l_pol              # Update the labor policy function
             end # Current asset holdings loop
-        end # Age loop
-    end # Productivity loop
-
+        end # Productivity loop
+    end # Age loop
     res.val_fun = val_fun
     res.pol_fun = pol_fun
     res.pol_fun_ind = pol_fun_ind
@@ -273,7 +272,7 @@ function SteadyStateDist(prim::Primitives, res::Results)
                 end
 
                 for zi = 1:nZ
-                    res.F[a_next_ind, zi, j] += res.F[a_ind, z_ind, j-1] * Π[z_ind, zi] * (res.μ[j]/res.μ[j-1])
+                    res.F[a_next_ind, zi, j] += res.F[a_ind, z_ind, j-1] * Π[zi,z_ind] * (res.μ[j]/res.μ[j-1])
                 end # zi
 
             end
@@ -312,7 +311,7 @@ function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false,
         L = sum(res.F[:, :, :] .* res.l_fun) # Labor supply grid
 
         # calculate error
-        err = max(abs([res.K, res.L] - [K, L]))
+        err = maximum(abs.([res.K, res.L] - [K, L]))
 
         if (err > tol*100) & (λ <= 0.85)
             λ = 0.85
