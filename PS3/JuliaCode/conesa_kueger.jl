@@ -314,9 +314,9 @@ function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false,
         # calculate error
         err = maximum(abs.([res.K, res.L] - [K, L]))
 
-        if (err > tol*100) & (λ <= 0.85)
+        if (err > tol*10) & (λ <= 0.85)
             λ = 0.85
-        elseif (err > tol*10) & (λ <= 0.95)
+        elseif (err > tol*2) & (λ <= 0.95)
             λ = 0.95
         elseif λ <= 0.99
             λ = 0.99
