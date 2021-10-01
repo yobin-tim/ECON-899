@@ -62,9 +62,9 @@ end # Primitives
     K       ::Float64                       # aggregate capital 
     L       ::Float64                       # aggregate labor
     μ       ::Array{Float64, 1}             # Distibution of age cohorts
-    val_fun ::Array{Float64, 3}             # Value function
-    pol_fun ::Array{Float64, 3}             # Policy function
-    l_fun   ::Array{Float64, 3}             # (effective) Labor policy function
+    val_fun ::SharedArray{Float64, 3}             # Value function
+    pol_fun ::SharedArray{Float64, 3}             # Policy function
+    l_fun   ::SharedArray{Float64, 3}             # (effective) Labor policy function
 
     # ! This is a experiment, maybe it is useful to also save 
     # ! the indices of the optimal policy function
@@ -139,15 +139,17 @@ function V_workers(prim::Primitives, res::Results)
     @unpack nA, nZ, z_Vals, η, N_final, J_R, util, β, θ, a_grid, Π, l_opt = prim
     @unpack r, w, b, val_fun, pol_fun, pol_fun_ind, l_fun = res
 
-    # First we iterate over the productivity levels
-    for z_index in 1:nZ
-        z = z_Vals[z_index] # Current idiosyncratic productivity level
-        println("Solving for productivity type $z")
+    # First  we iterate over the age groups
+    for j in ProgressBar(J_R-1:-1:1) # Progressbar for running in console
 
-        # Next we iterate over the age groups
-        for j in ProgressBar(J_R-1:-1:1) # Progressbar for running in console
+    #for j in N_final-1:-1:1 # Without progressbar for running in jupyter notebook
+        # Next we iterate over the productivity levels
+        @sync @distributed for z_index in 1:nZ
+            z = z_Vals[z_index] # Current idiosyncratic productivity level
+            #println("Solving for productivity type $z")
 
-        #for j in N_final-1:-1:1 # Without progressbar for running in jupyter notebook
+
+        
             e = ( j < J_R ) ? z * η[j] : 0 # Worker productivity level (only for working age)
 
             # Next we iterate over the asset grid
@@ -207,8 +209,8 @@ function V_workers(prim::Primitives, res::Results)
                 pol_fun_ind[a_index, z_index, j] = cand_pol_ind # Update the policy function index
                 l_fun[a_index, z_index, j] = l_pol              # Update the labor policy function
             end # Current asset holdings loop
-        end # Age loop
-    end # Productivity loop
+        end # Productivity loop
+    end  # Age loop
 
     res.val_fun = val_fun
     res.pol_fun = pol_fun
@@ -283,7 +285,7 @@ function SteadyStateDist(prim::Primitives, res::Results)
 end # SteadyStateDist
 
 # Function to solve for market prices
-function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false, λ::Float64=0.7, tol::Float64=1e-3, err=100)
+function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false, λ::Float64=0.7, tol::Float64=1e-2, err=100)
 
     # unpack relevant variables and functions
     @unpack w_mkt, r_mkt, b_mkt, J_R, a_grid = prim
@@ -312,7 +314,7 @@ function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false,
         L = sum(res.F[:, :, :] .* res.l_fun) # Labor supply grid
 
         # calculate error
-        err = max(abs([res.K, res.L] - [K, L]))
+        err = maximum(abs.([res.K, res.L] - [K, L]))
 
         if (err > tol*100) & (λ <= 0.85)
             λ = 0.85
