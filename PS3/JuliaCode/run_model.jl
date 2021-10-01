@@ -1,17 +1,17 @@
 using Plots, Distributed, SharedArrays
 
 #add processes
-#workers()
-#addprocs(3)
+workers()
+addprocs(2)
 
 theme(:juno)
 @Distributed.everywhere include("./PS3/JuliaCode/conesa_kueger.jl");
 
-prim, res = Initialize();
-@elapsed V_ret(prim, res);
-@elapsed V_workers(prim, res);
-@time V_Fortran(res.r, res.w, res.b);
-@elapsed SteadyStateDist(prim, res);
+prim, res = Initialize(); #=
+@time V_ret(prim, res);
+@time V_workers(prim, res);
+#@time V_Fortran(res.r, res.w, res.b);
+@time SteadyStateDist(prim, res); =#
 
 #agridf, consumption = V_Fortran(res.r, res.w, res.b);
 #=
@@ -19,7 +19,7 @@ agridf
 prim.a_grid
 hcat(prim.a_grid, agridf, prim.a_grid - agridf)
 =#
-@elapsed MarketClearing(prim, res, use_Fortran=false);
+@time MarketClearing(prim, res, use_Fortran=false);
 
 plot(res.val_fun[:,:, end])
 plot!(res.val_fun[:,:, end-1])
@@ -53,3 +53,9 @@ plot!(prim.a_grid, prim.a_grid)
 plot(savings[500,1,:])
 plot!(savings[500,2,:])
 plot!
+
+# graph distributions
+
+# accross assets for workers and retirees 
+a_dist = sum(res.F, dims = 2:3)
+plot(prim.a_grid, a_dist[:, 1, 1])

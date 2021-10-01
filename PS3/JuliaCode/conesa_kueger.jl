@@ -27,7 +27,7 @@
 
     # Functions
 
-    util  ::Function          = (c, l) -> ( c > 0 ) ? (c^γ * (1 - l)^γ)^(1-σ)/(1-σ) : -Inf
+    util  ::Function          = (c, l) -> ( c > 0 ) ? ((c^γ * (1 - l)^γ)^(1-σ))/(1-σ) : -Inf
 
     # Utility of a retiree
     # Todo: Remove the next 3 lines if everything is working
@@ -38,8 +38,8 @@
     l_opt   ::Function          = (e, w, r, a, a_next) ->  (γ *(1-θ)*e*w-(1-γ)*( (1+r)*a - a_next ) ) /( (1 - θ)*w*e)
 
     # Production technology
-    w_mkt   ::Function          = (K, L) -> (1-α)*(K^α)*(L^(-α)) # Labor first order condition
-    r_mkt   ::Function          = (K, L) -> α*(K^(α-1))*(L^(1-α)) # Capital first order condition
+    w_mkt   ::Function          = (K, L) -> (1-α)*(K^α)*(L^(-α))        # Labor first order condition
+    r_mkt   ::Function          = (K, L) -> α*(K^(α-1))*(L^(1-α)) - δ   # Capital first order condition
 
     # Government budget constraint
     b_mkt   ::Function          = (L, w, m) -> θ*w*L/m   # m is mass of retirees
@@ -118,7 +118,7 @@ function V_ret(prim::Primitives, res::Results)
 
     # We obtain for every age group and asset holdings level the value function using backward induction
     for j in N_final-1:-1:J_R
-        for a_index in 1:nA
+        @sync @distributed for a_index in 1:nA
             a = a_grid[a_index]
             vals = util.(((1+r)*a + b).- a_grid, 0) .+ res.val_fun[:, 1, j+1]
             pol_ind = argmax(vals)
@@ -143,6 +143,7 @@ function V_workers(prim::Primitives, res::Results)
     for j in ProgressBar(J_R-1:-1:1) # Progressbar for running in console
 
     #for j in N_final-1:-1:1 # Without progressbar for running in jupyter notebook
+
         # Next we iterate over the productivity levels
         @sync @distributed for z_index in 1:nZ
             z = z_Vals[z_index] # Current idiosyncratic productivity level
@@ -172,7 +173,7 @@ function V_workers(prim::Primitives, res::Results)
                         l = 1
                     end
                     if ( j < J_R ) # If the agent is working
-                        c = w * (1 - θ) * e * l + (1 + r)a - a_next # Consumption of worker
+                        c = w * (1 - θ) * e * l + (1 + r)*a - a_next # Consumption of worker
                     else # If the agent is not working
                         c = (1 + r) * a - a_next + b                # Consumption of retiree
                     end
@@ -314,12 +315,14 @@ function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false,
         # calculate error
         err = maximum(abs.([res.K, res.L] - [K, L]))
 
-        if (err > tol*10) & (λ <= 0.85)
+        if (err > tol*10) & (λ <= 0.75)
+            λ = 0.75
+        elseif (err > tol*5) & (λ <= 0.85)
             λ = 0.85
-        elseif (err > tol*2) & (λ <= 0.95)
+        elseif (err > tol*2) & (λ <= 0.90)
+            λ = 0.90
+        elseif λ <= 0.95
             λ = 0.95
-        elseif λ <= 0.99
-            λ = 0.99
         end
 
         # update guess
