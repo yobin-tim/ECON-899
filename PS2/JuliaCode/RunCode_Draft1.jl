@@ -21,7 +21,7 @@ Plots.plot(a_grid, val_func[:,1], title="Value Function", label="Employed")
         function PolicyPolots()
             a_hat=0
             for ai=1:na
-                if a_grid[Int64.(pol_func[ai,1])]>=a_grid[ai]
+                if a_grid[Int64.(pol_func[ai,1])]<=a_grid[ai]
                     a_hat=[a_grid[ai]];
                     break
                 end
@@ -29,7 +29,8 @@ Plots.plot(a_grid, val_func[:,1], title="Value Function", label="Employed")
             Plots.plot(a_grid, a_grid[Int64.(pol_func[:,1])], title="Policy Functions", label="Employed")
                 plot!(a_grid, a_grid[Int64.(pol_func[:,2])], label="Unemployed")
                 plot!(a_grid,a_grid, label="45° line", legend=:bottomright)
-                vline!(a_hat, label=L"\hat{a}")
+                vline!(a_hat, label=L"\hat{a}",color=:purple)
+                annotate!(a_hat[1]-.15, 4.5, text("$(round(a_hat[1],digits=3))", :purple, :right, 12))
                 Plots.savefig("Policy_Functions.png")
         end
         PolicyPolots()

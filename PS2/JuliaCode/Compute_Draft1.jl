@@ -4,7 +4,7 @@
     β::Float64 = 0.9932 #discount rate
     α::Float64 = 1.5 #capital share
     S_grid::Array{Float64,1} = [1, 0.5] #Earnings when employed and unemployed
-    Π::Array{Float64,2} = [.97 .5; .03 .5] #Transition Matrix between employment and unemployment
+    Π::Array{Float64,2} = [.97 .03; .5 .5] #Transition Matrix between employment and unemployment
     na::Int64 = 700 #Number of asset grid points
     a_grid::Array{Float64,1} = collect(range(-2.0,length=na,5.0))
 end
@@ -49,7 +49,7 @@ end
         max_val,max_ap=-Inf,0
         for ap_index=1:na
             val=U(budget - res.q*a_grid[ap_index]) +
-                β*transpose(Π[:,S_index])*[res.val_func[ap_index,1]; res.val_func[ap_index,2]]
+                β*(transpose(Π[S_index,:])*[ res.val_func[ap_index,1] ; res.val_func[ap_index,2]])
             if val>max_val
                 max_val=val;
                 max_ap=ap_index;
@@ -99,8 +99,8 @@ function MC_assets(prim,res; dist_tol::Float64 = 1e-6, dist_err::Float64 = 100.0
     TransMat=zeros(2*na,2*na) #The first na points are for employed folks, and the next na are for unemployed
     for a_index=1:na
         TransMat[Int64(res.pol_func[a_index,1]),a_index]=Π[1,1] #Savings choice for those moving from emp->emp
-        TransMat[Int64(res.pol_func[a_index,1])+na,a_index]=Π[2,1] #Savings choice for those moveing from emp->unemp
-        TransMat[Int64(res.pol_func[a_index,2]),a_index+na]=Π[1,2] #Savings choice for those moving from unemp->emp
+        TransMat[Int64(res.pol_func[a_index,1])+na,a_index]=Π[1,2] #Savings choice for those moving from emp->unemp
+        TransMat[Int64(res.pol_func[a_index,2]),a_index+na]=Π[2,1] #Savings choice for those moving from unemp->emp
         TransMat[Int64(res.pol_func[a_index,2])+na,a_index+na]=Π[2,2] #Savings choice for those moving from unemp->emp
     end
     Dist=ones(2*na)*(1/(2*na)) #
@@ -153,8 +153,8 @@ function FindDist_ForPlot(prim,res; dist_tol::Float64 = 1e-6, dist_err::Float64 
     TransMat=zeros(2*na,2*na) #The first na points are for employed folks, and the next na are for unemployed
     for a_index=1:na
         TransMat[Int64(res.pol_func[a_index,1]),a_index]=Π[1,1] #Savings choice for those moving from emp->emp
-        TransMat[Int64(res.pol_func[a_index,1])+na,a_index]=Π[2,1] #Savings choice for those moveing from emp->unemp
-        TransMat[Int64(res.pol_func[a_index,2]),a_index+na]=Π[1,2] #Savings choice for those moving from unemp->emp
+        TransMat[Int64(res.pol_func[a_index,1])+na,a_index]=Π[1,2] #Savings choice for those moveing from emp->unemp
+        TransMat[Int64(res.pol_func[a_index,2]),a_index+na]=Π[2,1] #Savings choice for those moving from unemp->emp
         TransMat[Int64(res.pol_func[a_index,2])+na,a_index+na]=Π[2,2] #Savings choice for those moving from unemp->emp
     end
     Dist=ones(2*na)*(1/(2*na)) #

@@ -13,12 +13,12 @@
 \usepackage{caption}
 \usepackage{multirow}
 \usepackage[bottom]{footmisc}
+\usepackage[colorlinks=true, citecolor=blue, linkcolor=blue, urlcolor=blue]{hyperref} %to create hyperlinks
 % \usepackage[dvipsnames]{xcolor}
 \usepackage{enumerate} %make lists
 \usepackage{graphicx} %insert images
 \usepackage{float} %to fix image position
 \usepackage{moreverb} %to make boxes
-\usepackage{hyperref} %to create hyperlinks
 \usepackage{lipsum} %lorem ipsum package
 \usepackage{setspace} % to use singlespace below in the solution environment
 \usepackage[shortlabels]{enumitem}
@@ -98,13 +98,23 @@ This problem set was completed by Danny Edgel, Mitchell Valdes Bobes, Ryan Mathe
 
 				\item What is the equilibrium bond price? Plot the cross-sectional distribution of wealth for those employed and those unemployed on the same graph.
 				\begin{solution}
-
+					The equilibrium bond price is $q=0.9943074$, and the resulting cross-sectional distribution of wealth is shown in Figure \ref{4b}.
+				\begin{figure}[htbp!]
+					\centering
+					\includegraphics[scale=.25]{ForIncludingInDocument/02_ryanpubreadyDistribution.pdf}
+					\caption{Problem 4(b) \label{4b}}
+					\end{figure}
 				\end{solution}
 
 				\item Plot a Lorenz curve. What is the gini index for your economy? Compare them to the data. For this problem set, define wealth as current earnings (think of this as direct deposited
 				into your bank, so it is your cash holdings) plus net assets. Since market clearing implies aggregate assets equal zero, this wealth definition avoids division by zero in computing the Gini and Lorenz curve.
 				\begin{solution}
-
+				The Lorenz curve is shown in Figure \ref{4c}, and implies a Gini coefficient of 0.29969592. The true Income Gini coefficient for the US economy in 2020 was .458,\footnote{U.S. Census Bureau, Current Population Survey, 1968 to 2021 Annual Social and Economic Supplements (CPS ASEC), \href{https://www2.census.gov/programs-surveys/cps/tables/time-series/historical-income-families/f04.xlsx}{Table F-4}} so if we take this to be the relevant statistic against which to compare our model results, our model explains about 65\% of inequality as captured by the Gini Coefficient.
+				\begin{figure}[htbp!]
+					\centering
+					\includegraphics[scale=.25]{ForIncludingInDocument/02_ryanpubreadyLorenz.pdf}
+					\caption{Problem 4(c) \label{4c}}
+					\end{figure}
 				\end{solution}
 			\end{enumerate}
 		\end{enumerate}
