@@ -146,12 +146,9 @@ function V_workers(prim::Primitives, res::Results)
         # Next we iterate over the productivity levels
         @sync @distributed for z_index in 1:nZ
             z = z_Vals[z_index] # Current idiosyncratic productivity level
-            #println("Solving for productivity type $z")
-
-
-        
-            e = ( j < J_R ) ? z * η[j] : 0 # Worker productivity level (only for working age)
-
+            #println("Solving for productivity type $z")        
+            e = z * η[j] # Worker productivity level (only for working age)
+            LowestChoiceInd=1 #Exploiting monotonicity in the policy function
             # Next we iterate over the asset grid
             for a_index in 1:nA
                 a = a_grid[a_index] # Current asset level
@@ -165,7 +162,7 @@ function V_workers(prim::Primitives, res::Results)
                 # if j == 20 && z_index == 2
                 #     print("\n a = $a a_next reached:")
                 # end
-                for an_index in 1:nA
+                for an_index in LowestChoiceInd:nA
 
                     a_next = a_grid[an_index]   # Next period's asset level
                     l = l_grid[an_index]        # Implied labor supply in current period
@@ -208,6 +205,7 @@ function V_workers(prim::Primitives, res::Results)
                 pol_fun[a_index, z_index, j] = cand_pol         # Update the policy function
                 pol_fun_ind[a_index, z_index, j] = cand_pol_ind # Update the policy function index
                 l_fun[a_index, z_index, j] = l_pol              # Update the labor policy function
+                LowestChoiceInd=copy(cand_pol_ind)
             end # Current asset holdings loop
         end # Productivity loop
     end  # Age loop
@@ -330,7 +328,8 @@ function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false,
 
         n+=1
 
-        println("$n iterations; err = $err, K = ", round(res.K, digits = 2), ", L = ", round(res.L, digits = 2))
+        println("$n iterations; err = $err, K = ", round(res.K, digits = 4), ", L = ", 
+        round(res.L, digits = 4), ", λ = $λ")
 
     end # while err > tol
 
