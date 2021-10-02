@@ -215,7 +215,8 @@ end # V_workers
 # If we want to speed up the code we can use Fortran
 # the following function is a wrapper for the Fortran code
 
-function V_Fortran(r::Float64, w::Float64, b::Float64)
+function V_Fortran(prim::Primitives, res::Results)
+    @unpack r, w, b =res
     # PS3/FortranCode/conesa_kueger.f90
     # Compile Fortran code
     path = "./PS3/FortranCode/"
@@ -279,8 +280,8 @@ function SteadyStateDist(prim::Primitives, res::Results)
 end # SteadyStateDist
 
 # Function to solve for market prices
-function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false, λ::Float64=0.7, tol::Float64=1e-2, err=100)
-
+function MarketClearing(; use_Fortran::Bool=false, λ::Float64=0.7, tol::Float64=1e-2, err=100)
+    prim, res= Initialize()
     # unpack relevant variables and functions
     @unpack w_mkt, r_mkt, b_mkt, J_R, a_grid = prim
 
@@ -296,7 +297,7 @@ function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false,
 
         # solve model with current model and payments
         if use_Fortran
-            A_grid_fortran, consumption = V_Fortran(res.r, res.w, res.b)
+            A_grid_fortran, consumption = V_Fortran(prim,res)
         else
             V_ret(prim, res);
             V_workers(prim, res);
@@ -314,7 +315,7 @@ function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false,
             # Leave λ at the default
         elseif (err > tol*5) & (λ <= 0.85)
             λ = 0.85
-        elseif (err > tol*2) & (λ <= 0.90)
+        elseif (err > tol*1.01) & (λ <= 0.90)
             λ = 0.90
         elseif λ <= 0.95
             λ = 0.95
@@ -330,5 +331,5 @@ function MarketClearing(prim::Primitives, res::Results; use_Fortran::Bool=false,
         round(res.L, digits = 4), ", λ = $λ")
 
     end # while err > tol
-
+    return prim, res
 end # MarketClearing
