@@ -15,7 +15,7 @@ module params_grid
     ! *******************DECLARATION OF PARAMETERS AND VARIABLES*************
     ! ---------------------------------------------------------------------
     ! Model Parameters
-    INTEGER, PARAMETER          :: nJ = 66               ! Lifespan of the agents
+    INTEGER, PARAMETER          :: nJ      = 66               ! Lifespan of the agents
     INTEGER                     :: j                          ! Index of age group
     INTEGER, PARAMETER          :: J_R     = 46               ! Retirement age
     DOUBLE PRECISION, PARAMETER :: n       = 0.011d0          ! Population growth rate
@@ -60,6 +60,7 @@ module params_grid
     DOUBLE PRECISION            :: cand_max                   ! Initialize candite maximum
     DOUBLE PRECISION            :: v_current                  ! Initialize current value of the value fucntion
     DOUBLE PRECISION            :: c_current                  ! Initialize current value of the consumption
+    DOUBLE PRECISION            :: c_cand                     ! Initialize candidate value of the consumption
     DOUBLE PRECISION            :: a_current                  ! Initialize current value of the asset
     DOUBLE PRECISION            :: a_next                     ! Initialize next value of the asset
     DOUBLE PRECISION            :: a_maxim                    ! Initialize canditate maximizer asset holding level
@@ -76,6 +77,15 @@ module params_grid
     INTEGER                     :: pf_A_ind(nA, nZ, nJ)       ! Policy function for asset index
     DOUBLE PRECISION            :: pf_v(nA, nZ, nJ)           ! Policy function for value
     DOUBLE PRECISION            :: pf_l(nA, nZ, nJ)           ! Policy function for labor
+    
+    ! Allocating space for the steady state distribution
+    DOUBLE PRECISION            :: mu(nJ)
+    DOUBLE PRECISION            :: F_SS(nA, nZ, nJ)
+
+    ! Allocating space for the aggreate capital and labor levels
+    DOUBLE PRECISION            :: K_SS = 0                   ! Steady state aggregate capital
+    DOUBLE PRECISION            :: L_SS = 0                   ! Steady state aggregate labor
+    
     INTEGER                     :: i_stat
     INTEGER                     :: iMaxThreads
     ! Variables for paralellization
@@ -88,7 +98,7 @@ program conesa_krueger
     implicit none
 
     ! Begin Computational Timer
-    INTEGER                     ::  beginning, rate! ,end
+    INTEGER                     ::  beginning, rate ,end
     ! Variables for reading parameters from comand line
     CHARACTER(100)              ::  r_char
     CHARACTER(100)              ::  w_char
@@ -131,7 +141,24 @@ program conesa_krueger
 
     call V_Func_Work()                   ! Solve for the value function for working age agents
 
-    call coda()                         ! Write resutls to file
+    call steady_state_dist()            ! Solve for the steady state distribution
+
+    ! Finally we calculate the steady state aggregate capital and labor
+    do j = 1, nJ
+        do i_Z = 1, nZ
+            do i_A = 1, nA
+                if ( F_SS(i_A, i_Z, j) > 0 .and. j == 50 ) then
+                    WRITE(*,*) 'j, i_Z, i_A=', j, i_Z, i_A, "grid_A(i_A) * F",F_SS(i_A, i_Z, j) * grid_A(i_A)
+                end if
+                K_SS = K_SS + F_SS(i_A, i_Z, j)*grid_A(i_A)
+                L_SS = L_SS + F_SS(i_A, i_Z, j)*pf_l(i_A, i_Z, j)
+            end do
+        end do
+    end do 
+
+    call system_clock(end)
+    write(*,*) "Total elapsed time = ", real(end - beginning) / real(rate)," seconds"
+    call coda()                         ! Write resutls to file(s)
 end program
 
 ! ------------------------------------------------------------------------
@@ -174,6 +201,8 @@ subroutine housekeeping()
 
     implicit none
 
+    DOUBLE PRECISION :: sum_mu=0.0d0
+
     ! Discretize the state space (Assets)
     do i_A = 1, nA
         grid_A(i_A) = A_min + step_A * dble(i_A-1)
@@ -188,10 +217,23 @@ subroutine housekeeping()
         end if
     end do
     
+    ! initialize the population distribution
+    mu(1) = 1.0d0
+    sum_mu = mu(1)
+    do j = 2, nJ
+        mu(j) = mu(j-1)/(1 + n)
+    end do
+    
+    sum_mu = sum(mu, dim=1)
+    do j = 1, nJ
+        mu(j) = mu(j)/sum_mu
+    end do
+
     ! Initialize Policy Functions
-    do i_A = 1,nA
-        do i_Z = 1,nZ
-            do j = 1, nJ
+    do j = 1, nJ
+        do i_A = 1,nA
+            do i_Z = 1,nZ
+                F_SS(i_A, i_Z, j) = 0.0d0
                 if ( j < nJ ) then
                     pf_c(i_A, i_Z, j) = 0d0
                     pf_A(i_A, i_Z, j) = 0d0
@@ -208,7 +250,9 @@ subroutine housekeeping()
             end do
         end do
     end do
-
+    
+    F_SS(1, 2, 1) = mu(2) * p_L
+    F_SS(1, 1, 1) = mu(1) * p_H
     end subroutine housekeeping ! end of subroutine
 
 ! ------------------------------------------------------------------------
@@ -231,7 +275,7 @@ subroutine V_Func_Ret()
             do i_Anext = 1, nA ! Loop over all possible choises of the next asset level
                 a_next = grid_A(i_Anext)
                 c_current = (1 + r) * a_current + b - a_next
-                if (c_current > 0d0) then ! Check if consumption is positive
+                if (c_current >= 0d0) then ! Check if consumption is positive
                     u_current = c_current**( GAMMA * (1 - SIGMA) ) / (1 - SIGMA)
                     v_current = u_current + BETA * pf_v(i_Anext, 1, j+1)
                     if (v_current > cand_max) then  ! Update the candidate maximizer
@@ -266,13 +310,21 @@ end subroutine V_Func_Ret ! end of subroutine
 ! ------------------------------------------------------------------------
 subroutine V_Func_Work()
     use params_grid
-    
-
+    use omp_lib
     implicit none
 
+    INTEGER :: min_ind_search ! Index of the minimum value in the search space
+
+    iMaxThreads = omp_get_max_threads()
+    call omp_set_num_threads(iMaxThreads) ! Set the number of threads to use
+    
+    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(j, i_Z , i_A, i_Anext, a_current, a_next, Pr, l_opt, c_current, u_current, v_next, &
+	!$OMP 																 v_current, cand_max, a_maxim , a_ind_maxim, l_opt_cand)
+    !$OMP DO
     do j = J_R - 1, 1, -1 ! Loop backwards over the age groups from last working age to the birth age
-        do i_Z = 1, nZ   ! Loop over the productivity grid
-            e = ez(j) * grid_z(i_Z) ! Compute the effective productivity for this age group 
+
+
+        do i_Z = 1, nZ   ! Loop over the productivity grid 
             ! *********************
             ! Define today's shock
             ! *********************
@@ -283,60 +335,96 @@ subroutine V_Func_Work()
                 Pr(1) = PI_LH
                 Pr(2) = PI_LL
             end if
+            e = ez(j) * grid_z(i_Z) ! Compute the effective productivity for this age group             
             do i_A = 1, nA   ! Loop over the asset grid
-                a_ind_maxim = -100
-                l_opt_cand = -100000000d0 ! some non-sense large number
-                a_maxim = -100d0 ! Initialize the value function for this age group
-                cand_max = -100d0 ! A large negative number for candidate to maximum
-                ! a_maxim  = -100000000d0 ! A large negative number for the asset level that maximizes the value function
-                a_current = grid_A(i_A) ! Compute the current asset level
-                do i_Anext = 1, nA ! Loop over all possible choises of the next asset level
-
+                cand_max = -500000d0 ! A large negative number for candidate to maximum
+                l_opt_cand = -500000d0
+                a_current = grid_A(i_A)
+                if (i_A > 1) then
+                    min_ind_search = pf_A_ind(i_A-1, i_Z, j)
+                else
+                    min_ind_search = 1
+                end if
+                do i_Anext = min_ind_search, nA ! Loop over all possible choises of the next asset level
+                    a_next = grid_A(i_Anext)
                     ! *********************
                     ! Compute agent choices
                     ! *********************
-                    a_next = grid_A(i_Anext)
-                    l_opt = (GAMMA*(1-THETA)*e*w-(1-GAMMA)*((1+r)*a_current-a_next))/((1-THETA)*e*w) ! Compute the labor supply
-                    ! *******************************************************
-                    ! Compute the fesibility of labor and consumption choices
-                    ! *******************************************************
-                    if (l_opt < 0d0) then ! If labor supply is negative, we set it to zero
-                        l_opt = 0d0
+                    ! Calculate optimal labor supply
+                    l_opt = ( GAMMA * (1-THETA) * e * w - (1-GAMMA)*((1+r) * a_current - a_next) ) / ( (1 - THETA) * w * e ) 
+                    if (l_opt < 0d0) then ! Check if labor is negative
+                        l_opt = 0d0 ! If negative, set to zero
                     end if
-                    if (l_opt > 1.0d0) then ! If labor supply is greater than 1, we set it to 1
-                        l_opt = 1.0d0
-                    end if
-                    c_current = w*(1-THETA)*e*l_opt+(1+r)*a_current-a_next ! Compute the consumption
-                    if (c_current < 0d0) then ! If consumption is negative, then go to the next iteration
-                        CYCLE
+                    if (l_opt > 1d0) then ! Check if labor is greater than one
+                        l_opt = 1d0 ! If greater than one, set to one
                     end if 
+                    ! Calculate consumption
+                    c_current = w * (1-THETA) * e * l_opt + (1+r) * a_current - a_next
+                    if ( c_current < 0d0 ) then ! Check if consumption is negative
+                        cycle ! If negative, stop searching
+                    end if  
                     ! **************************
                     ! Compute the value function
                     ! **************************
-                    u_current = ( ( (c_current**GAMMA ) * ( (1 - l_opt) ** (1 - GAMMA))) ** (1 - SIGMA) ) / (1 - SIGMA) !  Compute the utility
-                    v_next = pf_v(i_Anext, 1, j+1) * Pr(1) + pf_v(i_Anext, 2, j+1) * Pr(2) ! Compute the expected value of next period
-                    v_current = u_current + BETA * v_next
-                
-                    ! Check if the current value is greater than the previous one and update the value function
-                    if (v_current > cand_max) then 
+                    u_current = ( ( (c_current**GAMMA ) * ( (1 - l_opt) ** (1 - GAMMA) ) ) ** (1 - SIGMA) ) / (1 - SIGMA) !  Compute the utility
+                    v_next = pf_v(i_Anext, 1, j+1) * Pr(1) + pf_v(i_Anext, 2, j+1) * Pr(2) ! Compute the expected value function for the next period 
+                    v_current = u_current + BETA * v_next ! Compute the value function
+                    if (v_current > cand_max) then  ! Update the candidate maximizer
                         cand_max = v_current
                         a_maxim = a_next
                         a_ind_maxim = i_Anext
-                        l_opt_cand = l_opt
+                        l_opt_cand = l_opt * e
+                        c_cand = c_current
                     end if
-            
-                    pf_v(i_A, i_Z, j) = cand_max
-                    pf_A(i_A, i_Z, j) = a_maxim
-                    pf_A_ind(i_A, i_Z, j) = a_ind_maxim
-                    pf_c(i_A, i_Z, j) = c_current
-                    pf_l(i_A, i_Z, j) = l_opt_cand
                 end do ! End of loop over i_Anext 
+                pf_v(i_A, i_Z, j) = cand_max
+                pf_A(i_A, i_Z, j) = a_maxim
+                pf_A_ind(i_A, i_Z, j) = a_ind_maxim
+                pf_c(i_A, i_Z, j) = c_cand
+                pf_l(i_A, i_Z, j) = l_opt_cand
             end do ! End of loop over i_A
         end do ! End of loop over i_Z
     end do ! End of loop over j
+    !$OMP END DO
+    !$OMP END PARALLEL
 
     end subroutine V_Func_Work ! end of subroutine
 
+! ************************************************************************
+! ------------------------------------------------------------------------
+! ------------------------------------------------------------------------
+! subroutine : steady_state_dist
+!
+! description : Gives the steady state distribution of the model
+! ------------------------------------------------------------------------
+! ------------------------------------------------------------------------
+subroutine steady_state_dist()
+    use params_grid
+    ! use omp_lib
+    implicit none
+    DOUBLE PRECISION :: suma_temp = 0d0
+    do j = 2, nJ
+        do i_z = 1, nZ
+            if (i_Z == 1) then
+                Pr(1) = PI_HH
+                Pr(2) = PI_HL
+            else
+                Pr(1) = PI_LH
+                Pr(2) = PI_LL
+            end if
+            do i_A = 1, nA
+                a_ind_maxim = pf_A_ind(i_A, i_z, j-1)
+                if (a_ind_maxim == 0d0) then ! Level not reached
+                    CYCLE
+                end if
+                F_SS(a_ind_maxim, 1, j) = F_SS(a_ind_maxim, 1, j) + F_SS(i_A, i_z, j-1) * Pr(1) * (mu(j)/mu(j-1))
+                F_SS(a_ind_maxim, 2, j) = F_SS(a_ind_maxim, 1, j) + F_SS(i_A, i_z, j-1) * Pr(2) * (mu(j)/mu(j-1))
+            end do
+        end do
+    end do
+    
+    WRITE(*,*) "suma_temp = ", suma_temp
+    end subroutine steady_state_dist ! end of subroutine
 ! ************************************************************************
 ! ------------------------------------------------------------------------
 ! ------------------------------------------------------------------------
@@ -348,19 +436,24 @@ subroutine V_Func_Work()
 subroutine coda()
 
     use params_grid
-    INTEGER                         :: rc ! Identifier for error checking
+    INTEGER                         :: rc1, rc2 ! Identifier for error checking
 
-    open(unit=2, file='./PS3/FortranCode/results.csv', status='replace', action='write', iostat=rc)
-    if (rc /= 0) stop 'Unable to open file results.csv'
+    open(unit=2, file='./PS3/FortranCode/results.csv', status='replace', action='write', iostat=rc1)
+    if (rc1 /= 0) stop 'Unable to open file results.csv'
     200 format(i2,2x, f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,i4,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x)
     
     do j = 1, nJ
         do i_Z = 1, nZ
             do i_A = 1, nA
-write(2,200)j,grid_Z(i_Z),grid_A(i_A),pf_c(i_A, i_Z, j),pf_c(i_A, i_Z, j),pf_A(i_A, i_Z, j),pf_A_ind(i_A, i_Z, j),pf_v(i_A, i_Z, j)
+write(2,200)j,grid_Z(i_Z),grid_A(i_A),pf_l(i_A, i_Z, j),pf_c(i_A, i_Z, j),pf_A(i_A, i_Z, j),pf_A_ind(i_A, i_Z, j),pf_v(i_A, i_Z, j)
             end do
         end do
     end do
+
+    open(unit=3, file='./PS3/FortranCode/agg_results.csv', status='replace', action='write', iostat=rc2)
+    if (rc2/=0) stop 'Unable to open file agg_results.csv'
+    300 format(f25.15,2x,f25.15)
+    write(3, 300) K_SS, L_SS
 
 return
 end subroutine coda ! end of subroutine
