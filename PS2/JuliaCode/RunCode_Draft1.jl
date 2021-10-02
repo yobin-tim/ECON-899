@@ -18,19 +18,27 @@ Plots.plot(a_grid, val_func[:,1], title="Value Function", label="Employed")
     plot!(a_grid, val_func[:,2], label="Unemployed")
     Plots.savefig("Value_Functions.png")
     #Plotting Policy functions
-        a_hat=[0, 0]
-        # for 1:na
-
-        # end
-        Plots.plot(a_grid, a_grid[Int64.(pol_func[:,1])], title="Policy Functions", label="Employed")
-            plot!(a_grid, a_grid[Int64.(pol_func[:,2])], label="Unemployed")
-            plot!(a_grid,a_grid, label="45° line", legend=:bottomright)
-            Plots.savefig("Policy_Functions.png")
+        function PolicyPolots()
+            a_hat=0
+            for ai=1:na
+                if a_grid[Int64.(pol_func[ai,1])]<=a_grid[ai]
+                    a_hat=[a_grid[ai]];
+                    break
+                end
+            end
+            Plots.plot(a_grid, a_grid[Int64.(pol_func[:,1])], title="Policy Functions", label="Employed")
+                plot!(a_grid, a_grid[Int64.(pol_func[:,2])], label="Unemployed")
+                plot!(a_grid,a_grid, label="45° line", legend=:bottomright)
+                vline!(a_hat, label=L"\hat{a}",color=:purple)
+                annotate!(a_hat[1]-.15, 4.5, text("$(round(a_hat[1],digits=3))", :purple, :right, 12))
+                Plots.savefig("Policy_Functions.png")
+        end
+        PolicyPolots()
     #Plotting Distribution
         function DistPlots()
             TS_Distribution, SS_WealthDistribution=FindDist_ForPlot(out_primitives,out_results)
             MaxNonZero=1
-            ForDistPlot=copy(Type_Specific_Distribution)
+            ForDistPlot=copy(TS_Distribution)
             for i=1:na
                 if ForDistPlot[i]==0
                     ForDistPlot[i]=NaN
@@ -68,7 +76,7 @@ where q=$(round(out_results.q,digits=8))",
                 #Calculating Gini
                 Gini=sum(Lorenz[:,1].-Lorenz[:,2])/(sum(Lorenz[:,1].-Lorenz[:,2])+sum(Lorenz[:,1]))
                 #Lorenz[:,2]=Lorenz[:,2]./Lorenz[n_lorenz,2] #express cumulative assets as a percentage
-                print(Lorenz)
+                #print(Lorenz)
                 Plots.plot(100*Lorenz[:,1],100*Lorenz[:,2], title="Lorenz Curve.
 The Gini Coefficient is $(round(Gini,digits=8))",
                 xlabel="% of Population",
