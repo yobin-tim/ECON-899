@@ -1,10 +1,10 @@
-using Plots, Distributed, SharedArrays
+using Distributed, SharedArrays
 
 #add processes
 workers()
 addprocs(2)
 
-theme(:juno)
+
 @Distributed.everywhere include("./PS3/JuliaCode/conesa_kueger.jl");
 
 prim, res = Initialize(); #=
@@ -21,6 +21,8 @@ hcat(prim.a_grid, agridf, prim.a_grid - agridf)
 =#
 @time MarketClearing(prim, res, use_Fortran=false);
 
+using Plots
+theme(:juno)
 plot(res.val_fun[:,:, end])
 plot!(res.val_fun[:,:, end-1])
 plot!(res.val_fun[:,:, end-2])
@@ -56,6 +58,6 @@ plot!
 
 # graph distributions
 
-# accross assets for workers and retirees 
+# accross assets for workers and retirees
 a_dist = sum(res.F, dims = 2:3)
 plot(prim.a_grid, a_dist[:, 1, 1])
