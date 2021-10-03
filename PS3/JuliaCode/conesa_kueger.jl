@@ -280,8 +280,24 @@ function SteadyStateDist(prim::Primitives, res::Results)
 end # SteadyStateDist
 
 # Function to solve for market prices
-function MarketClearing(; use_Fortran::Bool=false, λ::Float64=0.7, tol::Float64=1e-2, err=100)
+function MarketClearing(; ss::Bool=true, i_risk::Bool=true, exog_l::Bool=false,
+     use_Fortran::Bool=false, λ::Float64=0.7, tol::Float64=1e-2, err::Float64=100.0)
+
     prim, res= Initialize()
+
+    # make relevant policy experiment changes
+    if ~ss 
+        prim.θ = 0
+    end
+
+    if ~i_risk 
+        prim.z_H, prim.z_L, prim.z_Vals = 0.5, 0.5, [0.5, 0.5]
+    end
+
+    if exog_l
+        prim.γ = 1
+    end
+
     # unpack relevant variables and functions
     @unpack w_mkt, r_mkt, b_mkt, J_R, a_grid = prim
 
@@ -333,3 +349,17 @@ function MarketClearing(; use_Fortran::Bool=false, λ::Float64=0.7, tol::Float64
     end # while err > tol
     return prim, res
 end # MarketClearing
+
+# Function to calculate compensating variation
+function Lambda(prim::Primitives, res::Results, W::Float64)
+    
+    # unpack necessary variables
+    @unpack F, val_fun = res
+    @unpack α, β = prim
+
+    # calculate and return compensating variation
+    λ = ( (W + (1/((1-α)*(1-β)))) ./ (val_fun .+ (1/((1-α)*(1-β)))) ).^(1/(1-α)) .- 1
+
+    return F.*λ
+
+end
