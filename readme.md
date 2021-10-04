@@ -3,7 +3,7 @@
 - Danny Edgel
 - Ryan Mather
 - Yobin Tamilsena
-- Hiro Shirai
+- Hiroaki Shirai
 
 # Notes:
 I(Mitch) create and rendered in pdf some notebooks that we can use both to do testing and to turn in the results along with the 
