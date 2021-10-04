@@ -140,9 +140,9 @@ function V_workers(prim::Primitives, res::Results)
     @unpack r, w, b = res
 
     # First  we iterate over the age groups
-    for j in ProgressBar(J_R-1:-1:1) # Progressbar for running in console
+    # for j in ProgressBar(J_R-1:-1:1) # Progressbar for running in console
 
-    #for j in N_final-1:-1:1 # Without progressbar for running in jupyter notebook
+    for j in J_R-1:-1:1 # Without progressbar for running in jupyter notebook
 
         # Next we iterate over the productivity levels
         @sync @distributed for z_index in 1:nZ
@@ -281,7 +281,7 @@ end # SteadyStateDist
 
 # Function to solve for market prices
 function MarketClearing(; ss::Bool=true, i_risk::Bool=true, exog_l::Bool=false,
-     use_Fortran::Bool=false, λ::Float64=0.7, tol::Float64=1e-2, err::Float64=100.0)
+    use_Fortran::Bool=false, λ::Float64=0.7, tol::Float64=1e-2, err::Float64=100.0)
 
     prim, res= Initialize()
 

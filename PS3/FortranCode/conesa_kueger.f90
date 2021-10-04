@@ -136,47 +136,47 @@ program conesa_krueger
     ELSE 
         CALL GET_COMMAND_ARGUMENT(1,solve_whole_problem_char)
         READ(solve_whole_problem_char,*)solve_whole_problem
-    END IF
-    IF (solve_whole_problem == 0 .AND. COMMAND_ARGUMENT_COUNT() < 4 ) THEN
-        ! If less than 4 command line arguments are given throw an error and stop
-        WRITE(*,*) 'ERROR: WAS EXPECTING 4 COMAND LINE ARGUMENTS, ONLY GOT', COMMAND_ARGUMENT_COUNT()
-        WRITE(*,*) 'IF YOU WANT TO USE THE DEFAULT VALUES, RUN THE PROGRAM WITHOUT ANY ARGUMENTS'
-        WRITE(*,*) 'IF YOU WANT TO SUPPLY ARGUMENTS TO THE PROGRAM FIRST:'
-        WRITE(*,*) 'DECIDE WHETHER TO SOLVE THE WHOLE PROBLEM (I=1) OR JUST THE VALUE FUNCTION (I=0)'
-        WRITE(*,*) 'IF I = 1 THEN USE:    ./program $I $K $L    TO SUPPLY INITIAL GUESSES FOR K AND L'
-        WRITE(*,*) 'IF I = 0 THEN USE:    ./program $I $r $w $b TO SUPPLY VALUES FOR r, w AND b'
-        WRITE(*,*) 'EXITING...'
-        STOP
-    ELSE IF (solve_whole_problem == 0) THEN
+        IF (solve_whole_problem == 0 .AND. COMMAND_ARGUMENT_COUNT() < 4 ) THEN
+            ! If less than 4 command line arguments are given throw an error and stop
+            WRITE(*,*) 'ERROR: WAS EXPECTING 4 COMAND LINE ARGUMENTS, ONLY GOT', COMMAND_ARGUMENT_COUNT()
+            WRITE(*,*) 'IF YOU WANT TO USE THE DEFAULT VALUES, RUN THE PROGRAM WITHOUT ANY ARGUMENTS'
+            WRITE(*,*) 'IF YOU WANT TO SUPPLY ARGUMENTS TO THE PROGRAM FIRST:'
+            WRITE(*,*) 'DECIDE WHETHER TO SOLVE THE WHOLE PROBLEM (I=1) OR JUST THE VALUE FUNCTION (I=0)'
+            WRITE(*,*) 'IF I = 1 THEN USE:    ./program $I $K $L    TO SUPPLY INITIAL GUESSES FOR K AND L'
+            WRITE(*,*) 'IF I = 0 THEN USE:    ./program $I $r $w $b TO SUPPLY VALUES FOR r, w AND b'
+            WRITE(*,*) 'EXITING...'
+            STOP
+        ELSE IF (solve_whole_problem == 0) THEN
+            
+            ! Read User supplied values for r, w, b
+            CALL GET_COMMAND_ARGUMENT(2,r_char)
+            READ(r_char,*)r
+    
+            CALL GET_COMMAND_ARGUMENT(3,w_char)
+            READ(w_char,*)w
         
-        ! Read User supplied values for r, w, b
-        CALL GET_COMMAND_ARGUMENT(2,r_char)
-        READ(r_char,*)r
-
-        CALL GET_COMMAND_ARGUMENT(3,w_char)
-        READ(w_char,*)w
+            CALL GET_COMMAND_ARGUMENT(4,b_char)
+            READ(b_char,*)b
+        ELSE IF (solve_whole_problem == 1 .AND. COMMAND_ARGUMENT_COUNT() < 3 ) THEN
+            ! If less than 4 command line arguments are given throw an error and stop
+            WRITE(*,*) 'ERROR: WAS EXPECTING 3 COMAND LINE ARGUMENTS, ONLY GOT', COMMAND_ARGUMENT_COUNT()
+            WRITE(*,*) 'IF YOU WANT TO USE THE DEFAULT VALUES, RUN THE PROGRAM WITHOUT ANY ARGUMENTS'
+            WRITE(*,*) 'IF YOU WANT TO SUPPLY ARGUMENTS TO THE PROGRAM FIRST:'
+            WRITE(*,*) 'DECIDE WHETHER TO SOLVE THE WHOLE PROBLEM (I=1) OR JUST THE VALUE FUNCTION (I=0)'
+            WRITE(*,*) 'IF I = 1 THEN USE:    ./program $I $K $L    TO SUPPLY INITIAL GUESSES FOR K AND L'
+            WRITE(*,*) 'IF I = 0 THEN USE:    ./program $I $r $w $b TO SUPPLY VALUES FOR r, w AND b'
+            WRITE(*,*) 'EXITING...'
+            STOP
+        ELSE
+            ! Read User supplied values for K and L
+            CALL GET_COMMAND_ARGUMENT(2,K_char)
+            READ(K_char,*)K
+        
+            CALL GET_COMMAND_ARGUMENT(3,L_char)
+            READ(L_char,*)L
     
-        CALL GET_COMMAND_ARGUMENT(4,b_char)
-        READ(b_char,*)b
-    ELSE IF (solve_whole_problem == 1 .AND. COMMAND_ARGUMENT_COUNT() < 3 ) THEN
-        ! If less than 4 command line arguments are given throw an error and stop
-        WRITE(*,*) 'ERROR: WAS EXPECTING 3 COMAND LINE ARGUMENTS, ONLY GOT', COMMAND_ARGUMENT_COUNT()
-        WRITE(*,*) 'IF YOU WANT TO USE THE DEFAULT VALUES, RUN THE PROGRAM WITHOUT ANY ARGUMENTS'
-        WRITE(*,*) 'IF YOU WANT TO SUPPLY ARGUMENTS TO THE PROGRAM FIRST:'
-        WRITE(*,*) 'DECIDE WHETHER TO SOLVE THE WHOLE PROBLEM (I=1) OR JUST THE VALUE FUNCTION (I=0)'
-        WRITE(*,*) 'IF I = 1 THEN USE:    ./program $I $K $L    TO SUPPLY INITIAL GUESSES FOR K AND L'
-        WRITE(*,*) 'IF I = 0 THEN USE:    ./program $I $r $w $b TO SUPPLY VALUES FOR r, w AND b'
-        WRITE(*,*) 'EXITING...'
-        STOP
-    ELSE
-        ! Read User supplied values for K and L
-        CALL GET_COMMAND_ARGUMENT(2,K_char)
-        READ(K_char,*)K
-    
-        CALL GET_COMMAND_ARGUMENT(3,L_char)
-        READ(L_char,*)L
-
-        ! Using the values for K and L, solve for r, w
+            ! Using the values for K and L, solve for r, w
+        END IF
     END IF
     
     
@@ -236,7 +236,7 @@ program conesa_krueger
             b = THETA * w * L / m
         END IF
         IF (solve_whole_problem == 1) THEN
-            WRITE(*,*)'Iteration:',COUNT_ITER,'ERR=',ERR,'K=', NINT(K * 1000d0)/1000d0,'L=', NINT(L*1000d0)/1000d0,'LAMBDA=',LAMBDA
+            WRITE(*,*)'Iteration:',COUNT_ITER,'ERR=',ERR,'K=', K ,'L=', L,'LAMBDA=',LAMBDA
         END IF
         ! Increment iteration counter
         COUNT_ITER = COUNT_ITER + 1
@@ -244,8 +244,9 @@ program conesa_krueger
     END DO
     ! End Computational Timer
     call system_clock(end)
-    
-    write(*,*) "Total elapsed time = ", real(end - beginning) / real(rate)," seconds"
+    IF (solve_whole_problem == 1) THEN
+        write(*,*) "Total elapsed time = ", real(end - beginning) / real(rate)," seconds"
+    END IF
     call coda()                         ! Write resutls to file(s)
 end program
 
