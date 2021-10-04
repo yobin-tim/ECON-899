@@ -329,9 +329,9 @@ function MarketClearing(; ss::Bool=true, i_risk::Bool=true, exog_l::Bool=false,
 
         if (err > tol*10)
             # Leave λ at the default
-        elseif (err > tol*5) & (λ < 0.85)
+        elseif (err > tol*5) & (λ <= 0.85)
             λ = 0.85
-        elseif (err > tol*2.5) & (λ < 0.90)
+        elseif (err > tol*2.5) & (λ <= 0.90)
             λ = 0.90
         elseif λ < 0.975
             λ = 0.975
