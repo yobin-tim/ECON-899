@@ -114,8 +114,8 @@ open("PS3/Tables/table1.tex", "w") do io
     res_exLab.r, " & ", res_exLab_noSS.r, " \\\hline",
     L"pension benefit, $b$ & ", out_res.b, " & ", res_noSS.b, " & ", res_noRisk.b, " & ", res_noRisk_noSS.b, " & ",
     res_exLab.b, " & ", res_exLab_noSS.b, " \\\hline",
-    L"total welfare, $W$ & ", sum(out_res.val_fun.*out_res.F), " & ", res_noSS.b, " & ", res_noRisk.b, " & ", res_noRisk_noSS.b, " & ",
-    res_exLab.b, " & ", res_exLab_noSS.b, " \\\hline",
+    L"total welfare, $W$ & ", sum(out_res.val_fun.*out_res.F), " & ", sum(res_noSS.val_fun.*res_noSS.F), " & ", sum(res_noRisk.val_fun*res_noRisk.F), " & ",
+    sum(res_noRisk_noSS.val_fun.*res_noRisk_noSS.F), " & ",sum(res_exLab.val_fun.*res_exLab.F), " & ", sum(res_exLab_noSS.val_fun.*res_exLab_noSS.F), " \\\hline",
     L"cv(wealth) & ", Lambda(put_prim, out_res, W), " & ", Lambda(prim_noSS, res_noSS, W), " & ", Lambda(prim_noRisk, res_noRisk, W),
     " & ", Lambda(prim_noRisk_noSS, res_noRisk_noSS, W), " & ", Lambda(prim_exLab, res_exLab, W), " & ", 
     Lambda(prim_exLab_noSS, res_exLab_noSS, W), " \\\hline \end{tabular}"))
