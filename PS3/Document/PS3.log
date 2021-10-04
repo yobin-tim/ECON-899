@@ -1,9 +1,9 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2020.3.31)  3 OCT 2021 22:33
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2020.3.31)  3 OCT 2021 23:06
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**PS2.tex
-(./PS2.tex
+**PS3.tex
+(./PS3.tex
 LaTeX2e <2018-12-01>
 (/usr/local/texlive/2019/texmf-dist/tex/latex/base/article.cls
 Document Class: article 2018/09/03 v1.4i Standard LaTeX document class
@@ -1167,80 +1167,231 @@ File: dt-american.def 2013/09/10
 \dt@a=\toks52
 \dt@b=\toks53
 )
-(./jlcode.sty
--- Package: `jlcode' 6.0 <2020/09/14> --
-Package: jlcode 2020/09/14 6.0
-(/usr/local/texlive/2019/texmf-dist/tex/generic/iftex/iftex.sty
-Package: iftex 2013/04/04 v0.2 Provides if(tex) conditional for PDFTeX, XeTeX, 
-and LuaTeX
+(/usr/local/texlive/2019/texmf-dist/tex/latex/geometry/geometry.sty
+Package: geometry 2018/04/16 v5.8 Page Geometry
+\Gm@cnth=\count338
+\Gm@cntv=\count339
+\c@Gm@tempcnt=\count340
+\Gm@bindingoffset=\dimen285
+\Gm@wd@mp=\dimen286
+\Gm@odd@mp=\dimen287
+\Gm@even@mp=\dimen288
+\Gm@layoutwidth=\dimen289
+\Gm@layoutheight=\dimen290
+\Gm@layouthoffset=\dimen291
+\Gm@layoutvoffset=\dimen292
+\Gm@dimlist=\toks54
 )
-(/usr/local/texlive/2019/texmf-dist/tex/latex/listings/listings.sty
-\lst@mode=\count338
-\lst@gtempboxa=\box69
-\lst@token=\toks54
-\lst@length=\count339
-\lst@currlwidth=\dimen285
-\lst@column=\count340
-\lst@pos=\count341
-\lst@lostspace=\dimen286
-\lst@width=\dimen287
-\lst@newlines=\count342
-\lst@lineno=\count343
-\lst@maxwidth=\dimen288
+\c@theorem=\count341
+LaTeX Font Info:    Try loading font information for T1+Cochineal-OsF on input 
+line 60.
 
-(/usr/local/texlive/2019/texmf-dist/tex/latex/listings/lstmisc.sty
-File: lstmisc.sty 2019/02/27 1.8b (Carsten Heinz)
-\c@lstnumber=\count344
-\lst@skipnumbers=\count345
-\lst@framebox=\box70
+(/usr/local/texlive/2019/texmf-dist/tex/latex/cochineal/T1Cochineal-OsF.fd
+File: T1Cochineal-OsF.fd 2016/01/19 (msharpe) Font definitions for T1/Cochineal
+-OsF.
 )
-(/usr/local/texlive/2019/texmf-dist/tex/latex/listings/listings.cfg
-File: listings.cfg 2019/02/27 1.8b listings configuration
+LaTeX Font Info:    Font shape `T1/Cochineal-OsF/m/n' will be
+(Font)              scaled to size 10.0pt on input line 60.
+
+(./PS3.aux)
+\openout1 = `PS3.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 60.
+LaTeX Font Info:    ... okay on input line 60.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 60.
+LaTeX Font Info:    ... okay on input line 60.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 60.
+LaTeX Font Info:    ... okay on input line 60.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 60.
+LaTeX Font Info:    ... okay on input line 60.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 60.
+LaTeX Font Info:    ... okay on input line 60.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 60.
+LaTeX Font Info:    ... okay on input line 60.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 60.
+LaTeX Font Info:    Try loading font information for TS1+cmr on input line 60.
+ (/usr/local/texlive/2019/texmf-dist/tex/latex/base/ts1cmr.fd
+File: ts1cmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
+)
+LaTeX Font Info:    ... okay on input line 60.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 60.
+LaTeX Font Info:    ... okay on input line 60.
+\c@mv@tabular=\count342
+\c@mv@boldtabular=\count343
+
+(/usr/local/texlive/2019/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+\scratchcounter=\count344
+\scratchdimen=\dimen293
+\scratchbox=\box69
+\nofMPsegments=\count345
+\nofMParguments=\count346
+\everyMPshowfont=\toks55
+\MPscratchCnt=\count347
+\MPscratchDim=\dimen294
+\MPnumerator=\count348
+\makeMPintoPDFobject=\count349
+\everyMPtoPDFconversion=\toks56
+) (/usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/epstopdf-base.sty
+Package: epstopdf-base 2016/05/15 v2.6 Base part for package epstopdf
+
+(/usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/grfext.sty
+Package: grfext 2016/05/16 v1.2 Manage graphics extensions (HO)
+)
+Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
+38.
+Package grfext Info: Graphics extension search list:
+(grfext)             [.pdf,.png,.jpg,.mps,.jpeg,.jbig2,.jb2,.PDF,.PNG,.JPG,.JPE
+G,.JBIG2,.JB2,.eps]
+(grfext)             \AppendGraphicsExtensions on input line 456.
+
+(/usr/local/texlive/2019/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
+File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
+e
 ))
-Package: listings 2019/02/27 1.8b (Carsten Heinz)
+ABD: EveryShipout initializing macros
+Package caption Info: Begin \AtBeginDocument code.
+Package caption Info: float package is loaded.
+Package caption Info: hyperref package is loaded.
+Package caption Info: End \AtBeginDocument code.
+\AtBeginShipoutBox=\box70
+Package hyperref Info: Link coloring ON on input line 60.
 
-! Undefined control sequence.
-l.59 \iftutex
-               % LuaTeX + XeTeX
-The control sequence at the end of the top line
-of your error message was never \def'ed. If you have
-misspelled it (e.g., `\hobx'), type `I' and the correct
-spelling (e.g., `I\hbox'). Otherwise just continue,
-and I'll forget about whatever was undefined.
+(/usr/local/texlive/2019/texmf-dist/tex/latex/hyperref/nameref.sty
+Package: nameref 2016/05/21 v2.44 Cross-referencing by name of section
 
-(/usr/local/texlive/2019/texmf-dist/tex/latex/fontspec/fontspec.sty
-Package: fontspec 2019/03/15 v2.7c Font selection for XeLaTeX and LuaLaTeX
+(/usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/gettitlestring.sty
+Package: gettitlestring 2016/05/16 v1.5 Cleanup title references (HO)
+)
+\c@section@level=\count350
+)
+LaTeX Info: Redefining \ref on input line 60.
+LaTeX Info: Redefining \pageref on input line 60.
+LaTeX Info: Redefining \nameref on input line 60.
 
-
-! Fatal Package fontspec Error: The fontspec package requires either XeTeX or
-(fontspec)                      LuaTeX.
-(fontspec)                      
-(fontspec)                      You must change your typesetting engine to,
-(fontspec)                      e.g., "xelatex" or "lualatex"instead of
-(fontspec)                      "latex" or "pdflatex".
-
-For immediate help type H <return>.
- ...                                              
-                                                  
-l.45 \msg_fatal:nn {fontspec} {cannot-use-pdftex}
-                                                 
-
-This is a fatal error: LaTeX will abort.
+(./PS3.out) (./PS3.out)
+\@outlinefile=\write4
+\openout4 = `PS3.out'.
 
 
- ) ) ) 
+*geometry* driver: auto-detecting
+*geometry* detected driver: pdftex
+*geometry* verbose mode - [ preamble ] result:
+* driver: pdftex
+* paper: <default>
+* layout: <same size as paper>
+* layoutoffset:(h,v)=(0.0pt,0.0pt)
+* modes: 
+* h-part:(L,W,R)=(72.26999pt, 469.75502pt, 72.26999pt)
+* v-part:(T,H,B)=(72.26999pt, 650.43001pt, 72.26999pt)
+* \paperwidth=614.295pt
+* \paperheight=794.96999pt
+* \textwidth=469.75502pt
+* \textheight=650.43001pt
+* \oddsidemargin=0.0pt
+* \evensidemargin=0.0pt
+* \topmargin=-37.0pt
+* \headheight=12.0pt
+* \headsep=25.0pt
+* \topskip=10.0pt
+* \footskip=30.0pt
+* \marginparwidth=65.0pt
+* \marginparsep=11.0pt
+* \columnsep=10.0pt
+* \skip\footins=9.0pt plus 4.0pt minus 2.0pt
+* \hoffset=0.0pt
+* \voffset=0.0pt
+* \mag=1000
+* \@twocolumnfalse
+* \@twosidefalse
+* \@mparswitchfalse
+* \@reversemarginfalse
+* (1in=72.27pt=25.4mm, 1cm=28.453pt)
+
+LaTeX Font Info:    Font shape `T1/Cochineal-OsF/b/n' will be
+(Font)              scaled to size 10.0pt on input line 61.
+LaTeX Font Info:    Try loading font information for U+msa on input line 62.
+(/usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/umsa.fd
+File: umsa.fd 2013/01/14 v3.01 AMS symbols A
+)
+LaTeX Font Info:    Try loading font information for U+msb on input line 62.
+
+(/usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/umsb.fd
+File: umsb.fd 2013/01/14 v3.01 AMS symbols B
+)
+<../Figures/val_fun50.png, id=7, 602.25pt x 401.5pt>
+File: ../Figures/val_fun50.png Graphic file (type png)
+<use ../Figures/val_fun50.png>
+Package pdftex.def Info: ../Figures/val_fun50.png  used on input line 67.
+(pdftex.def)             Requested size: 469.75502pt x 313.18098pt.
+<../Figures/savings20.png, id=8, 602.25pt x 401.5pt>
+File: ../Figures/savings20.png Graphic file (type png)
+<use ../Figures/savings20.png>
+Package pdftex.def Info: ../Figures/savings20.png  used on input line 73.
+(pdftex.def)             Requested size: 469.75502pt x 313.18098pt.
+ [1{/usr/local/texlive/2019/texmf-var/fonts/map/pdftex/updmap/pdftex.map}
+
+ <../Figures/val_fun50.png>]
+LaTeX Font Info:    Font shape `T1/Cochineal-OsF/m/n' will be
+(Font)              scaled to size 7.0pt on input line 78.
+LaTeX Font Info:    Font shape `T1/Cochineal-OsF/m/n' will be
+(Font)              scaled to size 5.0pt on input line 78.
+
+
+LaTeX Warning: Command \texttimes invalid in math mode on input line 78.
+
+LaTeX Font Info:    Try loading font information for TS1+Cochineal-OsF on input
+ line 78.
+(/usr/local/texlive/2019/texmf-dist/tex/latex/cochineal/TS1Cochineal-OsF.fd
+File: TS1Cochineal-OsF.fd 2016/01/19 (msharpe) Font definitions for TS1/Cochine
+al-OsF.
+)
+LaTeX Font Info:    Font shape `TS1/Cochineal-OsF/m/n' will be
+(Font)              scaled to size 10.0pt on input line 78.
+
+
+LaTeX Warning: Command \texttimes invalid in math mode on input line 78.
+
+Missing character: There is no Ö in font cmr10!
+
+LaTeX Warning: Command \texttimes invalid in math mode on input line 78.
+
+
+LaTeX Warning: Command \texttimes invalid in math mode on input line 78.
+
+Missing character: There is no Ö in font cmr10!
+[2 <../Figures/savings20.png>] [3]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 100.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 100.
+ (./PS3.aux)
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 100.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 100.
+Package rerunfilecheck Info: File `PS3.out' has not changed.
+(rerunfilecheck)             Checksum: D41D8CD98F00B204E9800998ECF8427E;0.
+ ) 
 Here is how much of TeX's memory you used:
- 32102 strings out of 492616
- 594751 string characters out of 6129481
- 780771 words of memory out of 5000000
- 35606 multiletter control sequences out of 15000+600000
- 533101 words of font info for 25 fonts, out of 8000000 for 9000
+ 32111 strings out of 492616
+ 596175 string characters out of 6129481
+ 785771 words of memory out of 5000000
+ 35560 multiletter control sequences out of 15000+600000
+ 592940 words of font info for 40 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 55i,1n,92p,1067b,317s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 55i,11n,92p,1067b,505s stack positions out of 5000i,500n,10000p,200000b,80000s
+{/usr/local/texlive/2019/texmf-dist/fonts/enc/dvips/cochineal/coch_2lyzki.enc
+}{/usr/local/texlive/2019/texmf-dist/fonts/enc/dvips/cochineal/coch_eluacw.enc}
+</usr/local/texlive/2019/texmf-dist/fonts/type1/public/cochineal/Cochineal-Bold
+.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/cochineal/Cochineal
+-Roman.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/c
+mmi10.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cm
+mi7.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr1
+0.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.p
+fb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pf
+b></usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb>
 
-No pages of output.
+Output written on PS3.pdf (3 pages, 152976 bytes).
 PDF statistics:
- 3 PDF objects out of 1000 (max. 8388607)
- 0 named destinations out of 1000 (max. 500000)
- 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 68 PDF objects out of 1000 (max. 8388607)
+ 52 compressed objects within 1 object stream
+ 10 named destinations out of 1000 (max. 500000)
+ 23 words of extra memory for PDF output out of 10000 (max. 10000000)
 
