@@ -24,7 +24,7 @@
 \usepackage[shortlabels]{enumitem}
 \usepackage{parskip}
 \usepackage[us]{datetime} %package for setting due date in US format
-\newdate{duedate}{27}{04}{2021} %to set a due date
+\newdate{duedate}{29}{09}{2021} %to set a due date
 %\usepackage{jlcode}
 \allowdisplaybreaks
 \usepackage[margin=1in]{geometry}
@@ -32,8 +32,8 @@
 
 
 \lhead{Due: \displaydate{duedate}}
-\chead{ECON 899 -- Problem Set 2 }
-\rhead{Danny, Mitchell, Ryan, and Yobin}
+\chead{ECON 899 -- Problem Set 3 }
+\rhead{Danny, Mitchell, Ryan, Yobin, and Hiroaki}
 
 
 \DeclareMathOperator*{\E}{\mathbb{E}} %ease of writing e and E
@@ -58,7 +58,20 @@
 
 
 \begin{document}
-	\subsubsection*{Exercise 1}
+\subsubsection*{The optimal labor supply}
+Houshold's problem is
+\begin{equation}
+  \label{eq:1}
+  \max_{c,l} \frac{\left[c^{\gamma}(1-l)^{1-\gamma}\right]^{1-\sigma}}{1-\sigma} \ \  \text{s.t.} \ c = (1-\theta)we(z,\eta_j)l + (1+r)a -a'
+\end{equation}
+The first order condition yields
+\begin{equation}
+  \label{eq:2}
+  c = \frac{\gamma}{1-\gamma}(1-\theta)we(z,\eta_j)(1-l)
+\end{equation}
+Using this and the budget constraint, we get the optimal $l$ in the PS. 
+
+\subsubsection*{Exercise 1}
 	Solve the dynamic programming problem of retirees and workers. Plot the value function over $ a $ for a retired agent at the model-age 50. Is it increasing and concave? Plot the savings function for a worker at the
 	model-age 20, $ a'_{20}(z, a) $. Is saving increasing in $ a $? Is it increasing in $ z $?
 	\begin{solution}
