@@ -7,8 +7,8 @@
     J_R     ::Int64             = 46         # Retirement age
     n       ::Float64           = 0.011      # Population growth rate
     a_1     ::Float64           = 0          # Initial assets holding for newborns
-    θ       ::Float64           = 0.11       # Labor income tax rate
-    γ       ::Float64           = 1          # Utillity weight on consumption
+    θ       ::Float64                        # Labor income tax rate
+    γ       ::Float64                        # Utillity weight on consumption
     σ       ::Float64           = 2.0        # Coefficient of relative risk aversion
     α       ::Float64           = 0.36       # Capital share in production
     δ       ::Float64           = 0.06       # Capital depreciation rate
@@ -75,8 +75,8 @@ end # Primitives
 end # Results
 
 # Function that initializes the model
-function Initialize()
-    prim = Primitives()                             # Initialize the primitives
+function Initialize(; θ = 0.11, γ = 0.42)
+    prim = Primitives(θ = θ, γ = γ)                 # Initialize the primitives
     w = 1.05                                        # Wage guess
     r = 0.05                                        # Interest rate guess
     b = 0.2                                         # Benefits guess
@@ -132,6 +132,8 @@ function V_ret(prim::Primitives, res::Results)
             res.l_fun[a_index, :, j] .= 0
         end # for a_index
     end # for j
+
+    return prim, res
 
 end # V_ret
 
@@ -207,12 +209,8 @@ function V_workers(prim::Primitives, res::Results)
             end # Current asset holdings loop
         end # Productivity loop
     end  # Age loop
-    #=
-    res.val_fun = val_fun
-    res.pol_fun = pol_fun
-    res.pol_fun_ind = pol_fun_ind
-    res.l_fun = l_fun
-    =#
+    
+    return prim, res
 end # V_workers
 
 # If we want to speed up the code we can use Fortran
@@ -285,12 +283,13 @@ end # SteadyStateDist
 # Function to solve for market prices
 function MarketClearing(; ss::Bool=true, use_Fortran::Bool=false, λ::Float64=0.7, tol::Float64=1e-2, err::Float64=100.0)
 
-    prim, res= Initialize()
-
-    # make relevant policy experiment changes
-    if ~ss 
-        prim.θ = 0
+    # initialize struct according to policies
+    if ~ss
+        prim, res = Initialize(θ = 0)
+    else
+        prim, res = Initialize()
     end
+
 
     # unpack relevant variables and functions
     @unpack w_mkt, r_mkt, b_mkt, J_R, a_grid = prim
@@ -362,8 +361,8 @@ end # Lambda
 function FillPath(prim::Primitives, res::Results, K_path::::Array{Float64}, N::Int64)
 
     # upack relevant primitives and results
-    @unpack a_grid, N_final, nZ = prim 
-    @unpack F = res
+    @unpack a_grid, N_final, nZ, Π, r_mkt, w_mkt, b_mkt = prim 
+    @unpack F, μ, L = res
 
     # initialize transition path distribution 
     Ft = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final, N+1)
@@ -372,18 +371,50 @@ function FillPath(prim::Primitives, res::Results, K_path::::Array{Float64}, N::I
 
     # loop through each possible combination of states and project agents'
     # choices, given K_path, from t=1 to t=N 
-    @async @distributed for j in 1:N_final, zi in 1:nZ, ai in 1:nA
-        for t in 2:(N + 1)
-            api = argmin(abs.(pol_fun[ai, zi, j-1].-a_grid))
-            Ft[api, zi, j, t] += Ft[ai, zi, j, t-1] + 
-        end # t loop
-    end # state loop
+    @async @distributed for t in 2:(N + 1)
 
+        # localize results struct for current time period 
+        newRes = res
+
+        # acquire value and policy functions for current K 
+        K = K_path[t]
+        newRes.r = r_mkt(K, L)
+        newRes.w = w_mkt(K, L)
+        newRes.b = b_mkt(L, res.w, sum(μ[J_R:end]))
+
+        newPrim, newRes = V_ret(prim, newRes);
+        newPrim, newRes = V_workers(newPrim, newRes);
+
+        @unpack pol_fun = newRes
+
+        for j in 1:N_final
+            for zi in 1:nZ
+                for ai in 1:nA
+                    api = argmin(abs.(pol_fun[ai, zi, j-1].-a_grid))
+
+                    for znext = 1:nZ
+                        Ft[api, zi, j, t] += Ft[ai, zi, j-1, t] * Π[zi, znext] * (μ[j]/μ[j-1])
+                    end # znext
+                end # ai loop 
+            end # zi loop 
+        end # j loop
+    end # t loop
+
+    # calculate new capital path and return 
+    K_path = sum(Ft, dims = 1:3)
+
+    return K_path, Ft
 end
 
 # Function to calculate the transition path between two equilibria
-function TransitionPath(primStart::Primitives, resStart::Results, primEnd::Primitives, resEnd::Results;
+function TransitionPath(resStart::Results, primEnd::Primitives, resEnd::Results;
     err::Float64=100.0, tol::Float64=1e-3, λ::Float64=0.70, N::Int64=30)
+
+    #=
+        NOTE: resStart and resEnd are the results structs from 
+        the two equilibria; MarketClearing() must be run for each
+        policy scenario before running TransitionPath()
+    =#
 
     # guess the transition path between the two equilibria
     K₀, Kₜ = resStart.K, resEnd.K 
@@ -398,7 +429,7 @@ function TransitionPath(primStart::Primitives, resStart::Results, primEnd::Primi
     while err > 0
 
         # pass current capital path to FillPath function
-        K_path_new, Ft = FillPath(primEnd, resStart, K_path, N)
+        K_path_new, Ft = FillPath(primEnd, newRes, K_path, N)
 
         # converge and update
 
