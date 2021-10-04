@@ -69,8 +69,9 @@ end # Primitives
 
     # ! This is a experiment, maybe it is useful to also save
     # ! the indices of the optimal policy function
-    pol_fun_ind ::Array{Int64,3}            # Policy function indices
-    F       ::Array{Float64,3}              # Distribution of agents over asset holdings
+    pol_fun_ind ::Array{Int64, 3}           # Policy function indices
+    F           ::Array{Float64, 3}         # Distribution of agents over asset holdings
+
 end # Results
 
 # Function that initializes the model
@@ -80,7 +81,6 @@ function Initialize()
     r = 0.05                                        # Interest rate guess
     b = 0.2                                         # Benefits guess
     K = 4                                           # inital capital guess
-    L = 0.9                                         # initial labor guess
     val_fun = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)    # Initialize the value function
     pol_fun = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)    # Initialize the policy function
     pol_fun_ind = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)# Initialize the policy function indices
@@ -99,13 +99,15 @@ function Initialize()
     end
     μ = μ/sum(μ)
 
+    L = sum(μ[1:(J_R-1)])                    # fixed aggregate labor
+
     # Finally we initialize the distribution of the agents
     F = zeros(prim.nA, prim.nZ, prim.N_final)
     F[1, 1, 1] = μ[1] * prim.p_H
     F[1, 2, 1] = μ[1] * prim.p_L
 
     # Initialize the results
-    res = Results(w, r, b, K, L, μ, val_fun, pol_fun, l_fun, pol_fun_ind, F)
+    res = Results(w, r, b, K, μ, L, val_fun, pol_fun, l_fun, pol_fun_ind, F)
 
     return (prim, res)                              # Return the primitives and results
 end
@@ -357,7 +359,25 @@ function Lambda(prim::Primitives, res::Results, W::Float64)
 end # Lambda
 
 # Function that, given an aggregate capital path, infers prices and calculates a new path 
-function FillPath(prim::Primitives, res::Results, K_path::::Array{Float64})
+function FillPath(prim::Primitives, res::Results, K_path::::Array{Float64}, N::Int64)
+
+    # upack relevant primitives and results
+    @unpack a_grid, N_final, nZ = prim 
+    @unpack F = res
+
+    # initialize transition path distribution 
+    Ft = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final, N+1)
+    Ft[:, :, :, 1]      = F;
+    Ft[:, :, :, 2:end] .= 0;
+
+    # loop through each possible combination of states and project agents'
+    # choices, given K_path, from t=1 to t=N 
+    @async @distributed for j in 1:N_final, zi in 1:nZ, ai in 1:nA
+        for t in 2:(N + 1)
+            api = argmin(abs.(pol_fun[ai, zi, j-1].-a_grid))
+            Ft[api, zi, j, t] += Ft[ai, zi, j, t-1] + 
+        end # t loop
+    end # state loop
 
 end
 
@@ -369,10 +389,16 @@ function TransitionPath(primStart::Primitives, resStart::Results, primEnd::Primi
     K₀, Kₜ = resStart.K, resEnd.K 
     K_path = collect(range(K₀, Kₜ, length = N + 1))
 
+    # generate new primitives and results structs for use in calculating
+    # the transition path 
+    newRes      = resEnd;
+    newRes.F    = resStart.F;
+
     # iteratively use the FillPath function to update capital path until convergence
     while err > 0
 
         # pass current capital path to FillPath function
+        K_path_new, Ft = FillPath(primEnd, resStart, K_path, N)
 
         # converge and update
 

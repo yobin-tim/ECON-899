@@ -7,8 +7,8 @@
     J_R     ::Int64             = 46         # Retirement age
     n       ::Float64           = 0.011      # Population growth rate
     a_1     ::Float64           = 0          # Initial assets holding for newborns
-    θ       ::Float64           = 0.11       # Labor income tax rate
-    γ       ::Float64           = 0.42       # Utillity weight on consumption
+    θ       ::Float64                        # Labor income tax rate
+    γ       ::Float64                        # Utillity weight on consumption
     σ       ::Float64           = 2.0        # Coefficient of relative risk aversion
     α       ::Float64           = 0.36       # Capital share in production
     δ       ::Float64           = 0.06       # Capital depreciation rate
@@ -73,8 +73,8 @@ end # Primitives
 end # Results
 
 # Function that initializes the model
-function Initialize()
-    prim = Primitives()                             # Initialize the primitives
+function Initialize(; θ = 0.11, γ = 0.42)
+    prim = Primitives(θ = θ, γ = γ)                 # Initialize the primitives
     w = 1.05                                        # Wage guess
     r = 0.05                                        # Interest rate guess
     b = 0.2                                         # Benefits guess
@@ -283,19 +283,19 @@ end # SteadyStateDist
 function MarketClearing(; ss::Bool=true, i_risk::Bool=true, exog_l::Bool=false,
     use_Fortran::Bool=false, λ::Float64=0.7, tol::Float64=1e-2, err::Float64=100.0)
 
-    prim, res= Initialize()
-
-    # make relevant policy experiment changes
-    if ~ss 
-        prim.θ = 0
+    # initialize struct according to policies
+    if ~ss & exog_l
+        prim, res = Initialize(θ = 0, γ = 1)
+    elseif ~ss
+        prim, res = Initialize(θ = 0)
+    elseif exog_l 
+        prim, res = Initialize(γ = 1)
+    else
+        prim, res = Initialize()
     end
 
     if ~i_risk 
         prim.z_H, prim.z_L, prim.z_Vals = 0.5, 0.5, [0.5, 0.5]
-    end
-
-    if exog_l
-        prim.γ = 1
     end
 
     # unpack relevant variables and functions
@@ -331,10 +331,10 @@ function MarketClearing(; ss::Bool=true, i_risk::Bool=true, exog_l::Bool=false,
             # Leave λ at the default
         elseif (err > tol*5) & (λ <= 0.85)
             λ = 0.85
-        elseif (err > tol*1.01) & (λ <= 0.90)
+        elseif (err > tol*2.5) & (λ <= 0.90)
             λ = 0.90
-        elseif λ <= 0.95
-            λ = 0.95
+        elseif λ < 0.975
+            λ = 0.975
         end
 
         # update guess
