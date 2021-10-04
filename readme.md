@@ -1,9 +1,9 @@
 # Problem Sets fro ECON 899
 - Mitchell Valdes-Bobes
-- Dany
-- Ryan
-- Yobin
-- Hiro
+- Danny Edgel
+- Ryan Mather
+- Yobin Tamilsena
+- Hiro Shirai
 
 # Notes:
 I(Mitch) create and rendered in pdf some notebooks that we can use both to do testing and to turn in the results along with the 
