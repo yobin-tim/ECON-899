@@ -5,6 +5,10 @@ workers()
 addprocs(2)
 
 
+<<<<<<< HEAD
+=======
+# @Distributed.everywhere include("./PS3/JuliaCode/conesa_kueger.jl");
+>>>>>>> a60c6e47caa0437bd7799b46fe7bd2ee7b0bffeb
 @Distributed.everywhere include("./conesa_kueger.jl");
 
 #prim, res = Initialize(); #=
@@ -69,10 +73,10 @@ plot!(out_prim.a_grid, savings[:,2,20])
     vline!([a_hat[1,20]], label=L"\hat{a}")
 
     plot(1:out_prim.N_final,a_hat[1,:],
-        xlabel="Age", ylabel=L"\hat{a}",label="High Schock")
+        xlabel="Age", ylabel=L"\hat{a}",label="High Shock")
     plot!(1:out_prim.N_final,a_hat[2,:], title="Maximum Assets at which an Agent Saves
 over the Life Cycle",
-        xlabel="Age", ylabel=L"\hat{a}",label="Low Schock")
+        xlabel="Age", ylabel=L"\hat{a}",label="Low Shock")
 
 plot!(out_prim.a_grid, out_prim.a_grid)
 

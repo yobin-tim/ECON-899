@@ -13,7 +13,7 @@
     A_max::Float64 =  5 #asset holding bound
     # TODO: Implement a smart way to create a better grid taking concavity in to account
     nA::Int64 = 1000 #number of capital grid points
-    A_grid::Array{Float64,1} = collect(range(A_min, length = nA, stop = A_max)) #capital grid
+    A_grid::Array{Float64,1} = range(A_min, length = nA, stop = A_max) |> collect #capital grid
     
     # Parameters regarding the stochastic shock
     S_vals::Array{Float64,2} = [1 0.5] #values of earning shocks
