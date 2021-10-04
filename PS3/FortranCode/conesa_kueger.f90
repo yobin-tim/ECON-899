@@ -221,9 +221,9 @@ program conesa_krueger
             ERR = MAX(ABS(K_SS - K), ABS(L_SS - L))
 
             ! Tune adjustment parameter
-            IF (err > tol*5 .AND. LAMBDA <= 0.85) THEN
+            IF (ERR > TOL*5 .AND. LAMBDA <= 0.85) THEN
                 LAMBDA = 0.85
-            ELSE IF (err > tol*1.01 .AND. LAMBDA <= 0.90)  THEN
+            ELSE IF (ERR > tol*2.5 .AND. LAMBDA <= 0.90)  THEN
                 LAMBDA = 0.90
             ELSE IF (LAMBDA<= 0.95)  THEN
                 LAMBDA = 0.95

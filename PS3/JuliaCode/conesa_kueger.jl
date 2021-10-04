@@ -222,9 +222,10 @@ function V_Fortran(prim::Primitives, res::Results)
     path = "./PS3/FortranCode/"
     run(`gfortran -fopenmp -O2 -o $(path)V_Fortran $(path)conesa_kueger.f90`)
     # run(`./T_op $q $n_iter`)
-    run(`$(path)V_Fortran`)
+    run(`$(path)V_Fortran $0 $r $w $b`)
 
     results_raw =  readdlm("$(path)results.csv");
+    K_SS, L_SS = readdlm("$(path)agg_results.csv");
 
     val_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the value function
     pol_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the policy function
@@ -244,7 +245,7 @@ function V_Fortran(prim::Primitives, res::Results)
     res.pol_fun = pol_fun
     res.pol_fun_ind = pol_fun_ind
     res.l_fun = l_fun
-    return A_grid_fortran, consumption
+    return K_SS, L_SS
 
 end # run_Fortran()
 
@@ -313,16 +314,16 @@ function MarketClearing(; ss::Bool=true, i_risk::Bool=true, exog_l::Bool=false,
 
         # solve model with current model and payments
         if use_Fortran
-            A_grid_fortran, consumption = V_Fortran(prim,res)
+            K, L = V_Fortran(prim,res)
         else
             V_ret(prim, res);
             V_workers(prim, res);
+            SteadyStateDist(prim, res);
+    
+            # calculate aggregate capital and labor
+            K = sum(res.F[:, :, :] .* a_grid)
+            L = sum(res.F[:, :, :] .* res.l_fun) # Labor supply grid
         end
-        SteadyStateDist(prim, res);
-
-        # calculate aggregate capital and labor
-        K = sum(res.F[:, :, :] .* a_grid)
-        L = sum(res.F[:, :, :] .* res.l_fun) # Labor supply grid
 
         # calculate error
         err = maximum(abs.([res.K, res.L] - [K, L]))
