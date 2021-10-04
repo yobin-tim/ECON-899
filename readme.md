@@ -1,4 +1,4 @@
-# Problem Sets fro ECON 899
+# Problem Sets for ECON 899
 - Mitchell Valdes-Bobes
 - Danny Edgel
 - Ryan Mather
