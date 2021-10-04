@@ -333,8 +333,8 @@ function MarketClearing(; ss::Bool=true, i_risk::Bool=true, exog_l::Bool=false,
             λ = 0.85
         elseif (err > tol*2.5) & (λ < 0.90)
             λ = 0.90
-        elseif λ < 0.95
-            λ = 0.95
+        elseif λ < 0.975
+            λ = 0.975
         end
 
         # update guess
