@@ -27,7 +27,7 @@
 
     # Functions
 
-    util  ::Function          = (c, l) -> ( c > 0 ) ? ((c^γ * (1 - l)^γ)^(1-σ))/(1-σ) : -Inf
+    util  ::Function          = (c, l) -> ( c > 0 ) ? ((c^γ * (1 - l)^(1-γ))^(1-σ))/(1-σ) : -Inf
 
     # Utility of a retiree
     # Todo: Remove the next 3 lines if everything is working
@@ -287,10 +287,14 @@ function MarketClearing(; ss::Bool=true, i_risk::Bool=true, exog_l::Bool=false,
     # initialize struct according to policies
     if ~ss & exog_l
         prim, res = Initialize(θ = 0, γ = 1)
+        prim.l_opt = (e, w, r, a, a_next) ->  1
+        res.L = sum(res.μ[1:(prim.J_R-1)])
     elseif ~ss
         prim, res = Initialize(θ = 0)
     elseif exog_l 
         prim, res = Initialize(γ = 1)
+        prim.l_opt = (e, w, r, a, a_next) ->  1
+        res.L = sum(res.μ[1:(prim.J_R-1)])
     else
         prim, res = Initialize()
     end
@@ -332,7 +336,7 @@ function MarketClearing(; ss::Bool=true, i_risk::Bool=true, exog_l::Bool=false,
             # Leave λ at the default
         elseif (err > tol*5) & (λ <= 0.85)
             λ = 0.85
-        elseif (err > tol*2.5) & (λ <= 0.90)
+        elseif (err > tol*1.5) & (λ <= 0.90)
             λ = 0.90
         elseif λ < 0.975
             λ = 0.975
@@ -352,14 +356,14 @@ function MarketClearing(; ss::Bool=true, i_risk::Bool=true, exog_l::Bool=false,
 end # MarketClearing
 
 # Function to calculate compensating variation
-function Lambda(prim::Primitives, res::Results, W::Float64)
+function Lambda(prim::Primitives, res::Results, W::Array{Float64, 3})
     
     # unpack necessary variables
     @unpack F, val_fun = res
     @unpack α, β = prim
 
     # calculate and return compensating variation
-    λ = ( (W + (1/((1-α)*(1-β)))) ./ (val_fun .+ (1/((1-α)*(1-β)))) ).^(1/(1-α)) .- 1
+    λ = ( (W .+ (1/((1-α)*(1-β)))) ./ (val_fun .+ (1/((1-α)*(1-β)))) ).^(1/(1-α)) .- 1
 
     return F.*λ
 
