@@ -1,5 +1,5 @@
 
-@everywhere using Parameters, DelimitedFiles, ProgressBars, SharedArrays, LinearAlgebra
+@everywhere using Parameters, DelimitedFiles, ProgressBars, SharedArrays, LinearAlgebra, NaNMath
 
 # Define the primitives of the model
 @everywhere @with_kw mutable struct  Primitives
@@ -363,8 +363,8 @@ function Lambda(prim::Primitives, res::Results, W::SharedArray{Float64, 3})
     @unpack α, β, γ, σ = prim
 
     # calculate and return compensating variation
-    λ = (W ./ val_fun).^(1/(γ*(1-σ))) - 1
+    λ = (W ./ val_fun).^(1/(γ*(1-σ))) .- 1
 
-    return F.*λ
+    return NaNMath.sum(F.*λ)
 
 end
