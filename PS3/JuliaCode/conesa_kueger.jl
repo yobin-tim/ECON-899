@@ -356,14 +356,14 @@ function MarketClearing(; ss::Bool=true, i_risk::Bool=true, exog_l::Bool=false,
 end # MarketClearing
 
 # Function to calculate compensating variation
-function Lambda(prim::Primitives, res::Results, W::Array{Float64, 3})
+function Lambda(prim::Primitives, res::Results, W::SharedArray{Float64, 3})
     
     # unpack necessary variables
     @unpack F, val_fun = res
-    @unpack α, β = prim
+    @unpack α, β, γ, σ = prim
 
     # calculate and return compensating variation
-    λ = ( (W .+ (1/((1-α)*(1-β)))) ./ (val_fun .+ (1/((1-α)*(1-β)))) ).^(1/(1-α)) .- 1
+    λ = (W ./ val_fun).^(1/(γ*(1-σ))) - 1
 
     return F.*λ
 
