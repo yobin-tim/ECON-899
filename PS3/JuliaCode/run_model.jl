@@ -5,8 +5,8 @@ workers()
 addprocs(2)
 
 
-@Distributed.everywhere include("./PS3/JuliaCode/conesa_kueger.jl");
-#@Distributed.everywhere include("./conesa_kueger.jl");
+#@Distributed.everywhere include("./PS3/JuliaCode/conesa_kueger.jl");
+@Distributed.everywhere include("./conesa_kueger.jl");
 
 #prim, res = Initialize(); #=
 #@time V_ret(prim, res);
@@ -91,8 +91,8 @@ plot(out_prim.a_grid,out_res.F[:,1,50])
 
 # conduct policy experiments
 @time prim_noSS, res_noSS               = MarketClearing(use_Fortran=false, tol = 1e-3, ss = false);
-@time prim_noRisk, res_noRisk           = MarketClearing(use_Fortran=false, tol = 1e-3, i_risk = false);
-@time prim_noRisk_noSS, res_noRisk_noSS = MarketClearing(use_Fortran=false, tol = 1e-3, ss = false, i_risk = false);
+@time prim_noRisk, res_noRisk           = MarketClearing(use_Fortran=false, tol = 1e-2, i_risk = false);
+@time prim_noRisk_noSS, res_noRisk_noSS = MarketClearing(use_Fortran=false, tol = 1e-2, ss = false, i_risk = false);
 @time prim_exLab, res_exLab             = MarketClearing(use_Fortran=false, tol = 1e-3, exog_l = true);
 @time prim_exLab_noSS, res_exLab_noSS   = MarketClearing(use_Fortran=false, tol = 1e-3, ss = false, exog_l = true);
 

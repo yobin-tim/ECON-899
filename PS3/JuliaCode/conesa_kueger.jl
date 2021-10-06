@@ -46,7 +46,7 @@
 
     # Grids
     # Age efficiency profile
-    η       ::Matrix{Float64}   = readdlm("../Data/ef.txt")
+    η       ::Matrix{Float64}   = readdlm("./PS3/Data/ef.txt")
     nA      ::Int64             = 1000      # Size of the asset grid
     a_min   ::Float64           = 0.0       # lower bound of the asset grid
     a_max   ::Float64           = 75.0      # upper bound of the asset grid
@@ -378,9 +378,9 @@ function MarketClearing(; ss::Bool=true, i_risk::Bool=true, exog_l::Bool=false,
             # Leave λ at the default
         elseif (err > tol*5) & (λ <= 0.85)
             λ = 0.85
-        elseif (err > tol*1.5) & (λ <= 0.90)
+        elseif (err > tol*1.7) & (λ <= 0.90)
             λ = 0.90
-        elseif λ < 0.975
+        elseif λ <= 0.975
             λ = 0.975
         end
 
