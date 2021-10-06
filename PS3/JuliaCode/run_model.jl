@@ -5,11 +5,8 @@ workers()
 addprocs(2)
 
 
-<<<<<<< HEAD
-=======
-# @Distributed.everywhere include("./PS3/JuliaCode/conesa_kueger.jl");
->>>>>>> a60c6e47caa0437bd7799b46fe7bd2ee7b0bffeb
-@Distributed.everywhere include("./conesa_kueger.jl");
+@Distributed.everywhere include("./PS3/JuliaCode/conesa_kueger.jl");
+#@Distributed.everywhere include("./conesa_kueger.jl");
 
 #prim, res = Initialize(); #=
 #@time V_ret(prim, res);
@@ -101,22 +98,22 @@ plot(out_prim.a_grid,out_res.F[:,1,50])
 
 # write results to table 1
 open("PS3/Tables/table1.tex", "w") do io 
-    write(io, string(L"\begin{tabular}{|l|c|c|c|c|c|c|}\hline",
-    L"&\multicolumn{2}{c}{Benchmark Model} &\multicolumn{2}{c}{No risk, $z^L$=$z^H=0.5$}",
-    L"&\multicolumn{2}{c}{Exogenous labor, $\gamma=1$}\\\hline",
-    L"capital, $K$ & ", out_res.K, " & ", res_noSS.K, " & ", res_noRisk.K, " & ", res_noRisk_noSS.K, " & ",
-    res_exLab.K, " & ", res_exLab_noSS.K, " \\\hline",
-    L"labor, $L$ & ", out_res.L, " & ", res_noSS.L, " & ", res_noRisk.L, " & ", res_noRisk_noSS.L, " & ",
-    res_exLab.L, " & ", res_exLab_noSS.L, " \\\hline",
-    L"wage, $w$ & ", out_res.w, " & ", res_noSS.w, " & ", res_noRisk.w, " & ", res_noRisk_noSS.w, " & ",
-    res_exLab.w, " & ", res_exLab_noSS.w, " \\\hline",
-    L"interest, $r$ & ", out_res.r, " & ", res_noSS.r, " & ", res_noRisk.r, " & ", res_noRisk_noSS.r, " & ",
-    res_exLab.r, " & ", res_exLab_noSS.r, " \\\hline",
-    L"pension benefit, $b$ & ", out_res.b, " & ", res_noSS.b, " & ", res_noRisk.b, " & ", res_noRisk_noSS.b, " & ",
-    res_exLab.b, " & ", res_exLab_noSS.b, " \\\hline",
-    L"total welfare, $W$ & ", sum(out_res.val_fun.*out_res.F), " & ", sum(res_noSS.val_fun.*res_noSS.F), " & ", sum(res_noRisk.val_fun*res_noRisk.F), " & ",
-    sum(res_noRisk_noSS.val_fun.*res_noRisk_noSS.F), " & ",sum(res_exLab.val_fun.*res_exLab.F), " & ", sum(res_exLab_noSS.val_fun.*res_exLab_noSS.F), " \\\hline",
-    L"cv(wealth) & ", Lambda(put_prim, out_res, W), " & ", Lambda(prim_noSS, res_noSS, W), " & ", Lambda(prim_noRisk, res_noRisk, W),
-    " & ", Lambda(prim_noRisk_noSS, res_noRisk_noSS, W), " & ", Lambda(prim_exLab, res_exLab, W), " & ", 
-    Lambda(prim_exLab_noSS, res_exLab_noSS, W), " \\\hline \end{tabular}"))
+    write(io, string("\\begin{tabular}{|l|c|c|c|c|c|c|}\\hline",
+    "&\\multicolumn{2}{c}{Benchmark Model} &\\multicolumn{2}{c}{No risk, \$z^L=z^H=0.5\$}",
+    "&\\multicolumn{2}{c}{Exogenous labor, \$\\gamma=1\$}\\\\\\hline",
+    "capital, \$K\$ & ", round(out_res.K, digits = 3), " & ", round(res_noSS.K, digits = 3), " & ", round(res_noRisk.K, digits = 3), " & ", round(res_noRisk_noSS.K, digits = 3), " & ",
+    round(res_exLab.K, digits = 3), " & ", round(res_exLab_noSS.K, digits = 3), " \\\\\\hline",
+    "labor, \$L\$ & ", round(out_res.L, digits = 3), " & ", round(res_noSS.L, digits = 3), " & ", round(res_noRisk.L, digits = 3), " & ", round(res_noRisk_noSS.L, digits = 3), " & ",
+    round(res_exLab.L, digits = 3), " & ", round(res_exLab_noSS.L, digits = 3), " \\\\\\hline",
+    "wage, \$w\$ & ", round(out_res.w, digits = 3), " & ", round(res_noSS.w, digits = 3), " & ", round(res_noRisk.w, digits = 3), " & ", round(res_noRisk_noSS.w, digits = 3), " & ",
+    round(res_exLab.w, digits = 3), " & ", round(res_exLab_noSS.w, digits = 3), " \\\\\\hline",
+    "interest, \$r\$ & ", round(out_res.r, digits = 3), " & ", round(res_noSS.r, digits = 3), " & ", round(res_noRisk.r, digits = 3), " & ", round(res_noRisk_noSS.r, digits = 3), " & ",
+    round(res_exLab.r, digits = 3), " & ", round(res_exLab_noSS.r, digits = 3), " \\\\\\hline",
+    "pension benefit, \$b\$ & ", round(out_res.b, digits = 3), " & ", round(res_noSS.b, digits = 3), " & ", round(res_noRisk.b, digits = 3), " & ", round(res_noRisk_noSS.b, digits = 3), " & ",
+    round(res_exLab.b, digits = 3), " & ", round(res_exLab_noSS.b, digits = 3), " \\\\\\hline",
+    "total welfare, \$W\$ & ", round(sum(out_res.val_fun.*out_res.F), digits = 3), " & ", round(sum(res_noSS.val_fun.*res_noSS.F), digits = 3), " & ", round(sum(res_noRisk.val_fun*res_noRisk.F), digits = 3), " & ",
+    round(sum(res_noRisk_noSS.val_fun.*res_noRisk_noSS.F), digits = 3), " & ",round(sum(res_exLab.val_fun.*res_exLab.F), digits = 3), " & ", round(sum(res_exLab_noSS.val_fun.*res_exLab_noSS.F), digits = 3), " \\\\\\hline",
+    "cv(wealth) & ", round(Lambda(put_prim, out_res, W), digits = 3), " & ", round(Lambda(prim_noSS, res_noSS, W), digits = 3), " & ", round(Lambda(prim_noRisk, res_noRisk, W), digits = 3),
+    " & ", round(Lambda(prim_noRisk_noSS, res_noRisk_noSS, W), digits = 3), " & ", round(Lambda(prim_exLab, res_exLab, W), digits = 3), " & ", 
+    round(Lambda(prim_exLab_noSS, res_exLab_noSS, W), digits = 3), " \\\\\\hline \\end{tabular}"))
 end;
