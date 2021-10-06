@@ -46,7 +46,7 @@
 
     # Grids
     # Age efficiency profile
-    η       ::Matrix{Float64}   = readdlm("./PS3/Data/ef.txt")
+    η       ::Matrix{Float64}   = readdlm("../Data/ef.txt")
     nA      ::Int64             = 1000      # Size of the asset grid
     a_min   ::Float64           = 0.0       # lower bound of the asset grid
     a_max   ::Float64           = 75.0      # upper bound of the asset grid
@@ -131,6 +131,48 @@ function V_ret(prim::Primitives, res::Results)
     end # for j
 
 end # V_ret
+
+#=
+function V_ret(prim::Primitives, res::Results)
+    @unpack nA, a_grid, N_final, J_R, util, β = prim
+    @unpack b, r = res
+
+    for j in N_final-1:-1:J_R
+        
+        choice_lower = 1
+
+        for index_a = 1:nA
+
+            a = a_grid[index_a]
+
+            maxvalsofar = -Inf
+            
+            for index_ap = choice_lower:nA
+                
+                a_next = a_grid[index_ap]
+
+                c = (1+r)*a+b - a_next
+
+                if c > 0
+                    
+                    vals = util.(c, 0) +
+                        β*res.val_fun[index_ap, 1, j+1]
+
+                    if vals > maxvalsofar
+                        maxvalsofar = vals
+                        res.pol_fun[index_a, :, j] .=
+                            a_grid[index_ap]
+                        choice_lower = index_ap
+                    end
+
+                end
+            end
+            res.val_fun[index_a, :, j] .= maxvalsofar
+        end
+    end
+end
+=#
+
 
 # Value function for the workers
 function V_workers(prim::Primitives, res::Results)
