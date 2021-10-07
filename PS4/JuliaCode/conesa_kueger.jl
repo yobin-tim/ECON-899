@@ -116,14 +116,14 @@ end
 function V_ret(prim::Primitives, res::Results)
 
     # unpack the primitives and the results
-    @unpack nA, a_grid, N_final, J_R, util = prim
+    @unpack nA, a_grid, N_final, J_R, util, β = prim
     @unpack b, r = res
 
     # We obtain for every age group and asset holdings level the value function using backward induction
     for j in N_final-1:-1:J_R
         @sync @distributed for a_index in 1:nA
             a = a_grid[a_index]
-            vals = util.(((1+r)*a + b).- a_grid, 0) .+ res.val_fun[:, 1, j+1]
+            vals = util.(((1+r)*a + b).- a_grid, 0) .+ β*res.val_fun[:, 1, j+1]
             pol_ind = argmax(vals)
             val_max = vals[pol_ind]
             res.pol_fun_ind[a_index, :, j] .= pol_ind
@@ -209,7 +209,7 @@ function V_workers(prim::Primitives, res::Results)
             end # Current asset holdings loop
         end # Productivity loop
     end  # Age loop
-    
+
     return prim, res
 end # V_workers
 
@@ -345,7 +345,7 @@ end # MarketClearing
 
 # Function to calculate compensating variation
 function Lambda(prim::Primitives, res::Results, W::Float64)
-    
+
     # unpack necessary variables
     @unpack F, val_fun = res
     @unpack α, β = prim
@@ -357,26 +357,116 @@ function Lambda(prim::Primitives, res::Results, W::Float64)
 
 end # Lambda
 
-# Function that, given an aggregate capital path, infers prices and calculates a new path 
+# Function that iterates backward on decision rules given a path of capital
+function IterateBackward(primEnd::Primitives, resEnd::Results, K_path::::Array{Float64}, N::Int64)
+    #Above, "End" refers to values in the new steady state
+    #Setting up matrices to store the transitions of value and policy functions
+        pol_fun_trans = SharedArray{Float64}(primEnd.nA, primEnd.nZ, primEnd.N_final, N+1)
+        val_fun_trans = SharedArray{Float64}(primEnd.nA, primEnd.nZ, primEnd.N_final, N+1)
+    #Assume Convergence after N periods
+        pol_fun_trans[:,:,:,N+1]=resEnd.pol_fun
+        val_fun_trans[:,:,:,N+1]=resEnd.val_fun
+    #Assign the the value associated with life's last period
+        last_period_value = primEnd.util.( prim.a_grid .* (1 + r) .+ b, 0 )
+        for zi=1:2, t=1:N #(N+1) is already filled in above)
+            val_fun_trans[:,zi,primEnd.N_final,t]=last_period_value
+        end
+    #Unpacking relevant paparameters
+        @unpack nA, nZ, z_Vals, η, a_grid, β, θ, N_final, J_R, util, Π, l_opt = primEnd
+        @unpack μ=resEnd
+    for t in ProgressBar(N:(-1):1) #ProgressBar for running in console
+        K=K_path[t]
+            r=r_mkt(K, 1) #Since labor is inelatically supplied
+            w = w_mkt(K, 1)
+            b = b_mkt(1, w, sum(μ[J_R:end]))
+        #First for retired folks:
+        for j in N_final-1:-1:J_R
+            @sync @distributed for a_index in 1:nA
+                a = a_grid[a_index]
+                vals = util.(((1+r)*a + b).- a_grid, 0) .+ β*val_fun_trans[:,1,j+1,t+1]
+                pol_ind = argmax(vals)
+                val_max = vals[pol_ind]
+                pol_fun_trans[a_index, :, j, t] .= a_grid[pol_ind]
+                val_fun_trans[a_index, :, j, t] .= val_max
+                #res.l_fun[a_index, :, j] .= 0
+                    #We do not need to record L since we assume it is perfectly inelastic
+            end # for a_index
+        end # for j
+        #Then for the workers:
+        for j in J_R-1:-1:1
+            # Next we iterate over the productivity levels
+            @sync @distributed for z_index in 1:nZ
+                z = z_Vals[z_index] # Current idiosyncratic productivity level
+                e = z * η[j] # Worker productivity level (only for working age)
+                LowestChoiceInd=1 #Exploiting monotonicity in the policy function
+                # Next we iterate over the asset grid
+                for a_index in 1:nA
+                    a = a_grid[a_index] # Current asset level
+                    cand_val = -Inf     # Initialize the candidate value
+                    cand_pol = 0        # Initialize the candidate policy
+                    cand_pol_ind = 1    # Initialize the candidate policy index
+                    l_pol = 0           # Initialize the labor policy
+                    # Next we iterate over the possible choices of the next period's asset
+                    for an_index in LowestChoiceInd:nA
+                        a_next = a_grid[an_index]   # Next period's asset level
+                        #Calculating the labor supply should be irrelevant if everything is working right
+                            #since it is perfectly inelastic:
+                            l = l_opt(e, w, r, a, a_next) #l_grid[an_index]        # Implied labor supply in current period
+                            if l < 0                    # If the labor supply is negative, we set it to zero
+                                l = 0
+                            elseif l > 1                # If the labor supply is greater than one, we set it to one
+                                l = 1
+                            end
+                        c = w * (1 - θ) * e * l + (1 + r)*a - a_next # Consumption of worker (All people in this loop are working)
+                        if c < 0 # If consumption is negative than this (and all future a' values) are unfeasible
+                            break
+                        end
+                        # calculate expected value of next period
+                        exp_v_next = 0
+                        for zi = 1:nZ
+                            exp_v_next += val_fun_trans[an_index, zi, j+1,t+1] * Π[z_index , zi]
+                        end # zi
+                        v_next = util(c, l) + β * exp_v_next # next candidate to value function
+                        if v_next > cand_val
+                            cand_val = v_next       # Update the candidate value
+                            cand_pol = a_next       # Candidate to policy function
+                            cand_pol_ind = an_index # Candidate to policy function index
+                            l_pol = e*l             # Candidate to labor policy function
+                        end # if v_next > cand_val
+                    end # Next period asset choice loop
+
+                    val_fun_trans[a_index, z_index, j, t] = cand_val         # Update the value function
+                    pol_fun_trans[a_index, z_index, j, t] = cand_pol         # Update the policy function
+                    LowestChoiceInd=copy(cand_pol_ind)
+                end # Current asset holdings loop
+            end # Productivity loop
+        end  # Age loop for workers
+    end #for t
+    return pol_fun_trans, val_fun_trans
+end #ends IterateBackward
+
+#= I am just commenting this out so as not to delete anyhing
+# Function that, given an aggregate capital path, infers prices and calculates a new path
 function FillPath(prim::Primitives, res::Results, K_path::::Array{Float64}, N::Int64)
 
     # upack relevant primitives and results
-    @unpack a_grid, N_final, nZ, Π, r_mkt, w_mkt, b_mkt = prim 
+    @unpack a_grid, N_final, nZ, Π, r_mkt, w_mkt, b_mkt = prim
     @unpack F, μ, L = res
 
-    # initialize transition path distribution 
+    # initialize transition path distribution
     Ft = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final, N+1)
     Ft[:, :, :, 1]      = F;
     Ft[:, :, :, 2:end] .= 0;
 
     # loop through each possible combination of states and project agents'
-    # choices, given K_path, from t=1 to t=N 
-    @async @distributed for t in 2:(N + 1)
+    # choices, given K_path, from t=1 to t=N
+    @async @distributed for t in 2:(N + 1) #I do not think that this can be @async
 
-        # localize results struct for current time period 
-        newRes = res
 
-        # acquire value and policy functions for current K 
+
+        # localize results struct for current time period
+        newRes = copy(res)
+        # acquire value and policy functions for current K
         K = K_path[t]
         newRes.r = r_mkt(K, L)
         newRes.w = w_mkt(K, L)
@@ -391,37 +481,68 @@ function FillPath(prim::Primitives, res::Results, K_path::::Array{Float64}, N::I
             for zi in 1:nZ
                 for ai in 1:nA
                     api = argmin(abs.(pol_fun[ai, zi, j-1].-a_grid))
-
                     for znext = 1:nZ
                         Ft[api, zi, j, t] += Ft[ai, zi, j-1, t] * Π[zi, znext] * (μ[j]/μ[j-1])
                     end # znext
-                end # ai loop 
-            end # zi loop 
+                end # ai loop
+            end # zi loop
         end # j loop
+
     end # t loop
 
-    # calculate new capital path and return 
+    # calculate new capital path and return
     K_path = sum(Ft, dims = 1:3)
 
     return K_path, Ft
 end
+
+=#
+
+#Alternate FillPath (Function that, given an aggregate capital path, infers prices and calculates a new path)
+function FillPath(resStart::Results, primEnd::Primitives, resEnd::Results, K_path::::Array{Float64}, N::Int64)
+    # initialize transition path distribution
+    Ft = SharedArray{Float64}(primEnd.nA, primEnd.nZ, primEnd.N_final, N+1)
+    Ft[:, :, :, 1]      = resStart.F;
+    Ft[:, :, :, 2:end] .= 0; #This line will start the first cohort being born
+                                #in each period with 0 assets
+    pf_trans, vf_trans = IterateBackward(primEnd,resEnd,K_path,N)
+    for t in 2:(N+1)
+        #Initialize "newborns" during each period of the transition with zero assets
+        F[1, 1, 1, t] = μ[1] * prim.p_H
+        F[1, 2, 1, t] = μ[1] * prim.p_L
+        for j in 2:N_final
+            for zi in 1:nZ
+                for ai in 1:nA
+                    api = argmin(abs.(pf_trans[ai, zi, j-1].-a_grid))
+                    for znext = 1:nZ
+                        Ft[api, zi, j, t] += Ft[ai, zi, j-1, t-1] * Π[zi, znext] * (μ[j]/μ[j-1])
+                    end # znext
+                end # ai loop
+            end # zi loop
+        end # j loop
+    end #End t loop
+    # calculate new capital path and return
+    K_path = sum(Ft, dims = 1:3)
+    return K_path, Ft
+end
+
 
 # Function to calculate the transition path between two equilibria
 function TransitionPath(resStart::Results, primEnd::Primitives, resEnd::Results;
     err::Float64=100.0, tol::Float64=1e-3, λ::Float64=0.70, N::Int64=30)
 
     #=
-        NOTE: resStart and resEnd are the results structs from 
+        NOTE: resStart and resEnd are the results structs from
         the two equilibria; MarketClearing() must be run for each
         policy scenario before running TransitionPath()
     =#
 
     # guess the transition path between the two equilibria
-    K₀, Kₜ = resStart.K, resEnd.K 
+    K₀, Kₜ = resStart.K, resEnd.K
     K_path = collect(range(K₀, Kₜ, length = N + 1))
 
     # generate new primitives and results structs for use in calculating
-    # the transition path 
+    # the transition path
     newRes      = resEnd;
     newRes.F    = resStart.F;
 
@@ -429,8 +550,8 @@ function TransitionPath(resStart::Results, primEnd::Primitives, resEnd::Results;
     while err > 0
 
         # pass current capital path to FillPath function
-        K_path_new, Ft = FillPath(primEnd, newRes, K_path, N)
-
+            #K_path_new, Ft = FillPath(primEnd, newRes, K_path, N)
+            K_path_new, Ft = FillPath(resStart, primEnd, resEnd, K_path, N)
         # converge and update
 
     end
