@@ -46,7 +46,7 @@
 
     # Grids
     # Age efficiency profile
-    η       ::Matrix{Float64}   = readdlm("../Data/ef.txt")
+    η       ::Matrix{Float64}   = readdlm("./Data/ef.txt")
     nA      ::Int64             = 500      # Size of the asset grid
     a_min   ::Float64           = 0.0       # lower bound of the asset grid
     a_max   ::Float64           = 40.0      # upper bound of the asset grid

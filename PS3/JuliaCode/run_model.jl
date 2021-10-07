@@ -1,3 +1,4 @@
+@time begin
 using Distributed, SharedArrays, NaNMath
 
 #add processes
@@ -38,7 +39,7 @@ plot(out_prim.a_grid, out_res.val_fun[:,:, 50],
      color=:black,
      legend = false,
      lw = 2)
-savefig("../Figures/value_function50.pdf")
+savefig("./Figures/value_function50.pdf")
 
 
 plot(out_prim.a_grid, out_res.val_fun[:, 1, end])
@@ -67,7 +68,7 @@ plot!(out_prim.a_grid, savings[:,2,20],
       label = "Low productivity",
       color=:black,
       line=:dash)
-savefig("../Figures/savings_20.pdf")
+savefig("./Figures/savings_20.pdf")
 
 
 #Plotting Policy Functions
@@ -117,7 +118,7 @@ plot(out_prim.a_grid,out_res.F[:,1,50])
 @time prim_exLab_noSS, res_exLab_noSS   = MarketClearing(use_Fortran=false, tol = 1e-3, ss = false, exog_l = true);
 
 # write results to table 1
-open("../Tables/table1.tex", "w") do io 
+open("./Tables/table1.tex", "w") do io 
     write(io, string("\\begin{tabular}{|l|c|c|c|c|c|c|}\\hline",
     "&\\multicolumn{2}{c}{Benchmark Model} &\\multicolumn{2}{c}{No risk, \$z^L=z^H=0.5\$}",
     "&\\multicolumn{2}{c}{Exogenous labor, \$\\gamma=1\$}\\\\\\hline",
@@ -137,4 +138,5 @@ open("../Tables/table1.tex", "w") do io
     round(Lambda(prim_exLab_noSS, res_exLab_noSS, res_exLab.val_fun), digits = 3), " \\\\\\hline \\end{tabular}"))
 end;
 
+end
 
