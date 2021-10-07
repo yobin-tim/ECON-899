@@ -29,6 +29,15 @@ plot(out_res.val_fun[:,:, end])
 plot!(out_res.val_fun[:,:, end-1])
 plot!(out_res.val_fun[:,:, end-2])
 
+# Exercise 1
+plot(out_prim.a_grid, out_res.val_fun[:,:, 50],
+     title = "Value Function at age 50",
+     xlabel = "Assets",
+     ylabel = "Value Function",
+     color=:black,
+     legend = false,
+     lw = 2)
+savefig("../Figures/value_function50.pdf")
 
 
 plot(out_prim.a_grid, out_res.val_fun[:, 1, end])
@@ -39,16 +48,26 @@ plot!(out_prim.a_grid, out_res.val_fun[:, 2,20])
 plot(out_prim.a_grid, out_res.pol_fun[:,1,20])
 plot!(out_prim.a_grid,out_res.pol_fun[:,2,20])
 
-
-
 plot(out_prim.a_grid, out_res.val_fun[:, 1, 34])
 plot!(out_prim.a_grid, out_res.val_fun[:, 2, 34])
 
 # Calculate savings
 savings = out_res.pol_fun[:,:,:] .- out_prim.a_grid;
 
-plot(out_prim.a_grid, savings[:,1,20])
-plot!(out_prim.a_grid, savings[:,2,20])
+plot(out_prim.a_grid, savings[:,1,20],
+     title = "Saving Function at age 20",
+     xlabel = "Assets",
+     ylabel = "Saving Functions",
+     label = "High productivity",
+     color=:black,
+     lw = 2,
+     legend=:topright)
+plot!(out_prim.a_grid, savings[:,2,20],
+      label = "Low productivity",
+      color=:black,
+      line=:dash)
+savefig("../Figures/savings_20.pdf")
+
 
 #Plotting Policy Functions
     #Find a_hat (The asset point beyond which everyone dissaves)
@@ -97,7 +116,7 @@ plot(out_prim.a_grid,out_res.F[:,1,50])
 @time prim_exLab_noSS, res_exLab_noSS   = MarketClearing(use_Fortran=false, tol = 1e-3, ss = false, exog_l = true);
 
 # write results to table 1
-open("PS3/Tables/table1.tex", "w") do io 
+open("../Tables/table1.tex", "w") do io 
     write(io, string("\\begin{tabular}{|l|c|c|c|c|c|c|}\\hline",
     "&\\multicolumn{2}{c}{Benchmark Model} &\\multicolumn{2}{c}{No risk, \$z^L=z^H=0.5\$}",
     "&\\multicolumn{2}{c}{Exogenous labor, \$\\gamma=1\$}\\\\\\hline",
@@ -116,3 +135,5 @@ open("PS3/Tables/table1.tex", "w") do io
     "cv(wealth) & \\textemdash & ", round(Lambda(prim_noSS, res_noSS, out_res.val_fun), digits = 3), " & \\textemdash & ", round(Lambda(prim_noRisk_noSS, res_noRisk_noSS, res_noRisk.val_fun), digits = 3), " & \\textemdash & ", 
     round(Lambda(prim_exLab_noSS, res_exLab_noSS, res_exLab.val_fun), digits = 3), " \\\\\\hline \\end{tabular}"))
 end;
+
+
