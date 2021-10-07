@@ -1,4 +1,4 @@
-using Distributed, SharedArrays
+using Distributed, SharedArrays, NaNMath
 
 #add processes
 workers()
@@ -111,9 +111,8 @@ open("PS3/Tables/table1.tex", "w") do io
     round(res_exLab.r, digits = 3), " & ", round(res_exLab_noSS.r, digits = 3), " \\\\\\hline",
     "pension benefit, \$b\$ & ", round(out_res.b, digits = 3), " & ", round(res_noSS.b, digits = 3), " & ", round(res_noRisk.b, digits = 3), " & ", round(res_noRisk_noSS.b, digits = 3), " & ",
     round(res_exLab.b, digits = 3), " & ", round(res_exLab_noSS.b, digits = 3), " \\\\\\hline",
-    "total welfare, \$W\$ & ", round(sum(out_res.val_fun.*out_res.F), digits = 3), " & ", round(sum(res_noSS.val_fun.*res_noSS.F), digits = 3), " & ", round(sum(res_noRisk.val_fun*res_noRisk.F), digits = 3), " & ",
-    round(sum(res_noRisk_noSS.val_fun.*res_noRisk_noSS.F), digits = 3), " & ",round(sum(res_exLab.val_fun.*res_exLab.F), digits = 3), " & ", round(sum(res_exLab_noSS.val_fun.*res_exLab_noSS.F), digits = 3), " \\\\\\hline",
-    "cv(wealth) & ", round(Lambda(put_prim, out_res, W), digits = 3), " & ", round(Lambda(prim_noSS, res_noSS, W), digits = 3), " & ", round(Lambda(prim_noRisk, res_noRisk, W), digits = 3),
-    " & ", round(Lambda(prim_noRisk_noSS, res_noRisk_noSS, W), digits = 3), " & ", round(Lambda(prim_exLab, res_exLab, W), digits = 3), " & ", 
-    round(Lambda(prim_exLab_noSS, res_exLab_noSS, W), digits = 3), " \\\\\\hline \\end{tabular}"))
+    "total welfare, \$W\$ & ", round(NaNMath.sum(out_res.val_fun.*out_res.F), digits = 3), " & ", round(NaNMath.sum(res_noSS.val_fun.*res_noSS.F), digits = 3), " & ", round(NaNMath.sum(res_noRisk.val_fun.*res_noRisk.F), digits = 3), " & ",
+    round(NaNMath.sum(res_noRisk_noSS.val_fun.*res_noRisk_noSS.F), digits = 3), " & ",round(NaNMath.sum(res_exLab.val_fun.*res_exLab.F), digits = 3), " & ", round(NaNMath.sum(res_exLab_noSS.val_fun.*res_exLab_noSS.F), digits = 3), " \\\\\\hline",
+    "cv(wealth) & \\textemdash & ", round(Lambda(prim_noSS, res_noSS, out_res.val_fun), digits = 3), " & \\textemdash & ", round(Lambda(prim_noRisk_noSS, res_noRisk_noSS, res_noRisk.val_fun), digits = 3), " & \\textemdash & ", 
+    round(Lambda(prim_exLab_noSS, res_exLab_noSS, res_exLab.val_fun), digits = 3), " \\\\\\hline \\end{tabular}"))
 end;
