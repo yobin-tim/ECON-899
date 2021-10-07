@@ -24,7 +24,8 @@ hcat(prim.a_grid, agridf, prim.a_grid - agridf)
 
 using Plots, LaTeXStrings
 
-theme(:juno)
+theme(:vibrant)
+default(fontfamily = "Computer Modern", framestyle=:box) #LaTex Style
 plot(out_res.val_fun[:,:, end])
 plot!(out_res.val_fun[:,:, end-1])
 plot!(out_res.val_fun[:,:, end-2])
