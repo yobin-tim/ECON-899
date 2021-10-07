@@ -5,8 +5,8 @@ workers()
 addprocs(2)
 
 
-@Distributed.everywhere include("./PS3/JuliaCode/conesa_kueger.jl");
-#@Distributed.everywhere include("./conesa_kueger.jl");
+#@Distributed.everywhere include("./PS3/JuliaCode/conesa_kueger.jl");
+@Distributed.everywhere include("./conesa_kueger.jl");
 
 #prim, res = Initialize(); #=
 #@time V_ret(prim, res);

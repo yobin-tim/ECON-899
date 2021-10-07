@@ -49,7 +49,7 @@
     η       ::Matrix{Float64}   = readdlm("../Data/ef.txt")
     nA      ::Int64             = 1000      # Size of the asset grid
     a_min   ::Float64           = 0.0       # lower bound of the asset grid
-    a_max   ::Float64           = 75.0      # upper bound of the asset grid
+    a_max   ::Float64           = 60.0      # upper bound of the asset grid
     a_grid  ::Array{Float64}    = collect(range(a_min, length = nA, stop = a_max))   # asset grid
 
 end # Primitives
@@ -108,7 +108,7 @@ function Initialize(; θ = 0.11, γ = 0.42)
 
     return (prim, res)                              # Return the primitives and results
 end
-
+#=
 # Value funtion for the retirees
 function V_ret(prim::Primitives, res::Results)
 
@@ -131,8 +131,8 @@ function V_ret(prim::Primitives, res::Results)
     end # for j
 
 end # V_ret
+=#
 
-#=
 function V_ret(prim::Primitives, res::Results)
     @unpack nA, a_grid, N_final, J_R, util, β = prim
     @unpack b, r = res
@@ -171,7 +171,7 @@ function V_ret(prim::Primitives, res::Results)
         end
     end
 end
-=#
+
 
 
 # Value function for the workers
