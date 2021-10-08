@@ -98,39 +98,42 @@ After solving for agent's dynamic programming problem, solve for the steady-stat
 \begin{enumerate}
 \item First, solve for the benchmark model with social security. Is this economy dynamically efficient (compare the interest rate with the implicit return from social security, which is equal to the population growth rate)? Now eliminate social security by setting $ \theta = 0 $. Observe how aggregate capital accumulation and labor supply change as a result of the tax reform. Provide intuition in terms of insurance and output efficiency. How does aggregate welfare change? Who benefits and who loses due to this reform? How does the reform affect cross-sectional wealth inequality? You can use table 1 to support your answers.
   \begin{solution}
-    Table \ref{tab1} summarises the results.This economy is not efficient because it is not equal to the population growth. The total welfare decrease
+    Table \ref{tab1} summarises the results. This economy is not efficient because it is not equal to population growth. The total welfare decrease. Figure \ref{lambda} shows the effect of this policy change by age. Only a few young gets a benefit. 
   \end{solution}
 
 \item In the second experiment, there is no idiosyncratic risk. Assume that at each age $ j $, $ z^L = z^H = 0.5. $ First, compute the aggregate variables for the case with social security. How does the aggregate capital stock change relative to the benchmark model? Provide intuition in terms of capital as a buffer stock. Then, eliminate social security. How does the aggregate welfare change? What can you conclude about social security as an insurance device against idiosyncratic risk? Comment on the extent, to which these welfare comparisons across steady states are meaningful or misleading.
   \begin{solution}
-    The welfare decreases. The social security decreases comparing with benchmark model. 
+    The welfare decreases. Social security decreases comparing with the benchmark model. The aggregate capital decreases because people don't have saving demand for the shock. If social security is eliminated, the aggregate welfare does not change well. The result suggests that social security works as insurance because welfare decreases in the benchmark when the social security is removed.     
   \end{solution}
   
 \item Consider the case, when labor supply is exogenous $ (\gamma = 1 $). Compare the distortionary effect of social security on the aggregate labor supply. How does the support for social security change with exogenous labor supply?
   \begin{solution}
-
-    This economy is not efficient.
-
-
+    Social security does not change the aggregate labor supply even without social security. Without social security, total welfare decreases. So, fewer people support the social security change.  
   \end{solution}
   \begin{table} 
     \centering
     \caption{\label{tab1} Results of policy experiments}
-    \begin{tabular}{lcccccc}
-      \hline
-      \hline
-      &\multicolumn{2}{c}{Benchmark Model} &\multicolumn{2}{c}{No risk, $z^L=z^H=0.5$}&\multicolumn{2}{c}{Exogenous labor, $\gamma=1$}\\
-      \hline 
-      capital, $K$ & 3.365 & 4.537 & 1.051 & 1.287 & 7.094 & 9.46 \\
-      labor, $L$ & 0.343 & 0.364 & 0.161 & 0.17 & 0.754 & 0.754 \\
-      wage, $w$ & 1.455 & 1.587 & 1.256 & 1.327 & 1.434 & 1.591 \\
-      interest, $r$ & 0.024 & 0.012 & 0.049 & 0.038 & 0.026 & 0.011 \\
-      pension benefit, $b$ & 0.225 & 0.0 & 0.091 & 0.0 & 0.488 & 0.0 \\
-      total welfare, $W$ & -35.781 & -37.311 & -44.976 & -44.957 & -23.27 & -25.471 \\
-      cv(wealth) & \textemdash & 0.353 & \textemdash & 0.119 & \textemdash & 0.316 \\
-      \hline 
-    \end{tabular}
+\begin{tabular}{lcccccc}
+ \hline
+ \hline
+ &\multicolumn{2}{c}{Benchmark Model} &\multicolumn{2}{c}{No risk, $z^L=z^H=0.5$}&\multicolumn{2}{c}{Exogenous labor, $\gamma=1$}\\
+ \hline
+ capital, $K$ & 3.362 & 4.59 & 1.073 & 1.347 & 6.952 & 9.12 \\
+ labor, $L$ & 0.343 & 0.365 & 0.162 & 0.174 & 0.754 & 0.754 \\
+ wage, $w$ & 1.455 & 1.592 & 1.263 & 1.338 & 1.424 & 1.57 \\
+ interest, $r$ & 0.024 & 0.011 & 0.048 & 0.037 & 0.027 & 0.013 \\
+ pension benefit, $b$ & 0.225 & 0.0 & 0.092 & 0.0 & 0.484 & 0.0 \\
+ total welfare, $W$ & -35.797 & -37.116 & -44.906 & -44.825 & -23.26 & -25.438 \\
+ cv(wealth) & \textemdash & -0.195 & \textemdash & -0.087 & \textemdash & -0.194
+ \\\hline
+ \end{tabular}
   \end{table}
+\begin{figure}
+\centering
+    \includegraphics[width=0.7\linewidth]{../Figures/lambda.pdf}
+\caption{\label{lambda} Effects of Policy Change by Age}
+
+\end{figure}
 
 \end{enumerate}
 \end{document}

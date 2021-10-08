@@ -415,6 +415,9 @@ INPUT ../Figures/savings_20.pdf
 INPUT ../Figures/savings_20.pdf
 INPUT ../Figures/savings_20.pdf
 INPUT /usr/local/texlive/2020/texmf-var/fonts/map/pdftex/updmap/pdftex.map
+INPUT ../Figures/lambda.pdf
+INPUT ../Figures/lambda.pdf
+INPUT ../Figures/lambda.pdf
 INPUT ./PS3.aux
 INPUT ./PS3.out
 INPUT /usr/local/texlive/2020/texmf-dist/fonts/type1/public/cochineal/Cochineal-Bold.pfb

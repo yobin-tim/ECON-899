@@ -46,7 +46,7 @@
 
     # Grids
     # Age efficiency profile
-    η       ::Matrix{Float64}   = readdlm("./Data/ef.txt")
+    η       ::Matrix{Float64}   = readdlm("../Data/ef.txt")
     nA      ::Int64             = 500      # Size of the asset grid
     a_min   ::Float64           = 0.0       # lower bound of the asset grid
     a_max   ::Float64           = 40.0      # upper bound of the asset grid
@@ -405,13 +405,16 @@ function Lambda(prim::Primitives, res::Results, W::SharedArray{Float64, 3})
     @unpack α, β, γ, σ = prim
 
     # calculate and return compensating variation
-    λ = (W ./ val_fun).^(1/(γ*(1-σ))) .- 1
+    # λ = (W ./ val_fun).^(1/(γ*(1-σ))) .- 1
+
+    λ = (val_fun ./ W).^(1/(γ*(1-σ))) .- 1
+    # Is W denominator?
 
     return NaNMath.sum(F.*λ)
 
 end
 
-## Is W denominator?
+# To anwer "who benefits" in Exercise 3.  
 function Lambda2(prim::Primitives, res::Results, W::SharedArray{Float64, 3})
     
     # unpack necessary variables
@@ -422,6 +425,6 @@ function Lambda2(prim::Primitives, res::Results, W::SharedArray{Float64, 3})
     λ = (val_fun ./ W).^(1/(γ*(1-σ))) .- 1
     a = [1:1:66;]
     b = dropdims(sum(sum(F.*λ, dims = 1), dims = 2), dims =1)'
-    return plot(a, b)
-    
+    c = [a, b]
+    return c     
 end

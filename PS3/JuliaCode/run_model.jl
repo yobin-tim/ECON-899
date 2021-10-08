@@ -39,7 +39,7 @@ plot(out_prim.a_grid, out_res.val_fun[:,:, 50],
      color=:black,
      legend = false,
      lw = 2)
-savefig("./Figures/value_function50.pdf")
+savefig("../Figures/value_function50.pdf")
 
 
 plot(out_prim.a_grid, out_res.val_fun[:, 1, end])
@@ -68,7 +68,7 @@ plot!(out_prim.a_grid, savings[:,2,20],
       label = "Low productivity",
       color=:black,
       line=:dash)
-savefig("./Figures/savings_20.pdf")
+savefig("../Figures/savings_20.pdf")
 
 
 #Plotting Policy Functions
@@ -118,25 +118,38 @@ plot(out_prim.a_grid,out_res.F[:,1,50])
 @time prim_exLab_noSS, res_exLab_noSS   = MarketClearing(use_Fortran=false, tol = 1e-3, ss = false, exog_l = true);
 
 # write results to table 1
-open("./Tables/table1.tex", "w") do io 
-    write(io, string("\\begin{tabular}{|l|c|c|c|c|c|c|}\\hline",
-    "&\\multicolumn{2}{c}{Benchmark Model} &\\multicolumn{2}{c}{No risk, \$z^L=z^H=0.5\$}",
-    "&\\multicolumn{2}{c}{Exogenous labor, \$\\gamma=1\$}\\\\\\hline",
-    "capital, \$K\$ & ", round(out_res.K, digits = 3), " & ", round(res_noSS.K, digits = 3), " & ", round(res_noRisk.K, digits = 3), " & ", round(res_noRisk_noSS.K, digits = 3), " & ",
-    round(res_exLab.K, digits = 3), " & ", round(res_exLab_noSS.K, digits = 3), " \\\\\\hline",
-    "labor, \$L\$ & ", round(out_res.L, digits = 3), " & ", round(res_noSS.L, digits = 3), " & ", round(res_noRisk.L, digits = 3), " & ", round(res_noRisk_noSS.L, digits = 3), " & ",
-    round(res_exLab.L, digits = 3), " & ", round(res_exLab_noSS.L, digits = 3), " \\\\\\hline",
-    "wage, \$w\$ & ", round(out_res.w, digits = 3), " & ", round(res_noSS.w, digits = 3), " & ", round(res_noRisk.w, digits = 3), " & ", round(res_noRisk_noSS.w, digits = 3), " & ",
-    round(res_exLab.w, digits = 3), " & ", round(res_exLab_noSS.w, digits = 3), " \\\\\\hline",
-    "interest, \$r\$ & ", round(out_res.r, digits = 3), " & ", round(res_noSS.r, digits = 3), " & ", round(res_noRisk.r, digits = 3), " & ", round(res_noRisk_noSS.r, digits = 3), " & ",
-    round(res_exLab.r, digits = 3), " & ", round(res_exLab_noSS.r, digits = 3), " \\\\\\hline",
-    "pension benefit, \$b\$ & ", round(out_res.b, digits = 3), " & ", round(res_noSS.b, digits = 3), " & ", round(res_noRisk.b, digits = 3), " & ", round(res_noRisk_noSS.b, digits = 3), " & ",
-    round(res_exLab.b, digits = 3), " & ", round(res_exLab_noSS.b, digits = 3), " \\\\\\hline",
-    "total welfare, \$W\$ & ", round(NaNMath.sum(out_res.val_fun.*out_res.F), digits = 3), " & ", round(NaNMath.sum(res_noSS.val_fun.*res_noSS.F), digits = 3), " & ", round(NaNMath.sum(res_noRisk.val_fun.*res_noRisk.F), digits = 3), " & ",
-    round(NaNMath.sum(res_noRisk_noSS.val_fun.*res_noRisk_noSS.F), digits = 3), " & ",round(NaNMath.sum(res_exLab.val_fun.*res_exLab.F), digits = 3), " & ", round(NaNMath.sum(res_exLab_noSS.val_fun.*res_exLab_noSS.F), digits = 3), " \\\\\\hline",
-    "cv(wealth) & \\textemdash & ", round(Lambda(prim_noSS, res_noSS, out_res.val_fun), digits = 3), " & \\textemdash & ", round(Lambda(prim_noRisk_noSS, res_noRisk_noSS, res_noRisk.val_fun), digits = 3), " & \\textemdash & ", 
-    round(Lambda(prim_exLab_noSS, res_exLab_noSS, res_exLab.val_fun), digits = 3), " \\\\\\hline \\end{tabular}"))
+open("../Tables/table1.tex", "w") do io 
+    write(io, string(
+        "\\begin{table}", 
+        "\n \\centering",
+        "\n \\caption{\\label{tab1} Results of policy experiments}",
+        "\\begin{tabular}{lcccccc}",
+        "\n \\hline",
+        "\n \\hline",
+        "\n &\\multicolumn{2}{c}{Benchmark Model} &\\multicolumn{2}{c}{No risk, \$z^L=z^H=0.5\$}&\\multicolumn{2}{c}{Exogenous labor, \$\\gamma=1\$}\\\\",
+        "\n \\hline",         
+        "\n capital, \$K\$ & ", round(out_res.K, digits = 3), " & ", round(res_noSS.K, digits = 3), " & ", round(res_noRisk.K, digits = 3), " & ", round(res_noRisk_noSS.K, digits = 3), " & ", round(res_exLab.K, digits = 3), " & ", round(res_exLab_noSS.K, digits = 3), " \\\\",
+        "\n labor, \$L\$ & ", round(out_res.L, digits = 3), " & ", round(res_noSS.L, digits = 3), " & ", round(res_noRisk.L, digits = 3), " & ", round(res_noRisk_noSS.L, digits = 3), " & ", round(res_exLab.L, digits = 3), " & ", round(res_exLab_noSS.L, digits = 3), " \\\\",
+        "\n wage, \$w\$ & ", round(out_res.w, digits = 3), " & ", round(res_noSS.w, digits = 3), " & ", round(res_noRisk.w, digits = 3), " & ", round(res_noRisk_noSS.w, digits = 3), " & ", round(res_exLab.w, digits = 3), " & ", round(res_exLab_noSS.w, digits = 3), " \\\\",
+        "\n interest, \$r\$ & ", round(out_res.r, digits = 3), " & ", round(res_noSS.r, digits = 3), " & ", round(res_noRisk.r, digits = 3), " & ", round(res_noRisk_noSS.r, digits = 3), " & ", round(res_exLab.r, digits = 3), " & ", round(res_exLab_noSS.r, digits = 3), " \\\\",
+        "\n pension benefit, \$b\$ & ", round(out_res.b, digits = 3), " & ", round(res_noSS.b, digits = 3), " & ", round(res_noRisk.b, digits = 3), " & ", round(res_noRisk_noSS.b, digits = 3), " & ", round(res_exLab.b, digits = 3), " & ", round(res_exLab_noSS.b, digits = 3), " \\\\",
+        "\n total welfare, \$W\$ & ", round(NaNMath.sum(out_res.val_fun.*out_res.F), digits = 3), " & ", round(NaNMath.sum(res_noSS.val_fun.*res_noSS.F), digits = 3), " & ", round(NaNMath.sum(res_noRisk.val_fun.*res_noRisk.F), digits = 3), " & ", round(NaNMath.sum(res_noRisk_noSS.val_fun.*res_noRisk_noSS.F), digits = 3), " & ",round(NaNMath.sum(res_exLab.val_fun.*res_exLab.F), digits = 3), " & ", round(NaNMath.sum(res_exLab_noSS.val_fun.*res_exLab_noSS.F), digits = 3), " \\\\",
+        "\n cv(wealth) & \\textemdash & ", round(Lambda(prim_noSS, res_noSS, out_res.val_fun), digits = 3), " & \\textemdash & ", round(Lambda(prim_noRisk_noSS, res_noRisk_noSS, res_noRisk.val_fun), digits = 3), " & \\textemdash & ", round(Lambda(prim_exLab_noSS, res_exLab_noSS, res_exLab.val_fun), digits = 3), " \\\\",
+        "\n \\hline",
+        "\n \\end{tabular}",
+        "\n \\end{table}"))
 end;
 
-end
 
+# Exercise 3
+c = Lambda2(prim_noSS, res_noSS, out_res.val_fun);
+
+plot(c[1], c[2],
+     title = "",
+     xlabel = "Age",
+     ylabel = "λ",
+     color=:black,
+     legend = false,
+     lw = 2)
+savefig("../Figures/lambda.pdf")
+end

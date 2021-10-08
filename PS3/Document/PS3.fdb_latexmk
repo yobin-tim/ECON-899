@@ -1,7 +1,8 @@
 # Fdb version 3
-["pdflatex"] 1633633092 "PS3.tex" "PS3.pdf" "PS3" 1633633126
-  "../Figures/savings_20.pdf" 1633630165 20221 32ee7ea4755e851344797d070405ff71 ""
-  "../Figures/value_function50.pdf" 1633629946 14773 aeac9ae9779c9682761063df6a32de5a ""
+["pdflatex"] 1633706689 "PS3.tex" "PS3.pdf" "PS3" 1633706693
+  "../Figures/lambda.pdf" 1633702725 22533 9cd1c51a137714b0f7b6e31ab69bf74d ""
+  "../Figures/savings_20.pdf" 1633702246 29844 85e116d009d8e86e25c5de960ab258d5 ""
+  "../Figures/value_function50.pdf" 1633702233 19627 9cc27405a3bcedce01de9cd5ee3cc298 ""
   "/Users/hiroakishirai/Library/texlive/2020/texmf-var/luatex-cache/generic-dev/fonts/otl/lmroman10-regular.luc" 1616692498 123128 0f002d18ed25e06cc228ed3c3cb3f3b7 ""
   "/Users/hiroakishirai/Library/texlive/2020/texmf-var/luatex-cache/generic-dev/names/luaotfload-names.luc" 1616692498 1478833 d2d9ea73695355b7a9c462aa3691ea47 ""
   "/usr/local/texlive/2020/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1246382020 1004 54797486969f23fa377b128694d548df ""
@@ -258,11 +259,11 @@
   "/usr/local/texlive/2020/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1586288239 4811913 0be9a7e86c70a26e5e3042966bcd7097 ""
   "/usr/local/texlive/2020/texmf-var/tex/generic/config/language.dat" 1586288234 6642 7d35e16105a3fac4deb3f43c83356626 ""
   "/usr/local/texlive/2020/texmf-var/web2c/luahbtex/lualatex.fmt" 1586288297 2691541 2b0b58c4e0006f8e04715f3b0a198079 ""
-  "PS3.aux" 1633633126 1137 7d5a2185660a9d306621b9845bd88286 "pdflatex"
+  "PS3.aux" 1633706692 1381 8904af8d5861deca0100a55819221107 "pdflatex"
   "PS3.out" 1633383901 0 d41d8cd98f00b204e9800998ecf8427e "pdflatex"
-  "PS3.tex" 1633633091 7354 9c54d9c65987d9fc837063545f23f05b ""
+  "PS3.tex" 1633706688 8016 9e84fe964f0f8c98125aac79195395a8 ""
   (generated)
-  "PS3.aux"
-  "PS3.log"
   "PS3.pdf"
+  "PS3.log"
+  "PS3.aux"
   "PS3.out"
