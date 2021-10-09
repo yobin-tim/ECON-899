@@ -75,8 +75,8 @@ end # Primitives
 end # Results
 
 # Function that initializes the model
-function Initialize(; θ = 0.11, γ = 0.42)
-    prim = Primitives(θ = θ, γ = γ)                 # Initialize the primitives
+function Initialize(; θArg = 0.11, γArg = 0.42)
+    prim = Primitives(θ = θArg, γ = γArg)                 # Initialize the primitives
     w = 1.05                                        # Wage guess
     r = 0.05                                        # Interest rate guess
     b = 0.2                                         # Benefits guess
@@ -99,7 +99,7 @@ function Initialize(; θ = 0.11, γ = 0.42)
     end
     μ = μ/sum(μ)
 
-    L = sum(μ[1:(J_R-1)])                    # fixed aggregate labor
+    L = sum(μ[1:(prim.J_R-1)])                    # fixed aggregate labor
 
     # Finally we initialize the distribution of the agents
     F = zeros(prim.nA, prim.nZ, prim.N_final)
@@ -283,11 +283,11 @@ end # SteadyStateDist
 # Function to solve for market prices
 function MarketClearing(; ss::Bool=true, use_Fortran::Bool=false, λ::Float64=0.7, tol::Float64=1e-2, err::Float64=100.0)
 
-    # initialize struct according to policies
+    # initialize struct according to policies. Note that we are assuming that labor is supplied inelastically
     if ~ss
-        prim, res = Initialize(θ = 0)
+        prim, res = Initialize(θ = 0, γ=1)
     else
-        prim, res = Initialize()
+        prim, res = Initialize(γ=1)
     end
 
 
@@ -358,7 +358,7 @@ function Lambda(prim::Primitives, res::Results, W::Float64)
 end # Lambda
 
 # Function that iterates backward on decision rules given a path of capital
-function IterateBackward(primEnd::Primitives, resEnd::Results, K_path::::Array{Float64}, N::Int64)
+function IterateBackward(primEnd::Primitives, resEnd::Results, K_path::Array{Float64}, N::Int64)
     #Above, "End" refers to values in the new steady state
     #Setting up matrices to store the transitions of value and policy functions
         pol_fun_trans = SharedArray{Float64}(primEnd.nA, primEnd.nZ, primEnd.N_final, N+1)
@@ -499,7 +499,7 @@ end
 =#
 
 #Alternate FillPath (Function that, given an aggregate capital path, infers prices and calculates a new path)
-function FillPath(resStart::Results, primEnd::Primitives, resEnd::Results, K_path::::Array{Float64}, N::Int64)
+function FillPath(resStart::Results, primEnd::Primitives, resEnd::Results, K_path::Array{Float64}, N::Int64)
     # initialize transition path distribution
     Ft = SharedArray{Float64}(primEnd.nA, primEnd.nZ, primEnd.N_final, N+1)
     Ft[:, :, :, 1]      = resStart.F;
@@ -528,32 +528,48 @@ end
 
 
 # Function to calculate the transition path between two equilibria
-function TransitionPath(resStart::Results, primEnd::Primitives, resEnd::Results;
-    err::Float64=100.0, tol::Float64=1e-3, λ::Float64=0.70, N::Int64=30)
-
-    #=
-        NOTE: resStart and resEnd are the results structs from
-        the two equilibria; MarketClearing() must be run for each
-        policy scenario before running TransitionPath()
-    =#
-
+function TransitionPath(;err::Float64=100.0, tol::Float64=1e-3, λ::Float64=0.70,
+        N::Int64=40, SolveAgain=false)
+    #Finding the two Steady States to transition between
+    if SolveAgain
+        print("Solving for the steady state with Social Security...")
+        primStart, resStart= MarketClearing(use_Fortran=false, tol = 1e-3);
+        print("Solving for the steady state without Social Security...")
+        primEnd, resEnd= MarketClearing(ss=false, use_Fortran=false, tol = 1e-3);
+        save("PS4/JuliaCode/SteadyStates.jld", "primStart", primStart,
+            "resStart", resStart, "primEnd", "resEnd",resEnd)
+    else
+        try
+            primStart = load("PS4/JuliaCode/SteadyStates.jld", "primStart")
+            resStart = load("PS4/JuliaCode/SteadyStates.jld", "resStart")
+            primEnd = load("PS4/JuliaCode/SteadyStates.jld", "primEnd")
+            resEnd = load("PS4/JuliaCode/SteadyStates.jld", "resEnd")
+        catch
+            print("Could not load the file with the saved steady states.
+Solving for the steady state with Social Security...")
+            primStart, resStart= MarketClearing(use_Fortran=false, tol = 1e-3);
+            print("Solving for the steady state without Social Security...")
+            primEnd, resEnd= MarketClearing(ss=false, use_Fortran=false, tol = 1e-3);
+            save("PS4/JuliaCode/SteadyStates.jld", "primStart", primStart,
+                "resStart", resStart, "primEnd", "resEnd",resEnd)
+        end
+    end
     # guess the transition path between the two equilibria
-    K₀, Kₜ = resStart.K, resEnd.K
-    K_path = collect(range(K₀, Kₜ, length = N + 1))
-
+        K₀, Kₜ = resStart.K, resEnd.K
+        K_path = collect(range(K₀, Kₜ, length = N + 1))
     # generate new primitives and results structs for use in calculating
-    # the transition path
-    newRes      = resEnd;
-    newRes.F    = resStart.F;
+        # the transition path
+        newRes      = resEnd;
+        newRes.F    = resStart.F;
 
     # iteratively use the FillPath function to update capital path until convergence
-    while err > 0
-
+    while err > tol
         # pass current capital path to FillPath function
             #K_path_new, Ft = FillPath(primEnd, newRes, K_path, N)
             K_path_new, Ft = FillPath(resStart, primEnd, resEnd, K_path, N)
-        # converge and update
-
+        # test convergence and update
+            err=maximum(abs.(K_path-K_path_new))
+            K_path=copy(K_path_new)
     end
-
+    return K_path_new, Ft
 end # TransitionPath
