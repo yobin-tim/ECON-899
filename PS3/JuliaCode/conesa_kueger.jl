@@ -66,9 +66,6 @@ end # Primitives
     pol_fun ::SharedArray{Float64, 3}             # Policy function
     l_fun   ::SharedArray{Float64, 3}             # (effective) Labor policy function
 
-    # ! This is a experiment, maybe it is useful to also save
-    # ! the indices of the optimal policy function
-    pol_fun_ind ::Array{Int64,3}            # Policy function indices
     F       ::Array{Float64,3}              # Distribution of agents over asset holdings
 end # Results
 
@@ -82,7 +79,6 @@ function Initialize(; θ = 0.11, γ = 0.42)
     L = 0.9                                         # initial labor guess
     val_fun = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)    # Initialize the value function
     pol_fun = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)    # Initialize the policy function
-    pol_fun_ind = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)# Initialize the policy function indices
     l_fun = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final)
 
     # Before the model starts, we can set the initial value function at the end stage
@@ -104,7 +100,7 @@ function Initialize(; θ = 0.11, γ = 0.42)
     F[1, 2, 1] = μ[1] * prim.p_L
 
     # Initialize the results
-    res = Results(w, r, b, K, L, μ, val_fun, pol_fun, l_fun, pol_fun_ind, F)
+    res = Results(w, r, b, K, L, μ, val_fun, pol_fun, l_fun, F)
 
     return (prim, res)                              # Return the primitives and results
 end
@@ -123,7 +119,6 @@ function V_ret(prim::Primitives, res::Results)
             vals = util.(((1+r)*a + b).- a_grid, 0) .+ res.val_fun[:, 1, j+1]
             pol_ind = argmax(vals)
             val_max = vals[pol_ind]
-            res.pol_fun_ind[a_index, :, j] .= pol_ind
             res.pol_fun[a_index, :, j] .= a_grid[pol_ind]
             res.val_fun[a_index, :, j] .= val_max
             res.l_fun[a_index, :, j] .= 0
@@ -131,47 +126,6 @@ function V_ret(prim::Primitives, res::Results)
     end # for j
 
 end # V_ret
-
-#=
-function V_ret(prim::Primitives, res::Results)
-    @unpack nA, a_grid, N_final, J_R, util, β = prim
-    @unpack b, r = res
-
-    for j in N_final-1:-1:J_R
-        
-        choice_lower = 1
-
-        for index_a = 1:nA
-
-            a = a_grid[index_a]
-
-            maxvalsofar = -Inf
-            
-            for index_ap = choice_lower:nA
-                
-                a_next = a_grid[index_ap]
-
-                c = (1+r)*a+b - a_next
-
-                if c > 0
-                    
-                    vals = util.(c, 0) +
-                        β*res.val_fun[index_ap, 1, j+1]
-
-                    if vals > maxvalsofar
-                        maxvalsofar = vals
-                        res.pol_fun[index_a, :, j] .=
-                            a_grid[index_ap]
-                        choice_lower = index_ap
-                    end
-
-                end
-            end
-            res.val_fun[index_a, :, j] .= maxvalsofar
-        end
-    end
-end
-=#
 
 
 # Value function for the workers
@@ -240,57 +194,12 @@ function V_workers(prim::Primitives, res::Results)
 
                 res.val_fun[a_index, z_index, j] = cand_val         # Update the value function
                 res.pol_fun[a_index, z_index, j] = cand_pol         # Update the policy function
-                res.pol_fun_ind[a_index, z_index, j] = cand_pol_ind # Update the policy function index
                 res.l_fun[a_index, z_index, j] = l_pol              # Update the labor policy function
                 LowestChoiceInd=copy(cand_pol_ind)
             end # Current asset holdings loop
         end # Productivity loop
     end  # Age loop
-    #=
-    res.val_fun = val_fun
-    res.pol_fun = pol_fun
-    res.pol_fun_ind = pol_fun_ind
-    res.l_fun = l_fun
-    =#
 end # V_workers
-
-# If we want to speed up the code we can use Fortran
-# the following function is a wrapper for the Fortran code
-
-function V_Fortran(prim::Primitives, res::Results)
-    @unpack r, w, b =res
-    # PS3/FortranCode/conesa_kueger.f90
-    # Compile Fortran code
-    path = "./PS3/FortranCode/"
-    run(`gfortran -fopenmp -O2 -o $(path)V_Fortran $(path)conesa_kueger.f90`)
-    # run(`./T_op $q $n_iter`)
-    run(`$(path)V_Fortran $0 $r $w $b`)
-
-    results_raw =  readdlm("$(path)results.csv");
-    K_SS, L_SS = readdlm("$(path)agg_results.csv");
-
-    val_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the value function
-    pol_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the policy function
-    pol_fun_ind = zeros(prim.nA, prim.nZ, prim.N_final + 1)    # Initialize the policy function index
-    consumption = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the consumption function
-    l_fun = zeros(prim.nA, prim.nZ, prim.N_final)    # Initialize the labor policy function
-    for j in 1:prim.N_final
-        range_a = (j-1) * 2*prim.nA + 1 : j * 2*prim.nA |> collect
-        val_fun[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end], results_raw[range_a[prim.nA+1:end],end])
-        pol_fun_ind[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end-1], results_raw[range_a[prim.nA+1:end],end-1])
-        pol_fun[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end-2], results_raw[range_a[prim.nA+1:end],end-2])
-        consumption[:,:,j]   = hcat(results_raw[range_a[1:prim.nA],end-3], results_raw[range_a[prim.nA+1:end],end-3])
-        l_fun[:,:,j] = hcat(results_raw[range_a[1:prim.nA],end-4], results_raw[range_a[prim.nA+1:end],end-4])
-    end
-    A_grid_fortran = results_raw[1:prim.nA,end-5]
-    res.val_fun = val_fun
-    res.pol_fun = pol_fun
-    res.pol_fun_ind = pol_fun_ind
-    res.l_fun = l_fun
-    return K_SS, L_SS
-
-end # run_Fortran()
-
 
 # Function to obtain the steady state distribution
 function SteadyStateDist(prim::Primitives, res::Results)
@@ -390,8 +299,10 @@ function MarketClearing(; ss::Bool=true, i_risk::Bool=true, exog_l::Bool=false,
 
         n+=1
 
-        println("$n iterations; err = $err, K = ", round(res.K, digits = 4), ", L = ",
-        round(res.L, digits = 4), ", λ = $λ")
+        if  n % 5 == 0
+            println("$n iterations; err = $err, K = ", round(res.K, digits = 4), ", L = ",
+            round(res.L, digits = 4), ", λ = $λ")
+        end
 
     end # while err > tol
     return prim, res
@@ -409,4 +320,4 @@ function Lambda(prim::Primitives, res::Results, W::SharedArray{Float64, 3})
 
     return NaNMath.sum(F.*λ)
 
-end
+end # Lambda

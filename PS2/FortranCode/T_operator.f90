@@ -378,11 +378,11 @@ do while (converged == 0 .and. it < max_it)
 
 	if (max_diff < tol) then
 		converged = 1
-		! write(*,*) ""
-		! write(*,*) "********************************************"
-		! write(*,*) "At iteration = ", it
-		! write(*,*) "Max Difference = ", max_diff
-		! write(*,*) "********************************************"
+		write(*,*) ""
+		write(*,*) "********************************************"
+		write(*,*) "At iteration = ", it
+		write(*,*) "Max Difference = ", max_diff
+		write(*,*) "********************************************"
 	end if
 
 	it = it+1
