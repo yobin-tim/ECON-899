@@ -1,4 +1,4 @@
-using Distributed, SharedArrays
+using Distributed, SharedArrays, JLD
 
 #add processes
 workers()
@@ -7,19 +7,7 @@ addprocs(2)
 
 @Distributed.everywhere include("./PS4/JuliaCode/conesa_kueger.jl");
 
-#prim, res = Initialize(); #=
-#@time V_ret(prim, res);
-#@time V_workers(prim, res);
-#@time V_Fortran(res.r, res.w, res.b);
-#@time SteadyStateDist(prim, res); =#
-
-#agridf, consumption = V_Fortran(res.r, res.w, res.b);
-#=
-agridf
-prim.a_grid
-hcat(prim.a_grid, agridf, prim.a_grid - agridf)
-=#
-@time out_prim, out_res = MarketClearing(use_Fortran=false, tol = 1e-3);
+@time out_K_path,out_Ft= TransitionPath(TrySaveMethod=false)
 
 using Plots, LaTeXStrings
 
@@ -96,7 +84,7 @@ plot(out_prim.a_grid,out_res.F[:,1,50])
 @time prim_exLab_noSS, res_exLab_noSS   = MarketClearing(use_Fortran=false, tol = 1e-3, ss = false, exog_l = true);
 
 # write results to table 1
-open("PS3/Tables/table1.tex", "w") do io 
+open("PS3/Tables/table1.tex", "w") do io
     write(io, string(L"\begin{tabular}{|l|c|c|c|c|c|c|}\hline",
     L"&\multicolumn{2}{c}{Benchmark Model} &\multicolumn{2}{c}{No risk, $z^L$=$z^H=0.5$}",
     L"&\multicolumn{2}{c}{Exogenous labor, $\gamma=1$}\\\hline",
@@ -113,6 +101,6 @@ open("PS3/Tables/table1.tex", "w") do io
     L"total welfare, $W$ & ", sum(out_res.val_fun.*out_res.F), " & ", res_noSS.b, " & ", res_noRisk.b, " & ", res_noRisk_noSS.b, " & ",
     res_exLab.b, " & ", res_exLab_noSS.b, " \\\hline",
     L"cv(wealth) & ", Lambda(put_prim, out_res, W), " & ", Lambda(prim_noSS, res_noSS, W), " & ", Lambda(prim_noRisk, res_noRisk, W),
-    " & ", Lambda(prim_noRisk_noSS, res_noRisk_noSS, W), " & ", Lambda(prim_exLab, res_exLab, W), " & ", 
+    " & ", Lambda(prim_noRisk_noSS, res_noRisk_noSS, W), " & ", Lambda(prim_exLab, res_exLab, W), " & ",
     Lambda(prim_exLab_noSS, res_exLab_noSS, W), " \\\hline \end{tabular}"))
 end;

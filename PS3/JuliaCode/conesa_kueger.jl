@@ -46,10 +46,10 @@
 
     # Grids
     # Age efficiency profile
-    η       ::Matrix{Float64}   = readdlm("./PS3/Data/ef.txt")
-    nA      ::Int64             = 1000      # Size of the asset grid
+    η       ::Matrix{Float64}   = readdlm("../Data/ef.txt")
+    nA      ::Int64             = 500      # Size of the asset grid
     a_min   ::Float64           = 0.0       # lower bound of the asset grid
-    a_max   ::Float64           = 75.0      # upper bound of the asset grid
+    a_max   ::Float64           = 40.0      # upper bound of the asset grid
     a_grid  ::Array{Float64}    = collect(range(a_min, length = nA, stop = a_max))   # asset grid
 
 end # Primitives
@@ -104,7 +104,7 @@ function Initialize(; θ = 0.11, γ = 0.42)
 
     return (prim, res)                              # Return the primitives and results
 end
-
+#=
 # Value funtion for the retirees
 function V_ret(prim::Primitives, res::Results)
 
@@ -126,6 +126,47 @@ function V_ret(prim::Primitives, res::Results)
     end # for j
 
 end # V_ret
+=#
+
+function V_ret(prim::Primitives, res::Results)
+    @unpack nA, a_grid, N_final, J_R, util, β = prim
+    @unpack b, r = res
+
+    for j in N_final-1:-1:J_R
+        
+        choice_lower = 1
+
+        for index_a = 1:nA
+
+            a = a_grid[index_a]
+
+            maxvalsofar = -Inf
+            
+            for index_ap = choice_lower:nA
+                
+                a_next = a_grid[index_ap]
+
+                c = (1+r)*a+b - a_next
+
+                if c > 0
+                    
+                    vals = util.(c, 0) +
+                        β*res.val_fun[index_ap, 1, j+1]
+
+                    if vals > maxvalsofar
+                        maxvalsofar = vals
+                        res.pol_fun[index_a, :, j] .=
+                            a_grid[index_ap]
+                        choice_lower = index_ap
+                    end
+
+                end
+            end
+            res.val_fun[index_a, :, j] .= maxvalsofar
+        end
+    end
+end
+
 
 
 # Value function for the workers
@@ -316,8 +357,26 @@ function Lambda(prim::Primitives, res::Results, W::SharedArray{Float64, 3})
     @unpack α, β, γ, σ = prim
 
     # calculate and return compensating variation
-    λ = (W ./ val_fun).^(1/(γ*(1-σ))) .- 1
+    # λ = (W ./ val_fun).^(1/(γ*(1-σ))) .- 1
+
+    λ = (val_fun ./ W).^(1/(γ*(1-σ))) .- 1
+    # Is W denominator?
 
     return NaNMath.sum(F.*λ)
 
-end # Lambda
+end
+
+# To anwer "who benefits" in Exercise 3.  
+function Lambda2(prim::Primitives, res::Results, W::SharedArray{Float64, 3})
+    
+    # unpack necessary variables
+    @unpack F, val_fun = res
+    @unpack α, β, γ, σ = prim
+
+    # calculate and return compensating variation
+    λ = (val_fun ./ W).^(1/(γ*(1-σ))) .- 1
+    a = [1:1:66;]
+    b = dropdims(sum(sum(F.*λ, dims = 1), dims = 2), dims =1)'
+    c = [a, b]
+    return c     
+end
