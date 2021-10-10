@@ -7,21 +7,7 @@ addprocs(2)
 
 @Distributed.everywhere include("./PS4/JuliaCode/conesa_kueger.jl");
 
-#prim, res = Initialize(); #=
-#@time V_ret(prim, res);
-#@time V_workers(prim, res);
-#@time V_Fortran(res.r, res.w, res.b);
-#@time SteadyStateDist(prim, res); =#
-
-#agridf, consumption = V_Fortran(res.r, res.w, res.b);
-#=
-agridf
-prim.a_grid
-hcat(prim.a_grid, agridf, prim.a_grid - agridf)
-=#
-#@time out_prim, out_res = MarketClearing(use_Fortran=false, tol = 1e-3);
-
-@time out_K_path,out_Ft= TransitionPath(SolveAgain=true)
+@time out_K_path,out_Ft= TransitionPath(TrySaveMethod=false)
 
 using Plots, LaTeXStrings
 
