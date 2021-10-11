@@ -12,6 +12,10 @@ addprocs(2)
 using Plots, LaTeXStrings
 
 theme(:juno)
+plot(1:41,out_K_path[:])
+
+
+#= Old plots for problem set 3
 plot(out_res.val_fun[:,:, end])
 plot!(out_res.val_fun[:,:, end-1])
 plot!(out_res.val_fun[:,:, end-2])
@@ -104,3 +108,5 @@ open("PS3/Tables/table1.tex", "w") do io
     " & ", Lambda(prim_noRisk_noSS, res_noRisk_noSS, W), " & ", Lambda(prim_exLab, res_exLab, W), " & ",
     Lambda(prim_exLab_noSS, res_exLab_noSS, W), " \\\hline \end{tabular}"))
 end;
+
+=#
