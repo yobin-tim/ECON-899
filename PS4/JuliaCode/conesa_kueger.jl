@@ -500,8 +500,10 @@ function FillPath(resStart::Results, primEnd::Primitives, resEnd::Results, K_pat
     Ft[:, :, :, 2:end] .= 0; #This line will start the first cohort being born
                                 #in each period with 0 assets
     pf_trans, vf_trans = IterateBackward(primEnd,resEnd,K_path,N)
+    K_path_new=zeros(N+1) #Initialize new K_Path
+        K_path_new[1]=resStart.K #Set first value to old steady state
     @unpack μ= resEnd
-    @unpack N_final = primEnd
+    @unpack N_final, nZ, nA, a_grid, Π  = primEnd
     for t in 2:(N+1)
         #Initialize "newborns" during each period of the transition with zero assets
         Ft[1, 1, 1, t] = μ[1] * primEnd.p_H
@@ -509,17 +511,19 @@ function FillPath(resStart::Results, primEnd::Primitives, resEnd::Results, K_pat
         for j in 2:N_final
             for zi in 1:nZ
                 for ai in 1:nA
-                    api = argmin(abs.(pf_trans[ai, zi, j-1].-a_grid))
+                    api = argmin(abs.(pf_trans[ai, zi, j-1,t-1].-a_grid))
                     for znext = 1:nZ
                         Ft[api, zi, j, t] += Ft[ai, zi, j-1, t-1] * Π[zi, znext] * (μ[j]/μ[j-1])
                     end # znext
                 end # ai loop
+                #Add the capital for this age and z shock to aggregate
+                K_path_new[t] += sum(Ft[:, zi, j, t].*a_grid)
             end # zi loop
         end # j loop
+        #calculate implied capital path
     end #End t loop
-    # calculate new capital path and return
-    K_path = sum(Ft, dims = 1:3)
-    return K_path, Ft
+    # This is should be 1: sum(Ft, dims = 1:3)
+    return K_path_new, Ft
 end
 
 
@@ -558,6 +562,7 @@ function TransitionPath(;err::Float64=100.0, tol::Float64=1e-3, λ::Float64=0.70
     # guess the transition path between the two equilibria
         K₀, Kₜ = resStart.K, resEnd.K
         K_path = collect(range(K₀, Kₜ, length = N + 1))
+        Ft=[0]; #Initialize variable name Ft
     # generate new primitives and results structs for use in calculating
         # the transition path
         #newRes      = resEnd;
@@ -566,10 +571,10 @@ function TransitionPath(;err::Float64=100.0, tol::Float64=1e-3, λ::Float64=0.70
     while err > tol
         # pass current capital path to FillPath function
             #K_path_new, Ft = FillPath(primEnd, newRes, K_path, N)
-            K_path_new, Ft = FillPath(resStart, primEnd, resEnd, K_path, N)
+            K_path_new , Ft = FillPath(resStart, primEnd, resEnd, K_path, N)
         # test convergence and update
-            err=maximum(abs.(K_path-K_path_new))
+            err=maximum(abs.(K_path.-K_path_new))
             K_path=copy(K_path_new)
     end
-    return K_path_new, Ft
+    return K_path, Ft
 end # TransitionPath
