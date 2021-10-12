@@ -12,13 +12,13 @@ using LinearAlgebra, Parameters
         - An entry of this matix should be read as:
             - Π_z'ze'e[z',e'] = probability of transitioning from state (z,e) to state (z',e')
     """
-function trans_mat(d_z, d_unemp, u)
+function trans_mat(d_z, d_u, u)
     d_z = ( d_z .- 1 )./d_z
     # transition probabilities between states: [[π_gg, π_gb][π_bg, π_bb]]
     Π_z = [d_z[1] 1-d_z[1]; 1-d_z[2] d_z[2]]
     # transition probabilities
     Π = zeros(4,4)
-    d1 = Diagonal( (d_unemp .- 1) ./ d_unemp )
+    d1 = Diagonal( (d_u .- 1) ./ d_u )
     Π[3:4, 3:4] = d1 + (d1 .* Diagonal([ 0.75, 1.25]))[:,end:-1:1]
     Π[1:2, 3:4] = 1 .- Π[3:4, 3:4] 
     Π[3:4, 1:2] = (u .- Π[3:4, 3:4] .* u')./(1 .- u')
@@ -32,11 +32,13 @@ end
     # Parameters of the model
 
     # Stochastic processes
+    nZ     ::Int64          = 2                                       # number of states
+    nE     ::Int64          = 2                                       # number of employment status
     d_z    ::Array{Float64} = [8, 8]                                  # Duration of states [d_g, d_b]
     d_u    ::Array{Float64} = [1.5, 2.5]                              # Duration of unemployment in each state [d_unemp_g, d_unemp_b]
     u      ::Array{Float64} = [0.04, 0.1]                             # Fraction of people unemployed inn each state [u_g, u_b]
     z_val  ::Array{Float64} = [1.01, 0.99]                            # aggregate technology shocks
-    e_val  ::Array{Int64}   = [1, 0]                                   # aggregate productivity shocks
+    e_val  ::Array{Int64}   = [1, 0]                                  # employment status
 
     # # # Preferences                  
     β      ::Float64          = 0.99                                   # Discount factor
@@ -58,58 +60,72 @@ end
     K_max  ::Float64          = 15.0
     K_grid ::Array{Float64,1} = range(K_min, length = nK, stop = K_max)# Aggregate Capital grid
 
-    # # TODO: This part is dependent on being two states with symmetric distributions, should be generalized
-    T      ::Int              = 11000                                  # Number of periods
+    T      ::Int              = 10000                                  # Number of periods
     N      ::Int              = 5000                                   # Number of agents
-
     
-
+    # First order conditions of the firm
+    w      ::Function         = ( K, L, z ) -> (1 - α)*z*(K/L)^α
+    r      ::Function         = ( K, L, z ) -> α*z*(K/L)^(α-1)                        # Wage rate
+    
+    
     # Conjecture of functional form for h₁:
     # The congecture will be a log linear function recieves the following input:
     #   - z::Int64 the technology shock
-    #   - a::Tuple{Float64, Float64} log linear coefficients in case of good productivity shock
-    #   - b::Tuple{Float64, Float64} log linear coefficients in case of bad productivity shock
+    #   - a::Array{Float64} log linear coefficients in case of good productivity shock
+    #   - b::Array{Float64} log linear coefficients in case of bad productivity shock
     k_forecast ::Function     = (z, a, b, k_last) -> ( z == 1 ) ? exp(a[1]+a[2]*k_last) : exp(a[1]+a[2]*k_last)
     
 end
 
-function generate_shocks( N, T, d_z, d_u, u   )
+function generate_shocks( prim )
+    # TODO: This part is dependent on being two states with symmetric distributions, should be generalized
     
-    @unpack  = prim
+    @unpack N, T, d_z, d_u, u = prim
     
-    z_seq  ::Array{Int64, 1}  = vcat(1, zeros(T-1))                    # Technology shocks    
-    for t ∈ 2:length(shoks)
+    # Transition Matrices
+    Π, Π_z  = trans_mat(d_z, d_u, u)
+
+    z_seq  ::Array{Int64, 1}  = vcat(1, zeros(T-1+1000))                    # Technology shocks    
+    for t ∈ 2:length(z_seq)
         temp = rand(1)
-        z_seq[t] = ( temp < Π_z[ Int(z_seq[t-1])] ) ? 1 : 2          # Generate the sequence of shocks
+        z_seq[t] = ( temp[1] < Π_z[ Int(z_seq[t-1])] ) ? 1 : 2          # Generate the sequence of shocks
     end
 
-    ℇ = zeros(N, T)                             # Agent's employment status
-    for t ∈ 1:T
+    ℇ ::Array{Int64, 2} = zeros(N, T+1000)
+    ℇ[:,1] .= 1                           # Agent's employment status
+    for t ∈ 2:T
         z_last = z_seq[t-1]
         z_now  = z_seq[t]
         for n ∈ 1:N
-            temp = rand(1)
+            temp = rand(1)[1]
             e_last = ℇ[n, t-1]
             ind_1 = 2e_last + z_last
             prob_emp = Π[ind_1, z_now]
             ℇ[n,t] = ( temp < prob_emp ) ? 1 : 0
         end
     end
-    return (z_seq, ℇ)
+
+    # Remove the initial 1000 periods
+    ℇ = ℇ[:,1001:end]
+    z_seq = z_seq[1001:end]
+
+    return (Π, Π_z,  z_seq, ℇ)
 end
 
 # Set structure of the model regarding stochastic shocks
-struct shocks()
-    Π      ::Matrix{Float64,2}                                          # Transition matrix Π_z'ze'e
-    Π_z    ::Matrix{Float64,2}                                          # Transition matrix Π_z'z
-    Π, Π_z = 
-    
+struct Shocks
+    Π      ::Array{Float64,2}                                          # Transition matrix Π_z'ze'e
+    Π_z    ::Array{Float64,2}                                          # Transition matrix Π_z'z
+    z_seq  ::Array{Int64, 1}                                            # Technology shocks
+    ℇ      ::Array{Int64, 2}                                           # Agent's employment status
 end
 
 # Structure to hold the results
 mutable struct Resutls
     val_fun ::Array{Float64, 2} # Value function
     pol_fun ::Array{Float64, 2} # Policy function
+    a       ::Array{Float64}    # log linear coefficients in case of good productivity shock
+    b       ::Array{Float64}    # log linear coefficients in case of bad productivity shock 
 end
 
 # Function to initialize the model
@@ -117,14 +133,21 @@ function Initialize()
     # Initialize the primitives
     prim = Primitives()
     # Initialize the shocks
-    Π, Π_z = trans_mat(d_z, d_u, u)                                    # Transition matrix
+    Π, Π_z = trans_mat(prim.d_z, prim.d_u, prim.u)                                    # Transition matrix
     # Initialize the results
     # Initialize the value function and the policy function
-    val_fun = zeros(prim.nK, maximum(size(prim.Π)))
+    val_fun = zeros(prim.nK,  prim.nE + prim.nZ)
     pol_fun = copy(val_fun)
+    # Initialize the regression coefficients
+    a = [0.095, 0.999] 
+    b = [0.085, 0.999]
     # Return the primitives and results
-    res = Resutls(val_fun, pol_fun)
-    return (prim, res)
-end
 
-prim, res = Initialize()
+    res = Resutls(val_fun, pol_fun, a, b)
+
+    Π, Π_z, z_seq, ℇ = generate_shocks( prim )
+
+    shocks = Shocks(Π, Π_z, z_seq, ℇ)
+
+    return (prim, res, shocks)
+end
