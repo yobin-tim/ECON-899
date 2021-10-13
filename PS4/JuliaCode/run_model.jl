@@ -5,16 +5,22 @@ workers()
 addprocs(2)
 
 
-# @Distributed.everywhere include("./PS4/JuliaCode/conesa_kueger.jl");
-@Distributed.everywhere include("./conesa_kueger.jl");
+@Distributed.everywhere include("./PS4/JuliaCode/conesa_kueger.jl");
+#@Distributed.everywhere include("./conesa_kueger.jl");
 
-@time out_K_path,out_Ft= TransitionPath(TrySaveMethod=false)
+#Exercise 1: (Problem Set 4)
+@time out_K_path,out_Ft= TransitionPath(TrySaveMethod=false,Experiment=1)
+#Exercise 2: (Problem Set 4)
+@time out_K_path_Exp2,out_Ft_Exp2= TransitionPath(TrySaveMethod=false,Experiment=2)
 
 using Plots, LaTeXStrings
 
 theme(:juno)
-plot(1:41,out_K_path[:])
-
+plot(1:61,out_K_path[:], ylabel="Aggregate Capital",
+    xlabel="Time",label="Excercise 1")
+    plot!(1:61,out_K_path_Exp2[:], legend=:bottomright, ylabel="Aggregate Capital",
+        xlabel="Time",label="Excercise 2")
+    savefig("./PS4/Document/Figures/ComparingTransitions.png")
 
 #= Old plots for problem set 3
 plot(out_res.val_fun[:,:, end])
