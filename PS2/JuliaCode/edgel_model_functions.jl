@@ -1,15 +1,16 @@
 
 #keyword-enabled structure to hold model primitives
-@with_kw struct Primitives
-    β::Float64 = 0.9932 #discount rate
-    α::Float64 = 1.5 # coefficient of relative risk aversion
-    a_min::Float64 = -2 #asset lower bound
-    a_max::Float64 = 5 #asset upper bound
-    na::Int64 = 1000 #number of asset grid points
-    nS::Int64 = 2 #number of states
-    a_grid::Array{Float64, 1} = collect(range(a_min, length = na, stop = a_max)) #asset grid
-    S::Array{Float64, 1} = collect([1, 0.5]) # earnings in each state
-    Π::Array{Float64, 2} = collect([0.97 0.03; 0.5 0.5])
+@with_kw mutable struct Primitives
+    α::Float64                = 1.5                                              # coefficient of relative risk aversion
+    β::Float64                = 0.9932                                           # discount rate
+    a_min::Float64            = -2                                               # asset lower bound
+    a_max::Float64            = 5                                                # asset upper bound
+    na::Int64                 = 1000                                             # number of asset grid points
+    nS::Int64                 = 2                                                # number of states
+    a_grid::Array{Float64, 1} = collect(range(a_min, length = na, stop = a_max)) # asset grid
+    S::Array{Float64, 1}      = collect([1, 0.5])                                # earnings in each state
+    Π::Array{Float64, 2}      = collect([0.97 0.03; 0.5 0.5])                    # transition matrix
+    π_e::Float64              = 0.97                                             # probability of employment
 end
 
 
@@ -19,6 +20,7 @@ mutable struct Results
     pol_func::Array{Float64, 2} # policy function
     μ::Array{Float64, 2}        # stationary distribution
     q̄::Float64                  # market-clearing bond price
+    λ::Array{Float64, 2}        # consumption equivalent     
 end
 
 #function for initializing model primitives and results
@@ -27,8 +29,9 @@ function Initialize()
     val_func    = zeros(prim.nS, prim.na)                           # initial value function guess
     pol_func    = zeros(prim.nS, prim.na)                           # initial policy function guess
     μ           = repeat([1/(prim.nS*prim.na)], prim.nS, prim.na)   # initial distribution guess
-    q̄           = (prim.β + 1)/2                                    # initial price guess
-    res         = Results(val_func, pol_func, μ, q̄)                 # initialize results struct
+    q̄           = (prim.β + 1)/2                                    # initial cons. equiv. guess
+    λ           = zeros(prim.nS, prim.na)                           # initial price guess
+    res         = Results(val_func, pol_func, μ, q̄, λ)                 # initialize results struct
     prim, res #return deliverables
 end
 
@@ -139,5 +142,22 @@ function Solve_model(prim::Primitives, res::Results; tol::Float64 = 1e-3,
         end
     end
     println("q̄ converged in ", n, " iterations.")
+end
+
+function lambda(prim::Primitives, res::Results)
+    @unpack Π, S, π_e, α, β, nS, na     = prim
+    @unpack λ, val_func, μ              = res
+    c_FB = S[1] * π_e + S[2] * (1 - π_e)
+    W_FB = (1/(1-β)) *( c_FB^(1 - α) - 1 )/(1 - α)
+
+    for i in 1:nS 
+        for j in 1:na 
+            λ[i,j] = ( ( W_FB .+ 1/((1 - α)*(1 - β)) )/( val_func[i,j] + 1/((1 - α)*(1 - β))  ) )^(1/(1 - α)) - 1
+        end
+    end
+
+    W_INC = dot(μ, val_func)
+    W_G = dot(λ, μ)
+    return W_FB, W_INC, W_G
 end
 ##############################################################################

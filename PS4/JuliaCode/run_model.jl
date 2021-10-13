@@ -5,7 +5,8 @@ workers()
 addprocs(2)
 
 
-@Distributed.everywhere include("./PS4/JuliaCode/conesa_kueger.jl");
+# @Distributed.everywhere include("./PS4/JuliaCode/conesa_kueger.jl");
+@Distributed.everywhere include("./conesa_kueger.jl");
 
 @time out_K_path,out_Ft= TransitionPath(TrySaveMethod=false)
 
