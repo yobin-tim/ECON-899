@@ -56,8 +56,6 @@ end
     
     # # # Initial Conditions
     nK = 100                                                           # Number of grid points for capital
-    # TODO: Derive the initial conditions from the steady state 
-    # K_ss   ::Float64          = ( α  /(1 / β + δ -1 ) )^(1/(1-α))*L_ss # Steady state capital
     k_min  ::Float64          = 10.0                                   # Minimum capital
     k_max  ::Float64          = 15.0                                   # Maximum capital
     k_grid ::Array{Float64,1} = range(k_min, length = nK, stop = k_max)# Capital grid
@@ -76,8 +74,8 @@ end
     N      ::Int              = 5000                                   # Number of agents
     
     # First order conditions of the firm
-    w      ::Function         = (K, L, z) -> (1 - α)*z*(K/L)^α
-    r      ::Function         = (K, L, z) -> α*z*(K/L)^(α-1)                        # Wage rate
+    w_mkt  ::Function         = (K, L, z) -> (1 - α)*z*(K/L)^α
+    r_mkt  ::Function         = (K, L, z) -> α*z*(K/L)^(α-1)                        # Wage rate
     
     
     # Conjecture of functional form for h₁:
@@ -134,8 +132,8 @@ end
 
 # Structure to hold the results
 mutable struct Results
-    val_fun ::Array{Float64, 2} # Value function
-    pol_fun ::Array{Float64, 2} # Policy function
+    val_fun ::Array{Float64, 3} # Value function
+    pol_fun ::Array{Float64, 3} # Policy function
     a       ::Array{Float64}    # log linear coefficients in case of good productivity shock
     b       ::Array{Float64}    # log linear coefficients in case of bad productivity shock 
 end
@@ -151,7 +149,7 @@ function Initialize()
 
     # Initialize the results
     # Initialize the value function and the policy function
-    val_fun = zeros(prim.nK,  prim.nE + prim.nZ)
+    val_fun = zeros(prim.nK, prim.nK, prim.nZ + prim.nE)
     pol_fun = copy(val_fun)
 
     # Initialize the regression coefficients
@@ -172,10 +170,61 @@ end
 function Bellman(prim::Primitives, res::Results)
 
     # retrieve relevant primitives and results
-    @unpack k_grid, nK, nZ, nE, ē, w, r, k_forecast = prim
+    @unpack k_grid, K_grid, nK, nZ, nE, ē, w_mkt, r_mkt, δ, k_forecast, z_val, e_val, u, y, util = prim
     @unpack a, b, pol_fun, val_fun = res
 
+    # loop through aggregate shocks
+    for zi = 1:nZ
 
+        # save aggregate shock and relevant variables
+        z = z_val[zi]   # productivity
+        π = 1 - u[zi]   # employment rate
+        L = π*ē         # aggregate effective labor
+
+        # loop through aggregate capital
+        for Ki = 1:nK
+
+            # save remaining aggregate state space variables
+            K = k_grid[Ki]  # aggregate capital
+
+            # calculate prices
+            r, w = r_mkt(K, L, z), w_mkt(K, L, z)
+
+            # loop through individual state spaces
+            for ei = 1:nE
+
+                    # initialize last candidate (for exploiting monotonicity)
+                    cand_last = 1
+
+                    # determine shock index from z and e index
+                    ezi
+
+                    # loop through capital holdings 
+                    for ki = 1:nK
+
+                        # save state space variables
+                        k = k_grid[ki]      # current period capital
+                        e = e_val[ei]       # employment status
+                        cand_max = -Inf     # intial value maximum
+                        budget   = r*k + w*e*ē + (1-δ)*k
+
+                        # loop through next period capital
+                        for kpi = cand_last:nK
+                            c = budget - k_grid[kpi]
+
+                            # if consumption is negative, skip loop
+                            if c < 0
+                                continue
+                            end
+
+                            # calculate value at current loop
+                            val = util(c) + β
+
+                        end # capital policy loop
+                    end # individual capital loop
+            end # idiosyncratic shock loop
+        end # aggregate capital loop
+    end # aggregate shock loop
 
 end
 
