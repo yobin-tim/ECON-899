@@ -14,9 +14,12 @@ using LinearAlgebra, Parameters, Interpolations
             - Π_z'ze'e[z',e'] = probability of transitioning from state (z,e) to state (z',e')
     """
 function trans_mat(d_z, d_u, u)
+
     d_z = ( d_z .- 1 )./d_z
+
     # transition probabilities between states: [[π_gg, π_gb][π_bg, π_bb]]
     Π_z = [d_z[1] 1-d_z[1]; 1-d_z[2] d_z[2]]
+
     # transition probabilities
     Π = zeros(4,4)
     d1 = Diagonal( (d_u .- 1) ./ d_u )
@@ -24,6 +27,7 @@ function trans_mat(d_z, d_u, u)
     Π[1:2, 3:4] = 1 .- Π[3:4, 3:4] 
     Π[3:4, 1:2] = (u .- Π[3:4, 3:4] .* u')./(1 .- u')
     Π[1:2, 1:2] = 1 .- Π[3:4, 1:2]
+
     return (Π .* repeat(Π_z', 2,2) , Π_z)
 end
 
@@ -37,20 +41,23 @@ end
     nE     ::Int64          = 2                                       # number of employment status
     d_z    ::Array{Float64} = [8, 8]                                  # Duration of states [d_g, d_b]
     d_u    ::Array{Float64} = [1.5, 2.5]                              # Duration of unemployment in each state [d_unemp_g, d_unemp_b]
-    u      ::Array{Float64} = [0.04, 0.1]                             # Fraction of people unemployed inn each state [u_g, u_b]
+    u      ::Array{Float64} = [0.04, 0.1]                             # Fraction of people unemployed in each state [u_g, u_b]
     z_val  ::Array{Float64} = [1.01, 0.99]                            # aggregate technology shocks
     e_val  ::Array{Int64}   = [1, 0]                                  # employment status
     e_bar  ::Float64        = 0.3271                                  # labor efficiency per unit of time worked)
     L_vals ::Array{Float64} = e_bar .* [1 - u[1] , 1 - u[2]]                              # Aggregate Labor supply
     # # # Preferences                  
     β      ::Float64          = 0.99                                   # Discount factor
-    util   ::Function         = ( c ) -> log(c)                        # Utility function
+    util   ::Function         = (c) -> log(c)                          # Utility function
 
     # # # Production
     α      ::Float64          = 0.36                                   # Capital labor ratio 
-    y      ::Function         = ( z, k, l) -> z * k^α * l^(1-α)        # Production function
+    y      ::Function         = (z, k, l) -> z * k^α * l^(1-α)         # Production function
+    δ      ::Float64          = 0.025                                  # Capital depreciation rate
+    ē      ::Float64          = 0.3271                                 # Labor efficiency (per hour worked)
     
     # # # Initial Conditions
+<<<<<<< HEAD
     # TODO: Derive the initial conditions from the steady state 
     # K_ss   ::Float64          = ( α  /(1 / β + δ -1 ) )^(1/(1-α))*L_ss # Steady state capital
     k_min  ::Float64          = 0.0                                   # Minimum capital
@@ -59,6 +66,20 @@ end
     k_grid ::Array{Float64,1} = range(k_min, length = nk, stop = k_max)# Capital grid
 
     K_min  ::Float64          = 10.0
+=======
+    nK = 100                                                           # Number of grid points for capital
+    k_min  ::Float64          = 10.0                                   # Minimum capital
+    k_max  ::Float64          = 15.0                                   # Maximum capital
+    k_grid ::Array{Float64,1} = range(k_min, length = nK, stop = k_max)# Capital grid
+
+    #L_g    ::Float64          = 1 - u[1]                               # Aggregate labor from the good state
+    #L_b    ::Float64          = 1 - u[2]                               # Aggregate labor from the bad state
+    #π      ::Float64          = (d_z[1] - 1) / d_z[1]                  # Long-run probability of being in good state
+    #L_ss   ::Float64          = L_ss = π*L_g + (1-π)*L_b
+    K_ss   ::Float64          = 11.55 #(α/((1/β) + δ - 1))^(1/(1-α))*L_ss
+
+    K_min  ::Float64          = floor(K_ss)
+>>>>>>> 57236ffec3dd22b2701c7f30979643c20b5cc1c8
     K_max  ::Float64          = 15.0
     nK     ::Int64            = 11                                      # Number of grid points for capital
     K_grid ::Array{Float64,1} = range(K_min, length = nK, stop = K_max)# Aggregate Capital grid
@@ -69,6 +90,8 @@ end
     # First order conditions of the firm
     w_eq   ::Function         = ( K, L, z ) -> (1 - α)*z*(K/L)^α
     r_eq   ::Function         = ( K, L, z ) -> α*z*(K/L)^(α-1)                        # Wage rate
+    w_mkt  ::Function         = (K, L, z) -> (1 - α)*z*(K/L)^α
+    r_mkt  ::Function         = (K, L, z) -> α*z*(K/L)^(α-1)                        # Wage rate
     
     
     # Conjecture of functional form for h₁:
@@ -80,7 +103,7 @@ end
     
 end
 
-function generate_shocks( prim )
+function generate_shocks(prim)
     # TODO: This part is dependent on being two states with symmetric distributions, should be generalized
     
     @unpack N, T, d_z, d_u, u = prim
@@ -88,7 +111,7 @@ function generate_shocks( prim )
     # Transition Matrices
     Π, Π_z  = trans_mat(d_z, d_u, u)
 
-    z_seq  ::Array{Int64, 1}  = vcat(1, zeros(T-1+1000))                    # Technology shocks    
+    z_seq  ::Array{Int64, 1}  = vcat(1, zeros(T-1+1000))                 # Technology shocks    
     for t ∈ 2:length(z_seq)
         temp = rand(1)[1]
         z_seq[t] = ( temp < Π_z[ Int(z_seq[t-1])] ) ? 1 : 2          # Generate the sequence of shocks
@@ -119,7 +142,7 @@ end
 struct Shocks
     Π      ::Array{Float64,2}                                          # Transition matrix Π_z'ze'e
     Π_z    ::Array{Float64,2}                                          # Transition matrix Π_z'z
-    z_seq  ::Array{Int64, 1}                                            # Technology shocks
+    z_seq  ::Array{Int64, 1}                                           # Technology shocks
     ℇ      ::Array{Int64, 2}                                           # Agent's employment status
 end
 
@@ -144,11 +167,13 @@ end
 
 # Function to initialize the model
 function Initialize()
+
     # Initialize the primitives
     prim = Primitives()
     @unpack k_grid, K_grid = prim
     # Initialize the shocks
     Π, Π_z = trans_mat(prim.d_z, prim.d_u, prim.u)                                    # Transition matrix
+
     # Initialize the results
     # Initialize the value function and the policy function
     val_fun = zeros(prim.nk, prim.nK, prim.nZ, prim.nE)
@@ -229,41 +254,84 @@ function Bellman( prim, res, shocks )
 
 end # Bellman 
 
-# Next we will do value function iteration to solve the conusmer problem
-function Solve_Bellman( prim, res )
-
+    return (prim, res, shocks)
 end
 
-using Interpolations
+# Populate Bellman
+function Bellman(prim::Primitives, res::Results, shocks)
 
-x = 0:0.01:5
-y = 0:0.01:5
+    # retrieve relevant primitives and results
+    @unpack k_grid, K_grid, nK, nZ, nE, ē, w_mkt, r_mkt, β, δ, k_forecast, z_val, e_val, u, y, util = prim
+    @unpack a, b, val_fun = res
+    @unpack Π = shocks
 
-z = zeros(length(x), length(y))
+    # loop through aggregate shocks
+    for zi = 1:nZ
 
-for i ∈ 1:length(x), j ∈ 1:length(y)
-    z[i,j] = x[i]^2 + y[j]^2
-end
+        # save aggregate shock and relevant variables
+        z = z_val[zi]   # productivity
+        π = 1 - u[zi]   # employment rate
+        L = π*ē         # aggregate effective labor
 
-x_data = 0:0.1:5
-y_data = 0:0.1:5
+        # loop through aggregate capital
+        for Ki = 1:nK
 
+            # save remaining aggregate state space variables
+            K = k_grid[Ki]  # aggregate capital
 
-z_data = zeros(length(x_data), length(y_data))
-for i ∈ 1:length(x_data), j ∈ 1:length(y_data)
-    z_data[i,j] = x_data[i]^2 + y_data[j]^2
-end
+            # calculate prices
+            r, w = r_mkt(K, L, z), w_mkt(K, L, z)
 
+            # estimate next period capital 
+            Knext = k_forecast(z, a, b, K)
 
-interp = interpolate((x_data, y_data), z_data, Gridded(Linear()))
+            # loop through individual state spaces
+            for ei = 1:nE
 
+                    # initialize last candidate (for exploiting monotonicity)
+                    cand_last = 1
 
+                    # determine shock index from z and e index
+                    ezi = 2*(zi - 1) + ei
 
-interp.( 4.99999, 4.99999 )
+                    # loop through capital holdings 
+                    for ki = 1:nK
 
-interp_z = zeros(length(x), length(y))
-for i ∈ 1:length(x), j ∈ 1:length(y)
-    interp_z[i,j] = interp(x[i], y[j])
-end
-# Sup norm interpdata - actual function 
-maximum( abs.( interp_z - z  ) )
+                        # save state space variables
+                        k = k_grid[ki]      # current period capital
+                        e = e_val[ei]       # employment status
+                        cand_max = -Inf     # intial value maximum
+                        pol_max = 0         # policy function maximum
+                        budget   = r*k + w*e*ē + (1-δ)*k
+
+                        # loop through next period capital
+                        for kpi = cand_last:nK
+                            c = budget - k_grid[kpi]
+
+                            # if consumption is negative, skip loop
+                            if c < 0
+                                continue
+                            end
+
+                            # calculate value at current loop
+                            # TODO: use Knext (requires interpolation)
+                            val = util(c) + β*LinearAlgebra.dot(Π[ezi, :],val_fun[kpi, K, :])
+
+                            # update maximum candidate 
+                            if val > cand_max
+                                cand_max = val
+                                pol_max  = kpi
+                            end
+
+                        end # capital policy loop
+                        
+                        # update value/policy functions
+                        res.val_fun[ki, Ki, ezi] = cand_max
+                        res.pol_fun[ki, Ki, ezi] = k_grid[pol_max]
+
+                    end # individual capital loop
+            end # idiosyncratic shock loop
+        end # aggregate capital loop
+    end # aggregate shock loop
+
+end # Bellman function 

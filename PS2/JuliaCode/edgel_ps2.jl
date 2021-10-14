@@ -1,14 +1,15 @@
-using Parameters, Plots, LinearAlgebra, StatsPlots #import the libraries we want
+using Parameters, Plots, LinearAlgebra, StatsPlots, LaTeXStrings #import the libraries we want
 # cd("C:/Users/edgel/Google Drive/UW-Madison/f21/econ899/Q1/problem_sets/PS2/JuliaCode")
 include("edgel_model_functions.jl") #import the functions that solve our growth model
 
 prim, res = Initialize() #initialize primitive and results structs
 @elapsed Solve_model(prim, res, θ = 0.5) #solve the model!
-@unpack val_func, pol_func, μ, q̄ = res
+@unpack val_func, pol_func, μ, q̄, λ = res
 @unpack a_grid = prim
 
 ##############Make plots
-
+theme(:vibrant)
+default(fontfamily = "Computer Modern", framestyle=:box) #LaTex Style
 #stationary distribution 
 Q = sum(res.μ, dims = 1)
 Plots.plot(a_grid, transpose(Q))
@@ -28,6 +29,21 @@ Plots.savefig("./PS2/Figures/02_Value_Functions_edgel.png")
 Plots.plot(a_grid, transpose(pol_func), title="Policy Functions",
                 label = ["S = e" "S = u"], legend=:topleft)
 Plots.savefig("./PS2/Figures/02_Policy_Functions_edgel.png")
+
+W_FB, W_INC, W_G = lambda(prim, res)
+
+vote = sum((λ .>=0) .* μ)
+
+plot(a_grid, transpose(λ)[:,1], label = "S = e")
+plot!(a_grid, transpose(λ)[:,2], 
+title = "Consumption Equivalents, by employment status",
+label = "S = u")
+savefig("./PS2/Figures/consumption-equivalent.pdf")
+
+println("The first best welfare is ",W_FB,".")
+println("The welfare in incomplete market is ",W_INC,".")
+println("The welfare gain is ",W_G,".")
+println("The fraction of population that would favor complete markets is ",vote,".")
 
 println("All done!")
 ################################

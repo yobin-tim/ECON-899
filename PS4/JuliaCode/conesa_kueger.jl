@@ -48,7 +48,7 @@
     # Grids
     # Age efficiency profile
     η       ::Matrix{Float64}   = readdlm("./PS3/Data/ef.txt")
-    nA      ::Int64             = 1000      # Size of the asset grid
+    nA      ::Int64             = 1500      # Size of the asset grid
     a_min   ::Float64           = 0.0       # lower bound of the asset grid
     a_max   ::Float64           = 75.0      # upper bound of the asset grid
     a_grid  ::Array{Float64}    = collect(range(a_min, length = nA, stop = a_max))   # asset grid
@@ -349,21 +349,28 @@ function Lambda(prim::Primitives, res::Results, W::Float64)
 end # Lambda
 
 # Function that iterates backward on decision rules given a path of capital
-function IterateBackward(primEnd::Primitives, resEnd::Results, K_path::Array{Float64}, N::Int64)
+function IterateBackward(primEnd::Primitives, resEnd::Results,
+        primStart::Primitives, resStart::Results,
+        K_path::Array{Float64}, N::Int64; Exp::Int64=1)
     #Above, "End" refers to values in the new steady state
+    #"Experiment" is 1 for problem 1 of PSet4 and 2 for problem 2 of PSet4
     #Setting up matrices to store the transitions of value and policy functions
         pol_fun_trans = SharedArray{Float64}(primEnd.nA, primEnd.nZ, primEnd.N_final, N+1)
         val_fun_trans = SharedArray{Float64}(primEnd.nA, primEnd.nZ, primEnd.N_final, N+1)
     #Assume Convergence after N periods
         pol_fun_trans[:,:,:,N+1]=resEnd.pol_fun
         val_fun_trans[:,:,:,N+1]=resEnd.val_fun
-
-    #Unpacking relevant paparameters
+        #Unpacking relevant parameters
         @unpack nA, nZ, z_Vals, η, a_grid, β, θ, N_final, J_R, util, Π, l_opt,
             r_mkt, w_mkt, b_mkt = primEnd
         @unpack μ=resEnd
     println("Iterating Backwards along Transition path...\n")
     for t in ProgressBar(N:(-1):1) #ProgressBar for running in console
+        if Exp==1 || t>=21
+            #Leave parameter values unchanged
+        else #In experiment 2, the current regime stays until t==21
+            θ=primStart.θ
+        end
         K=K_path[t]
             r = r_mkt(K, 1) #Since labor is inelatically supplied
             w = w_mkt(K, 1)
@@ -493,13 +500,14 @@ end
 =#
 
 #Alternate FillPath (Function that, given an aggregate capital path, infers prices and calculates a new path)
-function FillPath(resStart::Results, primEnd::Primitives, resEnd::Results, K_path::Array{Float64}, N::Int64)
+function FillPath(primStart::Primitives,resStart::Results, primEnd::Primitives,
+    resEnd::Results, K_path::Array{Float64}, N::Int64; Ex::Int64=1)
     # initialize transition path distribution
     Ft = SharedArray{Float64}(primEnd.nA, primEnd.nZ, primEnd.N_final, N+1)
     Ft[:, :, :, 1]      = resStart.F;
     Ft[:, :, :, 2:end] .= 0; #This line will start the first cohort being born
                                 #in each period with 0 assets
-    pf_trans, vf_trans = IterateBackward(primEnd,resEnd,K_path,N)
+    pf_trans, vf_trans = IterateBackward(primEnd,resEnd,primStart,resStart,K_path,N, Exp=Ex)
     K_path_new=zeros(N+1) #Initialize new K_Path
         K_path_new[1]=resStart.K #Set first value to old steady state
     @unpack μ= resEnd
@@ -529,7 +537,7 @@ end
 
 # Function to calculate the transition path between two equilibria
 function TransitionPath(;err::Float64=100.0, tol::Float64=1e-3, λ::Float64=0.70,
-        N::Int64=40, SolveAgain::Bool=false, TrySaveMethod::Bool=true)
+        N::Int64=60, SolveAgain::Bool=false, TrySaveMethod::Bool=true, Experiment::Int64=1)
     #Finding the two Steady States to transition between
     if TrySaveMethod
         if SolveAgain
@@ -555,9 +563,9 @@ function TransitionPath(;err::Float64=100.0, tol::Float64=1e-3, λ::Float64=0.70
         end
     else
         print("Solving for the steady state with Social Security...\n")
-        primStart, resStart= MarketClearing(use_Fortran=false, tol = 1e-2);
+        primStart, resStart= MarketClearing(use_Fortran=false, tol = 1e-3);
         print("Solving for the steady state without Social Security...\n")
-        primEnd, resEnd= MarketClearing(ss=false, use_Fortran=false, tol = 1e-2);
+        primEnd, resEnd= MarketClearing(ss=false, use_Fortran=false, tol = 1e-3);
     end
     # guess the transition path between the two equilibria
         K₀, Kₜ = resStart.K, resEnd.K
@@ -568,13 +576,16 @@ function TransitionPath(;err::Float64=100.0, tol::Float64=1e-3, λ::Float64=0.70
         #newRes      = resEnd;
         #newRes.F    = resStart.F;
     # iteratively use the FillPath function to update capital path until convergence
+    iter=1;
     while err > tol
         # pass current capital path to FillPath function
             #K_path_new, Ft = FillPath(primEnd, newRes, K_path, N)
-            K_path_new , Ft = FillPath(resStart, primEnd, resEnd, K_path, N)
+            K_path_new , Ft = FillPath(primStart,resStart, primEnd, resEnd, K_path,
+                N,Ex=Experiment)
         # test convergence and update
             err=maximum(abs.(K_path.-K_path_new))
             K_path=copy(K_path_new)
+        print("$(iter) iterations; err=$(err)")
     end
     return K_path, Ft
 end # TransitionPath
