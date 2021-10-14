@@ -537,7 +537,7 @@ end
 
 # Function to calculate the transition path between two equilibria
 function TransitionPath(;err::Float64=100.0, tol::Float64=1e-3, λ::Float64=0.70,
-        N::Int64=60, SolveAgain::Bool=false, TrySaveMethod::Bool=true, Experiment::Int64=1)
+        N::Int64=150, SolveAgain::Bool=false, TrySaveMethod::Bool=true, Experiment::Int64=1)
     #Finding the two Steady States to transition between
     if TrySaveMethod
         if SolveAgain
