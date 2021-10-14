@@ -6,5 +6,5 @@ default(fontfamily="Computer Modern", framestyle=:box) # LaTex-style
 include("PS5/JuliaCode/krusell_smith.jl")
 
 prim, res, shocks = Initialize()
-
+V_iterate(prim, res, shocks)
 

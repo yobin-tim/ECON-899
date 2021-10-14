@@ -166,12 +166,13 @@ function Initialize()
     return (prim, res, shocks)
 end
 
-# Solve consumer's problem 
-function Bellman(prim::Primitives, res::Results)
+# Populate Bellman
+function Bellman(prim::Primitives, res::Results, shocks)
 
     # retrieve relevant primitives and results
-    @unpack k_grid, K_grid, nK, nZ, nE, ē, w_mkt, r_mkt, δ, k_forecast, z_val, e_val, u, y, util = prim
-    @unpack a, b, pol_fun, val_fun = res
+    @unpack k_grid, K_grid, nK, nZ, nE, ē, w_mkt, r_mkt, β, δ, k_forecast, z_val, e_val, u, y, util = prim
+    @unpack a, b, val_fun = res
+    @unpack Π = shocks
 
     # loop through aggregate shocks
     for zi = 1:nZ
@@ -190,6 +191,9 @@ function Bellman(prim::Primitives, res::Results)
             # calculate prices
             r, w = r_mkt(K, L, z), w_mkt(K, L, z)
 
+            # estimate next period capital 
+            Knext = k_forecast(z, a, b, K)
+
             # loop through individual state spaces
             for ei = 1:nE
 
@@ -197,7 +201,7 @@ function Bellman(prim::Primitives, res::Results)
                     cand_last = 1
 
                     # determine shock index from z and e index
-                    ezi
+                    ezi = 2*(zi - 1) + ei
 
                     # loop through capital holdings 
                     for ki = 1:nK
@@ -206,6 +210,7 @@ function Bellman(prim::Primitives, res::Results)
                         k = k_grid[ki]      # current period capital
                         e = e_val[ei]       # employment status
                         cand_max = -Inf     # intial value maximum
+                        pol_max = 0         # policy function maximum
                         budget   = r*k + w*e*ē + (1-δ)*k
 
                         # loop through next period capital
@@ -218,15 +223,43 @@ function Bellman(prim::Primitives, res::Results)
                             end
 
                             # calculate value at current loop
-                            val = util(c) + β
+                            # TODO: use Knext (requires interpolation)
+                            val = util(c) + β*LinearAlgebra.dot(Π[ezi, :],val_fun[kpi, K, :])
+
+                            # update maximum candidate 
+                            if val > cand_max
+                                cand_max = val
+                                pol_max  = kpi
+                            end
 
                         end # capital policy loop
+                        
+                        # update value/policy functions
+                        res.val_fun[ki, Ki, ezi] = cand_max
+                        res.pol_fun[ki, Ki, ezi] = k_grid[pol_max]
+
                     end # individual capital loop
             end # idiosyncratic shock loop
         end # aggregate capital loop
     end # aggregate shock loop
 
-end
+end # Bellman function 
+
+# Solve consumer's problem: Bellman iteration function
+function V_iterate(prim::Primitives, res::Results, shocks; err = 100, tol = 1e-3)
+    n = 0 # iteration counter 
+
+    while err > tol
+        v_next      = Bellman(prim, res, shocks)
+        err         = maximum(abs.(v_next .- res.val_fun))
+        res.val_fun = v_next
+        n += 1
+    end
+
+end # Bellman iteration
+
+# Simulate time series given current coefficients and policy functions
+
 
 # Outer-most function that iterates to convergence
 function SolveModel(; tol = 1e-2, err = 100, I = 1)
@@ -242,7 +275,7 @@ function SolveModel(; tol = 1e-2, err = 100, I = 1)
         b₀ = res.b
 
         # given current coefficients, solve consumer problem
-        res = Bellman(prim, res)
+        res = V_iterate(prim, res, shocks)
 
         # given consumers' policy functions, simulate time series
         res, V = Simulation(prim, res, shocks)
@@ -255,4 +288,4 @@ function SolveModel(; tol = 1e-2, err = 100, I = 1)
 
     end
 
-end
+end # Model solver
