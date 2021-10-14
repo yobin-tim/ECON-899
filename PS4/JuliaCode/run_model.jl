@@ -16,13 +16,13 @@ addprocs(2)
 using Plots, LaTeXStrings
 
 theme(:juno)
-plot(1:61,out_K_path[:], ylabel="Aggregate Capital",
+plot(1:151,out_K_path[:], ylabel="Aggregate Capital",
     xlabel="Time",label="Excercise 1")
-    plot!(1:61,out_K_path_Exp2[:], legend=:bottomright, ylabel="Aggregate Capital",
+    plot!(1:151,out_K_path_Exp2[:], legend=:bottomright, ylabel="Aggregate Capital",
         xlabel="Time",label="Excercise 2")
     savefig("./PS4/Document/Figures/ComparingTransitions.png")
 
-function Exercise1Prob2(kpath; α=.36,δ=.06,N_final=66,J_R=46)
+function Exercise1Prob2(kpath; α=.36,δ=.06,N_final=66,J_R=46, TransitionNo=151)
     #Recalculating Aggregate Labor in the Inelastic case
         L=0.7543 #This was the converged value of inelastic labor supply
     #Functions for interest rate and wages
@@ -31,13 +31,13 @@ function Exercise1Prob2(kpath; α=.36,δ=.06,N_final=66,J_R=46)
     r_trans=[r_mkt(k,L) for k in kpath]
     w_trans=[w_mkt(k,L) for k in kpath]
     #Plotting Aggregate Capital
-        plot(1:61,out_K_path[:], ylabel="Aggregate Capital",
+        plot(1:TransitionNo,out_K_path[:], ylabel="Aggregate Capital",
             xlabel="Time",legend=false)
         savefig("./PS4/Document/Figures/PathOfAggregateCapital.png")
-        plot(1:61,r_trans[:], ylabel="Interest Rate",
+        plot(1:TransitionNo,r_trans[:], ylabel="Interest Rate",
             xlabel="Time",legend=false)
         savefig("./PS4/Document/Figures/PathOfInterestRate.png")
-        plot(1:61,w_trans[:], ylabel="Wages",
+        plot(1:TransitionNo,w_trans[:], ylabel="Wages",
             xlabel="Time",legend=false)
         savefig("./PS4/Document/Figures/PathOfWages.png")
 end
