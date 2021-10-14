@@ -169,13 +169,18 @@ function Initialize()
 end
 
 # Solve consumer's problem 
-Bellman(prim::Primitives, res::Results)
-    
+function Bellman(prim::Primitives, res::Results)
+
+    # retrieve relevant primitives and results
+    @unpack k_grid, nK, nZ, nE, ē, w, r, k_forecast = prim
+    @unpack a, b, pol_fun, val_fun = res
+
+
 
 end
 
 # Outer-most function that iterates to convergence
-SolveModel(; tol = 1e-2, err = 100, I = 1)
+function SolveModel(; tol = 1e-2, err = 100, I = 1)
     
     # initialize model primitives, output, and shocks
     prim, res, shocks = Initialize()
