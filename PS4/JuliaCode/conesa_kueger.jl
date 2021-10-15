@@ -372,6 +372,7 @@ function IterateBackward(primEnd::Primitives, resEnd::Results,
             θ=primStart.θ
         end
         K=K_path[t]
+            ## L should be aggregate L ########################## 
             r = r_mkt(K, 1) #Since labor is inelatically supplied
             w = w_mkt(K, 1)
             b = b_mkt(1, w, sum(μ[J_R:end]))
