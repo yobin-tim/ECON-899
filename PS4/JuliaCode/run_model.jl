@@ -1,5 +1,6 @@
-## For 
-cd(expanduser("~/Box/Econ899/Git/ECON-899/"))
+## Changeing current directory
+## cd(expanduser("~/pathtoEcon-899/ECON-899/"))
+## cd(expanduser("~/Box/Econ899/Git/ECON-899/")) # e.g. Hiroaki
 
 using Distributed, SharedArrays, JLD
 
