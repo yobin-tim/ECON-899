@@ -329,11 +329,11 @@ function Simulation(prim::Primitives, res::Results, shocks::Shocks)
     e_grid[(Int(u[z₀]*N)+1):end]    .= 1
 
     # initialize time series frame
-    V       = zeros(N, T - T_burn)
+    V       = zeros(N, T)
     V[:, 1] .= K₀
 
     # simulate each agent's holdings for T time periods
-    for t = 2:(T - T_burn) 
+    for t = 2:T
         println("Period: ", t)
 
         # determine next period's shock 
@@ -359,7 +359,7 @@ function Simulation(prim::Primitives, res::Results, shocks::Shocks)
 
     end # t loop
 
-    return V
+    return V[:, (T_burn + 1):end]
 
 end # Simulation
 
