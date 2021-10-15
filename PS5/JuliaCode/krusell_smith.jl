@@ -57,10 +57,10 @@ end
     ē      ::Float64          = 0.3271                                 # Labor efficiency (per hour worked)
     
     # # # Initial Conditions
-    nK = 100                                                           # Number of grid points for capital
+    nk     ::Int64            = 20                                     # Number of grid points for capital
     k_min  ::Float64          = 10.0                                   # Minimum capital
     k_max  ::Float64          = 15.0                                   # Maximum capital
-    k_grid ::Array{Float64,1} = range(k_min, length = nK, stop = k_max)# Capital grid
+    k_grid ::Array{Float64,1} = range(k_min, length = nk, stop = k_max)# Capital grid
 
     #L_g    ::Float64          = 1 - u[1]                               # Aggregate labor from the good state
     #L_b    ::Float64          = 1 - u[2]                               # Aggregate labor from the bad state
@@ -71,14 +71,12 @@ end
     K_min  ::Float64          = floor(K_ss)
     K_max  ::Float64          = 15.0
     nK     ::Int64            = 11                                      # Number of grid points for capital
-    K_grid ::Array{Float64,1} = range(K_min, length = nK, stop = K_max)# Aggregate Capital grid
+    K_grid ::Array{Float64,1} = range(K_min, length = nK, stop = K_max) # Aggregate Capital grid
 
     T      ::Int              = 10000                                  # Number of periods
     N      ::Int              = 5000                                   # Number of agents
     
     # First order conditions of the firm
-    w_eq   ::Function         = ( K, L, z ) -> (1 - α)*z*(K/L)^α
-    r_eq   ::Function         = ( K, L, z ) -> α*z*(K/L)^(α-1)                        # Wage rate
     w_mkt  ::Function         = (K, L, z) -> (1 - α)*z*(K/L)^α
     r_mkt  ::Function         = (K, L, z) -> α*z*(K/L)^(α-1)                        # Wage rate
     
@@ -88,7 +86,7 @@ end
     #   - z::Int64 the technology shock
     #   - a::Array{Float64} log linear coefficients in case of good productivity shock
     #   - b::Array{Float64} log linear coefficients in case of bad productivity shock
-    k_forecast ::Function     = (z, a, b, k_last) -> ( z == 1 ) ? exp(a[1]+a[2]*k_last) : exp(a[1]+a[2]*k_last)
+    k_forecast ::Function     = (z, a, b, k_last) -> ( z == 1 ) ? exp(a[1]+a[2]*log(k_last)) : exp(b[1]+b[2]*log(k_last))
     
 end
 
@@ -136,7 +134,7 @@ struct Shocks
 end
 
 # Structure to hold the results
-mutable struct Resutls
+mutable struct Results
     # TODO: Generalize sizes
     # We are going to define the val_fun and pol_fun as 4-dimenstional objects
     # v[:,:,z,e] gives the value functon for all posiible (k,K) combiantions for a particular (z,e) combination
@@ -183,75 +181,19 @@ function Initialize()
     
     Π, Π_z, z_seq, ℇ = generate_shocks( prim )
     
-    
     shocks = Shocks(Π, Π_z, z_seq, ℇ)
-    res = Resutls(val_fun, pol_fun, val_fun_interp, pol_fun_interp, a, b)
+    res = Results(val_fun, pol_fun, val_fun_interp, pol_fun_interp, a, b)
     
     return (prim, res, shocks)
 end
 
-prim, res, shocks = Initialize()
-# Solve the conumers problem 
-# First we define the Bellman operator 
-function Bellman( prim, res, shocks )
-    
-    @unpack nK, nZ, nE, k_forecast, z_vals, k_grid, K_gird, L_vals, w_eq, r_eq, e_bar, util = prim
-    @unpack val_fun, pol_fun, val_fun_interp, a, b = res
-    @unpack Π = shocks
-
-    # Iterate over the stochastic states
-    for i_z ∈ 1:nZ
-        z = z_vals[i_z]
-        L = L_vals[i_z]
-        # e = e_values[i_e]
-        # Iterate over all possible combinations of capital holdings and aggregate capital
-        for i_K ∈ 1:nK
-            K = prim.K_grid[i_K]
-            k = prim.k_grid[i_k]
-            # Consumers forecast next period aggregate capital
-            K_Next = k_forecast(z, a, b, K )
-            # Itertate over employment states
-            w = w_eq(K, L, z)
-            r = r_eq(K, L, z)
-            for i_e ∈ 1:nE   
-                # Next we need to get wich row of the markov matrix are we
-                row = 2*i_z + i_e
-                ##### HERE
-                # Iterate over all posible values for capital 
-                for i_k ∈ 1:nK
-                    # Calculte budget given current capital
-                    budget = r * k + w * e_bar * e + (1 - δ)*k
-                    # Iterate over all posible next period value for capital
-                    for i_k_next ∈ 1:nK
-                        k_next = k_grid[i_k_next]
-                        # Calculate consumption
-                        c = budget - k_next
-                        # Calculate the Utility from consumption
-                        utility = util(c)
-                        # Calculate the continuation value
-                        # For this we will use the interpolated version of the value function
-                        # since K_tomorrow may not be in the grid
-                        # To calculate the expeted vaue we will multiply the row of the trnasition matrix
-                        # to a column vector containing the values of each of the posible values of the state of the world
-                        # given next period aggregate capital and individual capital choice
-                        exp_val_next = Π[row, :]
-                    end
-                end
-            end
-        end
-    end
-
-end # Bellman 
-
-    return (prim, res, shocks)
-end
 
 # Populate Bellman
-function Bellman(prim::Primitives, res::Results, shocks)
+function Bellman(prim::Primitives, res::Results, shocks::Shocks)
 
     # retrieve relevant primitives and results
-    @unpack k_grid, K_grid, nK, nZ, nE, ē, w_mkt, r_mkt, β, δ, k_forecast, z_val, e_val, u, y, util = prim
-    @unpack a, b, val_fun = res
+    @unpack k_grid, K_grid, nk, nK, nZ, nE, ē, w_mkt, r_mkt, β, δ, k_forecast, z_val, e_val, u, y, util = prim
+    @unpack a, b, val_fun, val_fun_interp = res
     @unpack Π = shocks
 
     # loop through aggregate shocks
@@ -259,21 +201,28 @@ function Bellman(prim::Primitives, res::Results, shocks)
 
         # save aggregate shock and relevant variables
         z = z_val[zi]   # productivity
-        π = 1 - u[zi]   # employment rate
-        L = π*ē         # aggregate effective labor
+        # π =    # employment rate # π is a reserved character in julia  this migth be a problem
+        L = (1 - u[zi])*ē         # aggregate effective labor
 
         # loop through aggregate capital
         for Ki = 1:nK
-
             # save remaining aggregate state space variables
-            K = k_grid[Ki]  # aggregate capital
-
+            K = K_grid[Ki]  # aggregate capital
+            
             # calculate prices
             r, w = r_mkt(K, L, z), w_mkt(K, L, z)
-
+            
             # estimate next period capital 
             Knext = k_forecast(z, a, b, K)
-
+            # println(Ki, " --- ", K, " --- ", Knext, " --- ", prim.K_max)
+            # ! Can be the case that Knext > Kmax in that case we need to decide if
+            # ! we want to censurate the value of Knext or use extrapolation with the 
+            # ! interpolation object
+            # ! I think we should extrapolate because in the example thta I ran
+            # ! the last 3 K values will be the same if we censor
+            # * For now I will censor to see if it works but:
+            # TODO: Use extrapolation
+            Knext = min(Knext, prim.K_max)
             # loop through individual state spaces
             for ei = 1:nE
 
@@ -282,20 +231,21 @@ function Bellman(prim::Primitives, res::Results, shocks)
 
                     # determine shock index from z and e index
                     ezi = 2*(zi - 1) + ei
+                    e = e_val[ei]       # employment status
 
                     # loop through capital holdings 
-                    for ki = 1:nK
+                    for ki = 1:prim.nk
 
                         # save state space variables
                         k = k_grid[ki]      # current period capital
-                        e = e_val[ei]       # employment status
                         cand_max = -Inf     # intial value maximum
                         pol_max = 0         # policy function maximum
                         budget   = r*k + w*e*ē + (1-δ)*k
 
                         # loop through next period capital
-                        for kpi = cand_last:nK
-                            c = budget - k_grid[kpi]
+                        for kpi = cand_last:prim.nk
+                            knext = prim.k_grid[kpi]
+                            c = budget - knext
 
                             # if consumption is negative, skip loop
                             if c < 0
@@ -304,7 +254,15 @@ function Bellman(prim::Primitives, res::Results, shocks)
 
                             # calculate value at current loop
                             # TODO: use Knext (requires interpolation)
-                            val = util(c) + β*LinearAlgebra.dot(Π[ezi, :],val_fun[kpi, K, :])
+                            # val = util(c) + β*LinearAlgebra.dot(Π[ezi, :], val_fun[kpi, K, :])
+                            # Calculate the exptecte value of continuation
+                            # For this we will use the interpolated version of the value function
+                            # since K_tomorrow may not be in the grid
+                            # println(knext, " ---- ", Knext)
+                            # TODO: Use extrapolation
+                            fut_vals = [res.val_fun_interp[(i, j)](knext, Knext) for i ∈ 1:2 for j ∈ 1:2]
+                            exp_val_next = shocks.Π[ezi, :]' * fut_vals
+                            val = util(c) + β*exp_val_next
 
                             # update maximum candidate 
                             if val > cand_max
@@ -315,12 +273,50 @@ function Bellman(prim::Primitives, res::Results, shocks)
                         end # capital policy loop
                         
                         # update value/policy functions
-                        res.val_fun[ki, Ki, ezi] = cand_max
-                        res.pol_fun[ki, Ki, ezi] = k_grid[pol_max]
+                        res.val_fun[ki, Ki, zi, ei] = cand_max
+                        res.pol_fun[ki, Ki, zi, ei] = k_grid[pol_max]
 
                     end # individual capital loop
             end # idiosyncratic shock loop
         end # aggregate capital loop
     end # aggregate shock loop
-
+    # TODO: Re interpolate and store the interpolation objects
+    for i ∈ 1:prim.nZ
+        for j ∈ 1:prim.nE
+            res.val_fun_interp[(i,j)] = interpolate( (k_grid, K_grid) , res.val_fun[:,:, i, j], Gridded(Linear() ))
+            res.pol_fun_interp[(i,j)] = interpolate( (k_grid, K_grid) , res.pol_fun[:,:, i, j], Gridded(Linear() ))
+        end
+    end
 end # Bellman function 
+
+# Solve consumer's problem: Bellman iteration function
+function V_iterate(prim::Primitives, res::Results, shocks::Shocks; err::Float64 = 100.0, tol::Float64 = 1e-3)
+    n = 0 # iteration counter 
+
+    while err > tol
+        v_old = copy(res.val_fun)
+        Bellman(prim, res, shocks)
+        err         = maximum(abs.(v_old .- res.val_fun))
+        n += 1 
+        if n % 100 == 0  
+            println("Iteration: ", n, " --- ", err)
+        end
+        if n > 1000
+            println("WARNING: Bellman iteration did not converge")
+            break
+        end
+    end
+
+end # Bellman iteration
+
+# Outer-most function that iterates to convergence
+function SolveModel(; tol = 1e-2, err = 100, I = 1)
+        b₀ = res.b
+
+        # given current coefficients, solve consumer problem
+        res = V_iterate(prim, res, shocks)
+
+        # given consumers' policy functions, simulate time series
+        res, V = Simulation(prim, res, shocks)
+	
+end # Model solver
