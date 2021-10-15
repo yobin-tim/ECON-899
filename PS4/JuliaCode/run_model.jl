@@ -1,11 +1,15 @@
+## For 
+cd(expanduser("~/Box/Econ899/Git/ECON-899/"))
+
 using Distributed, SharedArrays, JLD
 
 #add processes
 workers()
 addprocs(2)
 
-
 @Distributed.everywhere include("./PS4/JuliaCode/conesa_kueger.jl");
+
+
 
 @time out_K_path,out_Ft= TransitionPath(TrySaveMethod=false)
 
