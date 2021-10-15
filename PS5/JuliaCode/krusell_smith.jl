@@ -58,7 +58,7 @@ end
     
     # # # Initial Conditions
     nk     ::Int64            = 20                                     # Number of grid points for capital
-    k_min  ::Float64          = 10.0                                   # Minimum capital
+    k_min  ::Float64          = 0.0                                   # Minimum capital
     k_max  ::Float64          = 15.0                                   # Maximum capital
     k_grid ::Array{Float64,1} = range(k_min, length = nk, stop = k_max)# Capital grid
 
@@ -68,12 +68,13 @@ end
     #L_ss   ::Float64          = L_ss = π*L_g + (1-π)*L_b
     K_ss   ::Float64          = 11.55 #(α/((1/β) + δ - 1))^(1/(1-α))*L_ss
 
-    K_min  ::Float64          = floor(K_ss)
+    K_min  ::Float64          = 0 #floor(K_ss)
     K_max  ::Float64          = 15.0
     nK     ::Int64            = 11                                      # Number of grid points for capital
     K_grid ::Array{Float64,1} = range(K_min, length = nK, stop = K_max) # Aggregate Capital grid
 
     T      ::Int              = 10000                                  # Number of periods
+    T_burn ::Int              = 1000                                   # Number of periods to discard
     N      ::Int              = 5000                                   # Number of agents
     
     # First order conditions of the firm
@@ -101,7 +102,7 @@ function generate_shocks(prim)
     z_seq  ::Array{Int64, 1}  = vcat(1, zeros(T-1+1000))                 # Technology shocks    
     for t ∈ 2:length(z_seq)
         temp = rand(1)[1]
-        z_seq[t] = ( temp < Π_z[ Int(z_seq[t-1])] ) ? 1 : 2          # Generate the sequence of shocks
+        z_seq[t] = (temp < Π_z[ Int(z_seq[t-1])]) ? 1 : 2          # Generate the sequence of shocks
     end
 
     ℇ ::Array{Int64, 2} = zeros(N, T+1000)
@@ -140,6 +141,7 @@ mutable struct Results
     # v[:,:,z,e] gives the value functon for all posiible (k,K) combiantions for a particular (z,e) combination
     val_fun ::Array{Float64, 4} # Value function
     pol_fun ::Array{Float64, 4} # Policy function
+
     # we are also going to generate an iteration object for each of the functons
     # these will actually be a collection of interpolation objects for each combiantion (z,e)
     # We will store this objects in a dictionary, the idea is that the dictionary keys are (i,j) 
@@ -222,7 +224,9 @@ function Bellman(prim::Primitives, res::Results, shocks::Shocks)
             # ! the last 3 K values will be the same if we censor
             # * For now I will censor to see if it works but:
             # TODO: Use extrapolation
+
             Knext = min(Knext, prim.K_max)
+
             # loop through individual state spaces
             for ei = 1:nE
 
@@ -239,7 +243,7 @@ function Bellman(prim::Primitives, res::Results, shocks::Shocks)
                         # save state space variables
                         k = k_grid[ki]      # current period capital
                         cand_max = -Inf     # intial value maximum
-                        pol_max = 0         # policy function maximum
+                        pol_max  = 1        # policy function maximum
                         budget   = r*k + w*e*ē + (1-δ)*k
 
                         # loop through next period capital
@@ -283,8 +287,8 @@ function Bellman(prim::Primitives, res::Results, shocks::Shocks)
     # TODO: Re interpolate and store the interpolation objects
     for i ∈ 1:prim.nZ
         for j ∈ 1:prim.nE
-            res.val_fun_interp[(i,j)] = interpolate( (k_grid, K_grid) , res.val_fun[:,:, i, j], Gridded(Linear() ))
-            res.pol_fun_interp[(i,j)] = interpolate( (k_grid, K_grid) , res.pol_fun[:,:, i, j], Gridded(Linear() ))
+            res.val_fun_interp[(i, j)] = interpolate( (k_grid, K_grid) , res.val_fun[:,:, i, j], Gridded(Linear() ))
+            res.pol_fun_interp[(i, j)] = interpolate( (k_grid, K_grid) , res.pol_fun[:,:, i, j], Gridded(Linear() ))
         end
     end
 end # Bellman function 
@@ -309,14 +313,67 @@ function V_iterate(prim::Primitives, res::Results, shocks::Shocks; err::Float64 
 
 end # Bellman iteration
 
+# simulate a time series using the Bellman solution
+function Simulation(prim::Primitives, res::Results, shocks::Shocks)
+    @unpack pol_fun, pol_fun_interp = res
+    @unpack T, T_burn, K_ss, N, z_val, u = prim 
+    @unpack Π, Π_z = shocks
+
+    # begin with good z and steady state for aggregate capital 
+    K₀ = K_ss 
+    z₀ = 1
+
+    # initialize agent states
+    e_grid::Array{Int64, 1}          = zeros(N)
+    e_grid[1:Int(u[z₀]*N)]          .= 2
+    e_grid[(Int(u[z₀]*N)+1):end]    .= 1
+
+    # initialize time series frame
+    V       = zeros(N, T)
+    V[:, 1] .= K₀
+
+    # simulate each agent's holdings for T time periods
+    for t = 2:T
+        println("Period: ", t)
+
+        # determine next period's shock 
+        z_rand = rand(1)[1]
+        z = (z_rand < Π_z[z₀]) ? 1 : 2 
+
+        # determine current capital holdings given last period's K, e, and z
+        # TODO: FULLY PARALLELIZE
+        for n = 1:N 
+
+            # update V with agent's choice
+            V[n, t] = pol_fun_interp[(z₀, e_grid[n])](V[n, t-1], K₀)
+
+            # update agent's shock
+            n_rand      = rand(1)[1]
+            e_grid[n]   = (n_rand < Π[2*(z₀-1) + e_grid[n], 2*(z-1) + 1]) ? 1 : 2 
+
+        end # n loop
+
+        # update shock and aggregate capital 
+        z₀ = z 
+        K₀ = sum((1/N).*V[:, t])
+
+    end # t loop
+
+    return V[:, (T_burn + 1):end]
+
+end # Simulation
+
 # Outer-most function that iterates to convergence
 function SolveModel(; tol = 1e-2, err = 100, I = 1)
         b₀ = res.b
+
+        # initialize environment
+        prim, res, shocks = Initialize()
 
         # given current coefficients, solve consumer problem
         res = V_iterate(prim, res, shocks)
 
         # given consumers' policy functions, simulate time series
-        res, V = Simulation(prim, res, shocks)
+        V = Simulation(prim, res, shocks)
 	
 end # Model solver
