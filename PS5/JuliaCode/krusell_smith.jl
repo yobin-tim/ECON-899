@@ -57,16 +57,6 @@ end
     ē      ::Float64          = 0.3271                                 # Labor efficiency (per hour worked)
     
     # # # Initial Conditions
-<<<<<<< HEAD
-    # TODO: Derive the initial conditions from the steady state 
-    # K_ss   ::Float64          = ( α  /(1 / β + δ -1 ) )^(1/(1-α))*L_ss # Steady state capital
-    k_min  ::Float64          = 0.0                                   # Minimum capital
-    k_max  ::Float64          = 20.0                                   # Maximum capital
-    nk     ::Int64            = 21                                                           # Number of grid points for capital
-    k_grid ::Array{Float64,1} = range(k_min, length = nk, stop = k_max)# Capital grid
-
-    K_min  ::Float64          = 10.0
-=======
     nK = 100                                                           # Number of grid points for capital
     k_min  ::Float64          = 10.0                                   # Minimum capital
     k_max  ::Float64          = 15.0                                   # Maximum capital
@@ -79,7 +69,6 @@ end
     K_ss   ::Float64          = 11.55 #(α/((1/β) + δ - 1))^(1/(1-α))*L_ss
 
     K_min  ::Float64          = floor(K_ss)
->>>>>>> 57236ffec3dd22b2701c7f30979643c20b5cc1c8
     K_max  ::Float64          = 15.0
     nK     ::Int64            = 11                                      # Number of grid points for capital
     K_grid ::Array{Float64,1} = range(K_min, length = nK, stop = K_max)# Aggregate Capital grid
