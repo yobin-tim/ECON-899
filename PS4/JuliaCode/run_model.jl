@@ -8,14 +8,43 @@ workers()
 addprocs(2)
 
 @Distributed.everywhere include("./PS4/JuliaCode/conesa_kueger.jl");
+#@Distributed.everywhere include("./conesa_kueger.jl");
 
-
-
-@time out_K_path,out_Ft= TransitionPath(TrySaveMethod=false)
+#Exercise 1: (Problem Set 4)
+@time out_K_path,out_Ft= TransitionPath(TrySaveMethod=false,Experiment=1)
+#Exercise 2: (Problem Set 4)
+@time out_K_path_Exp2,out_Ft_Exp2= TransitionPath(TrySaveMethod=false,Experiment=2)
 
 using Plots, LaTeXStrings
 
 theme(:juno)
+plot(1:151,out_K_path[:], ylabel="Aggregate Capital",
+    xlabel="Time",label="Excercise 1")
+    plot!(1:151,out_K_path_Exp2[:], legend=:bottomright, ylabel="Aggregate Capital",
+        xlabel="Time",label="Excercise 2")
+    savefig("./PS4/Document/Figures/ComparingTransitions.png")
+
+function Exercise1Prob2(kpath; α=.36,δ=.06,N_final=66,J_R=46, TransitionNo=151)
+    #Recalculating Aggregate Labor in the Inelastic case
+        L=0.7543 #This was the converged value of inelastic labor supply
+    #Functions for interest rate and wages
+        r_mkt   ::Function          = (K, L) -> α*(K^(α-1))*(L^(1-α)) - δ
+        w_mkt   ::Function          = (K, L) -> (1-α)*(K^α)*(L^(-α))
+    r_trans=[r_mkt(k,L) for k in kpath]
+    w_trans=[w_mkt(k,L) for k in kpath]
+    #Plotting Aggregate Capital
+        plot(1:TransitionNo,out_K_path[:], ylabel="Aggregate Capital",
+            xlabel="Time",legend=false)
+        savefig("./PS4/Document/Figures/PathOfAggregateCapital.png")
+        plot(1:TransitionNo,r_trans[:], ylabel="Interest Rate",
+            xlabel="Time",legend=false)
+        savefig("./PS4/Document/Figures/PathOfInterestRate.png")
+        plot(1:TransitionNo,w_trans[:], ylabel="Wages",
+            xlabel="Time",legend=false)
+        savefig("./PS4/Document/Figures/PathOfWages.png")
+end
+Exercise1Prob2(out_K_path)
+#= Old plots for problem set 3
 plot(out_res.val_fun[:,:, end])
 plot!(out_res.val_fun[:,:, end-1])
 plot!(out_res.val_fun[:,:, end-2])
@@ -108,3 +137,5 @@ open("PS3/Tables/table1.tex", "w") do io
     " & ", Lambda(prim_noRisk_noSS, res_noRisk_noSS, W), " & ", Lambda(prim_exLab, res_exLab, W), " & ",
     Lambda(prim_exLab_noSS, res_exLab_noSS, W), " \\\hline \end{tabular}"))
 end;
+
+=#
