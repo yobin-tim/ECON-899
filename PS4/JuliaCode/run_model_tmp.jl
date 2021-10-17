@@ -2,13 +2,13 @@ using Distributed, SharedArrays, JLD
 
 #add processes
 workers()
-addprocs(2)
+addprocs(1)
 
 @Distributed.everywhere include("./conesa_kueger_tmp.jl");
 
-prim, res = Initialize()
 
-out_prim, out_res = ShootBackward(prim, res)
+Convergence()
+
 ## Exercise 1 1.
 ##out_prim, out_res = MarketClearing(use_Fortran=false, tol = 1e-3);
 # prim_noSS, res_noSS = MarketClearing(use_Fortran=false, tol = 1e-3, ss = false);
