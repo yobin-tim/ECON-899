@@ -58,8 +58,10 @@ end
     
     # # # Initial Conditions
     nk     ::Int64            = 20                                     # Number of grid points for capital
-    k_min  ::Float64          = 0.0                                   # Minimum capital
+    k_min  ::Float64          = 0.01                                  # Minimum capital
     k_max  ::Float64          = 15.0                                   # Maximum capital
+    # Change: using a logaritythmic grid to better deal with concavity of the value function
+    # k_grid ::Array{Float64}   = exp.(range(log(k_min), stop=log(k_max), length=nk))  # Capital grid
     k_grid ::Array{Float64,1} = range(k_min, length = nk, stop = k_max)# Capital grid
 
     #L_g    ::Float64          = 1 - u[1]                               # Aggregate labor from the good state
@@ -68,9 +70,11 @@ end
     #L_ss   ::Float64          = L_ss = π*L_g + (1-π)*L_b
     K_ss   ::Float64          = 11.55 #(α/((1/β) + δ - 1))^(1/(1-α))*L_ss
 
-    K_min  ::Float64          = 0 #floor(K_ss)
+    K_min  ::Float64          = 0.01#floor(K_ss)
     K_max  ::Float64          = 15.0
     nK     ::Int64            = 11                                      # Number of grid points for capital
+    # Change: using a logaritythmic grid to better deal with concavity of the value function
+    # K_grid ::Array{Float64}   = exp.(range(log(K_min), stop=log(K_max), length=nK))
     K_grid ::Array{Float64,1} = range(K_min, length = nK, stop = K_max) # Aggregate Capital grid
 
     T      ::Int              = 10000                                  # Number of periods
@@ -94,20 +98,22 @@ end
 function generate_shocks(prim)
     # TODO: This part is dependent on being two states with symmetric distributions, should be generalized
     
-    @unpack N, T, d_z, d_u, u = prim
+    @unpack N, T, T_burn, d_z, d_u, u = prim
     
     # Transition Matrices
     Π, Π_z  = trans_mat(d_z, d_u, u)
 
-    z_seq  ::Array{Int64, 1}  = vcat(1, zeros(T-1+1000))                 # Technology shocks    
+    Π = Π'
+    
+    z_seq  ::Array{Int64, 1}  = vcat(1, zeros(T-1+T_burn))                 # Technology shocks    
     for t ∈ 2:length(z_seq)
         temp = rand(1)[1]
         z_seq[t] = (temp < Π_z[ Int(z_seq[t-1])]) ? 1 : 2          # Generate the sequence of shocks
     end
 
-    ℇ ::Array{Int64, 2} = zeros(N, T+1000)
+    ℇ ::Array{Int64, 2} = zeros(N, T+T_burn)
     ℇ[:,1] .= 1                           # Agent's employment status
-    for t ∈ 2:T+1000
+    for t ∈ 2:T+T_burn
         z_last = z_seq[t-1]
         z_now  = z_seq[t]
         for n ∈ 1:N
@@ -117,11 +123,10 @@ function generate_shocks(prim)
             prob_emp = Π[ind_1, z_now]
             ℇ[n,t] = ( temp < prob_emp ) ? 1 : 0
         end
+        # if t < 100
+        #     println("t = ", t, " Total employed = ", sum(ℇ[:, t]))
+        # end
     end
-
-    # Remove the initial 1000 periods
-    # ℇ = ℇ[:,1001:end]
-    # z_seq = z_seq[1001:end]
 
     return (Π, Π_z,  z_seq, ℇ)
 end
@@ -150,6 +155,13 @@ mutable struct Results
     pol_fun_interp ::Dict
     a       ::Array{Float64}    # log linear coefficients in case of good productivity shock
     b       ::Array{Float64}    # log linear coefficients in case of bad productivity shock 
+
+    # We can pre_allocate the forecast of capital and we wont have to calculate it every time
+    k_forecast_grid ::Array{Float64, 2} # Grid of capital for the forecast
+
+    # We also need to store the saving behavior of all the agens in the economy
+    V       ::Array{Float64, 2} # Saving Behavior of all agents
+
 end
 
 
@@ -159,7 +171,7 @@ function Initialize()
 
     # Initialize the primitives
     prim = Primitives()
-    @unpack k_grid, K_grid = prim
+    @unpack nZ, nK, k_grid, K_grid, T, N, k_forecast = prim
     # Initialize the shocks
     Π, Π_z = trans_mat(prim.d_z, prim.d_u, prim.u)                                    # Transition matrix
 
@@ -172,19 +184,24 @@ function Initialize()
     # TODO: Generalize sizes
     for i ∈ 1:prim.nZ
         for j ∈ 1:prim.nE
-            val_fun_interp[(i,j)] = interpolate( (k_grid, K_grid) , val_fun[:,:, i, j], Gridded(Linear() ))
-            pol_fun_interp[(i,j)] = interpolate( (k_grid, K_grid) , pol_fun[:,:, i, j], Gridded(Linear() ))
+            val_fun_interp[(i,j)] = LinearInterpolation( (k_grid, K_grid) , val_fun[:,:, i, j], extrapolation_bc=Line())
+            pol_fun_interp[(i,j)] = LinearInterpolation( (k_grid, K_grid) , pol_fun[:,:, i, j], extrapolation_bc=Line())
         end
     end
     # Initialize the regression coefficients
     a = [0.095, 0.999] 
     b = [0.085, 0.999]
-    # Return the primitives and results
-    
+
+    k_forecast_grid = zeros(nK, nZ)
+    k_forecast_grid[:, 1] = k_forecast.(1, Ref(a), Ref(b), K_grid)
+    k_forecast_grid[:, 2] = k_forecast.(2, Ref(a), Ref(b), K_grid)
+
+    V = zeros(N, T)
+
     Π, Π_z, z_seq, ℇ = generate_shocks( prim )
     
     shocks = Shocks(Π, Π_z, z_seq, ℇ)
-    res = Results(val_fun, pol_fun, val_fun_interp, pol_fun_interp, a, b)
+    res = Results(val_fun, pol_fun, val_fun_interp, pol_fun_interp, a, b, k_forecast_grid, V)
     
     return (prim, res, shocks)
 end
@@ -192,18 +209,16 @@ end
 
 # Populate Bellman
 function Bellman(prim::Primitives, res::Results, shocks::Shocks)
-
     # retrieve relevant primitives and results
     @unpack k_grid, K_grid, nk, nK, nZ, nE, ē, w_mkt, r_mkt, β, δ, k_forecast, z_val, e_val, u, y, util = prim
-    @unpack a, b, val_fun, val_fun_interp = res
+    @unpack a, b, val_fun, val_fun_interp, k_forecast_grid = res
     @unpack Π = shocks
-
+    
     # loop through aggregate shocks
     for zi = 1:nZ
-
+        
         # save aggregate shock and relevant variables
         z = z_val[zi]   # productivity
-        # π =    # employment rate # π is a reserved character in julia  this migth be a problem
         L = (1 - u[zi])*ē         # aggregate effective labor
 
         # loop through aggregate capital
@@ -215,15 +230,16 @@ function Bellman(prim::Primitives, res::Results, shocks::Shocks)
             r, w = r_mkt(K, L, z), w_mkt(K, L, z)
             
             # estimate next period capital 
-            Knext = k_forecast(z, a, b, K)
-            # println(Ki, " --- ", K, " --- ", Knext, " --- ", prim.K_max)
+            # Knext = k_forecast(z, a, b, K)
+            Knext = k_forecast_grid[Ki, zi]
+            
             # ! Can be the case that Knext > Kmax in that case we need to decide if
             # ! we want to censurate the value of Knext or use extrapolation with the 
             # ! interpolation object
             # ! I think we should extrapolate because in the example thta I ran
             # ! the last 3 K values will be the same if we censor
             # * For now I will censor to see if it works but:
-            # TODO: Use extrapolation
+            # * Testing  extrapolation
 
             Knext = min(Knext, prim.K_max)
 
@@ -255,19 +271,16 @@ function Bellman(prim::Primitives, res::Results, shocks::Shocks)
                             if c < 0
                                 continue
                             end
-
                             # calculate value at current loop
-                            # TODO: use Knext (requires interpolation)
-                            # val = util(c) + β*LinearAlgebra.dot(Π[ezi, :], val_fun[kpi, K, :])
                             # Calculate the exptecte value of continuation
                             # For this we will use the interpolated version of the value function
                             # since K_tomorrow may not be in the grid
                             # println(knext, " ---- ", Knext)
-                            # TODO: Use extrapolation
+                            # * Testing: Use extrapolation
                             fut_vals = [res.val_fun_interp[(i, j)](knext, Knext) for i ∈ 1:2 for j ∈ 1:2]
                             exp_val_next = shocks.Π[ezi, :]' * fut_vals
                             val = util(c) + β*exp_val_next
-
+                            
                             # update maximum candidate 
                             if val > cand_max
                                 cand_max = val
@@ -279,16 +292,17 @@ function Bellman(prim::Primitives, res::Results, shocks::Shocks)
                         # update value/policy functions
                         res.val_fun[ki, Ki, zi, ei] = cand_max
                         res.pol_fun[ki, Ki, zi, ei] = k_grid[pol_max]
-
+                        
                     end # individual capital loop
             end # idiosyncratic shock loop
         end # aggregate capital loop
     end # aggregate shock loop
-    # TODO: Re interpolate and store the interpolation objects
     for i ∈ 1:prim.nZ
         for j ∈ 1:prim.nE
-            res.val_fun_interp[(i, j)] = interpolate( (k_grid, K_grid) , res.val_fun[:,:, i, j], Gridded(Linear() ))
-            res.pol_fun_interp[(i, j)] = interpolate( (k_grid, K_grid) , res.pol_fun[:,:, i, j], Gridded(Linear() ))
+            res.val_fun_interp[(i,j)] = LinearInterpolation( (k_grid, K_grid) , res.val_fun[:,:, i, j], extrapolation_bc=Line() )
+            # TODO: Maybe move this to the final stage and interpolate just once
+            # TODO: Experiment and report speed gains.
+            res.pol_fun_interp[(i,j)] = LinearInterpolation( (k_grid, K_grid) , res.pol_fun[:,:, i, j], extrapolation_bc=Line() )
         end
     end
 end # Bellman function 
@@ -306,9 +320,13 @@ function V_iterate(prim::Primitives, res::Results, shocks::Shocks; err::Float64 
             println("Iteration: ", n, " --- ", err)
         end
         if n > 1000
-            println("WARNING: Bellman iteration did not converge")
+            println("WARNING: Bellman iteration did not converge in 1000 iterations.")
             break
         end
+    end
+
+    if err <= tol 
+        println("Bellman iteration converged in ", n, " iterations.")
     end
 
 end # Bellman iteration
@@ -317,51 +335,66 @@ end # Bellman iteration
 function Simulation(prim::Primitives, res::Results, shocks::Shocks)
     @unpack pol_fun, pol_fun_interp = res
     @unpack T, T_burn, K_ss, N, z_val, u = prim 
-    @unpack Π, Π_z = shocks
+    @unpack Π, Π_z, z_seq, ℇ = shocks
 
     # begin with good z and steady state for aggregate capital 
-    K₀ = K_ss 
-    z₀ = 1
+    K_agg = K_ss 
+    
+    # In the first period all agents are the same therefore we can initialize the 
+    # first row of out matrix like:
+    temp_V = zeros(N, T+T_burn)
+    # The deciction of every agnet is the the decition rule evaluated at 
+    # the steady state for an angent employed in the good state
+    temp_V[:, 1] .= pol_fun_interp[ (1, 1) ]( K_agg, K_agg)
 
-    # initialize agent states
-    e_grid::Array{Int64, 1}          = zeros(N)
-    e_grid[1:Int(u[z₀]*N)]          .= 2
-    e_grid[(Int(u[z₀]*N)+1):end]    .= 1
+    # We alredy have the time series for shocks we can iterate over it
+    for t ∈ 2:T + T_burn
+        z = z_seq[t]
+        # Now we iterate over all agents for this period
+        for n ∈ 1:N
+            e = ℇ[n, t]
+            # individual agent decition based on holdings , aggregate capital, productivity shock and employment state
+            temp_V[n, t] = pol_fun_interp[(z, e+1)]( temp_V[n, t - 1], K_agg)
+        end
+        # Update aggregate capital at the end of the period
+        K_agg = sum(temp_V[:, t])/N
+    end # loop over z
 
-    # initialize time series frame
-    V       = zeros(N, T)
-    V[:, 1] .= K₀
-
-    # simulate each agent's holdings for T time periods
-    for t = 2:T
-        println("Period: ", t)
-
-        # determine next period's shock 
-        z_rand = rand(1)[1]
-        z = (z_rand < Π_z[z₀]) ? 1 : 2 
-
-        # determine current capital holdings given last period's K, e, and z
-        # TODO: FULLY PARALLELIZE
-        for n = 1:N 
-
-            # update V with agent's choice
-            V[n, t] = pol_fun_interp[(z₀, e_grid[n])](V[n, t-1], K₀)
-
-            # update agent's shock
-            n_rand      = rand(1)[1]
-            e_grid[n]   = (n_rand < Π[2*(z₀-1) + e_grid[n], 2*(z-1) + 1]) ? 1 : 2 
-
-        end # n loop
-
-        # update shock and aggregate capital 
-        z₀ = z 
-        K₀ = sum((1/N).*V[:, t])
-
-    end # t loop
-
-    return V[:, (T_burn + 1):end]
+    # Update V in the results discarding the burn-in periods
+    res.V = temp_V[:, T_burn + 1:T + T_burn]
 
 end # Simulation
+
+# Do (auto)regression with simulated data
+function auto_reg(prim::Primitives, res::Results, shocks::Shocks)
+    @unpack nZ, T, T_burn = prim
+    @unpack V = res
+    @unpack z_seq = shocks
+    
+    # Remove the burn-in periods in the sequence of productivity shocks
+    z_seq = shocks.z_seq[prim.T_burn+1:prim.T+prim.T_burn]
+
+    # Calculate aggregate for each period and take logarithms
+    log_K_agg_ts = log.(sum(res.V, dims=1)/prim.N)
+
+    # Store resutls 
+    reg_coefs = Dict()
+    
+    # Estimate a regression on 
+    for iz ∈ 1:nZ
+        K_agg_ts_state = log_K_agg_ts[z_seq .== iz]
+
+        K_agg_next = K_agg_ts_state[2:end]
+        K_agg_now = K_agg_ts_state[1:end-1]
+
+        # Create reggression matrix
+        X = hcat( ones(length(K_agg_next)), K_agg_now)
+
+        reg_coefs[iz] = (X'X)^(-1)*(X'*log.(K_agg_next))
+    end
+
+    return reg_coefs
+end
 
 # Outer-most function that iterates to convergence
 function SolveModel(; tol = 1e-2, err = 100, I = 1)
