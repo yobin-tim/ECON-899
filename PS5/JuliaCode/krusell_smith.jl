@@ -333,8 +333,8 @@ end # Bellman iteration
 
 # simulate a time series using the Bellman solution
 function Simulation(prim::Primitives, res::Results, shocks::Shocks)
+    @unpack T, T_burn, K_ss, N, z_val, u, k_forecast = prim 
     @unpack pol_fun, pol_fun_interp = res
-    @unpack T, T_burn, K_ss, N, z_val, u = prim 
     @unpack Π, Π_z, z_seq, ℇ = shocks
 
     # begin with good z and steady state for aggregate capital 
@@ -367,15 +367,16 @@ end # Simulation
 
 # Do (auto)regression with simulated data
 function auto_reg(prim::Primitives, res::Results, shocks::Shocks)
-    @unpack nZ, T, T_burn = prim
-    @unpack V = res
+    @unpack nZ, N, T, T_burn, k_forecast = prim
+    @unpack V, a, b = res
     @unpack z_seq = shocks
     
     # Remove the burn-in periods in the sequence of productivity shocks
-    z_seq = shocks.z_seq[prim.T_burn+1:prim.T+prim.T_burn]
+    z_seq = z_seq[T_burn+1:T+T_burn]
 
     # Calculate aggregate for each period and take logarithms
-    log_K_agg_ts = log.(sum(res.V, dims=1)/prim.N)
+    K_agg_ts = sum(V, dims=1)/N
+    log_K_agg_ts = log.(K_agg_ts)
 
     # Store resutls 
     reg_coefs = Dict()
@@ -390,23 +391,64 @@ function auto_reg(prim::Primitives, res::Results, shocks::Shocks)
         # Create reggression matrix
         X = hcat( ones(length(K_agg_next)), K_agg_now)
 
-        reg_coefs[iz] = (X'X)^(-1)*(X'*log.(K_agg_next))
+        reg_coefs[iz] = (X'X)^(-1)*(X'*K_agg_next)
     end
 
-    return reg_coefs
+    # Calcualte R_squared
+    k_forecasted = zeros(1, T)
+    for i in 1:T
+        k_forecasted[i] = prim.k_forecast(z_seq[i], reg_coefs[z_seq[i]], reg_coefs[z_seq[i]], K_agg_ts[i])
+    end
+    
+    SS_res = sum( (K_agg_ts - k_forecasted).^2 )
+    mean_K_agg_ts = sum(K_agg_ts)/T
+    SS_tot = sum( (K_agg_ts .- mean_K_agg_ts).^2 )
+    R_squared = 1 - SS_res/SS_tot
+    
+    return reg_coefs, R_squared
 end
 
 # Outer-most function that iterates to convergence
-function SolveModel(; tol = 1e-2, err = 100, I = 1)
-        b₀ = res.b
-
+function SolveModel(n_iter; tol = 1e-2, err = 100, I = 1)
+        
         # initialize environment
+        println("Initializing Model")
         prim, res, shocks = Initialize()
+        println("Model initialized")
+        
+        # @unpack a, b = res
 
-        # given current coefficients, solve consumer problem
-        res = V_iterate(prim, res, shocks)
+        λ = 0.95
+        
+        for i in 1:n_iter # Ten iteration just to see whats happening 
+        
+            # given current coefficients, solve consumer problem
+            V_iterate(prim, res, shocks)
 
-        # given consumers' policy functions, simulate time series
-        V = Simulation(prim, res, shocks)
-	
+            # given consumers' policy functions, simulate time series
+            V = Simulation(prim, res, shocks)
+            
+            # Do (auto)regression with simulated data
+            reg_coefs, R_squared = auto_reg(prim, res, shocks)
+
+            # Get error:
+            err = sum( (res.a - reg_coefs[1]).^2) + sum( (res.b - reg_coefs[2]).^2 )
+
+            println("Iteration: ", i, " --- ", err, " --- R² = ", R_squared)
+
+            # Update regression coefficients
+            res.a = reg_coefs[1] * (1 - λ) + λ * res.a  
+            res.b = reg_coefs[2] * (1 - λ) + λ * res.b 
+
+            # Re-calculate forcasted capital values
+            k_forecast_grid = zeros(prim.nK, prim.nZ)
+            k_forecast_grid[:, 1] = prim.k_forecast.(1, Ref(res.a), Ref(res.b), prim.K_grid)
+            k_forecast_grid[:, 2] = prim.k_forecast.(2, Ref(res.a), Ref(res.b), prim.K_grid)
+
+            res.k_forecast_grid = k_forecast_grid
+
+        end 
+
+        # Iterate until convergence
+
 end # Model solver
