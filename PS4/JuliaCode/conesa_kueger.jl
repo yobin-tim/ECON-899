@@ -363,7 +363,7 @@ function IterateBackward(primEnd::Primitives, resEnd::Results,
         #Unpacking relevant parameters
         @unpack nA, nZ, z_Vals, η, a_grid, β, θ, N_final, J_R, util, Π, l_opt,
             r_mkt, w_mkt, b_mkt = primEnd
-        @unpack μ=resEnd
+        @unpack μ, L=resEnd
     println("Iterating Backwards along Transition path...\n")
     for t in ProgressBar(N:(-1):1) #ProgressBar for running in console
         if Exp==1 || t>=21
@@ -372,10 +372,10 @@ function IterateBackward(primEnd::Primitives, resEnd::Results,
             θ=primStart.θ
         end
         K=K_path[t]
-            ## L should be aggregate L ########################## 
-            r = r_mkt(K, 1) #Since labor is inelatically supplied
-            w = w_mkt(K, 1)
-            b = b_mkt(1, w, sum(μ[J_R:end]))
+            ## L should be aggregate L ##########################
+            r = r_mkt(K, L) #Since labor is inelatically supplied
+            w = w_mkt(K, L)
+            b = b_mkt(L, w, sum(μ[J_R:end]))
         #Assign the the value associated with life's last period
             last_period_value = util.( a_grid .* (1 + r) .+ b, 0 )
             for zi=1:2 #(N+1) is already filled in above)
@@ -538,7 +538,7 @@ end
 
 # Function to calculate the transition path between two equilibria
 function TransitionPath(;err::Float64=100.0, tol::Float64=1e-3, λ::Float64=0.70,
-        N::Int64=150, SolveAgain::Bool=false, TrySaveMethod::Bool=true, Experiment::Int64=1)
+        N::Int64=80, SolveAgain::Bool=false, TrySaveMethod::Bool=true, Experiment::Int64=1)
     #Finding the two Steady States to transition between
     if TrySaveMethod
         if SolveAgain
