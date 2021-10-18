@@ -48,7 +48,7 @@ end
     L_vals ::Array{Float64} = e_bar .* [1 - u[1] , 1 - u[2]]                              # Aggregate Labor supply
     # # # Preferences                  
     β      ::Float64          = 0.99                                   # Discount factor
-    util   ::Function         = (c) -> log(c)                          # Utility function
+    util   ::Function         = (c) -> (c > 0) ? log(c) : -Inf         # Utility function
 
     # # # Production
     α      ::Float64          = 0.36                                   # Capital labor ratio 
@@ -58,7 +58,7 @@ end
     
     # # # Initial Conditions
     nk     ::Int64            = 20                                     # Number of grid points for capital
-    k_min  ::Float64          = 0.01                                  # Minimum capital
+    k_min  ::Float64          = 10.0                                  # Minimum capital
     k_max  ::Float64          = 15.0                                   # Maximum capital
     # Change: using a logaritythmic grid to better deal with concavity of the value function
     # k_grid ::Array{Float64}   = exp.(range(log(k_min), stop=log(k_max), length=nk))  # Capital grid
@@ -70,7 +70,7 @@ end
     #L_ss   ::Float64          = L_ss = π*L_g + (1-π)*L_b
     K_ss   ::Float64          = 11.55 #(α/((1/β) + δ - 1))^(1/(1-α))*L_ss
 
-    K_min  ::Float64          = 0.01#floor(K_ss)
+    K_min  ::Float64          = 10.0
     K_max  ::Float64          = 15.0
     nK     ::Int64            = 11                                      # Number of grid points for capital
     # Change: using a logaritythmic grid to better deal with concavity of the value function
@@ -184,8 +184,8 @@ function Initialize()
     # TODO: Generalize sizes
     for i ∈ 1:prim.nZ
         for j ∈ 1:prim.nE
-            val_fun_interp[(i,j)] = LinearInterpolation( (k_grid, K_grid) , val_fun[:,:, i, j], extrapolation_bc=Line())
-            pol_fun_interp[(i,j)] = LinearInterpolation( (k_grid, K_grid) , pol_fun[:,:, i, j], extrapolation_bc=Line())
+            val_fun_interp[(i,j)] = LinearInterpolation( (k_grid, K_grid) , val_fun[:,:, i, j], extrapolation_bc=Flat())
+            pol_fun_interp[(i,j)] = LinearInterpolation( (k_grid, K_grid) , pol_fun[:,:, i, j], extrapolation_bc=Flat())
         end
     end
     # Initialize the regression coefficients
@@ -208,9 +208,9 @@ end
 
 
 # Populate Bellman
-function Bellman(prim::Primitives, res::Results, shocks::Shocks)
+function Bellman(prim::Primitives, res::Results, shocks::Shocks; use_dense_grid::Bool=false)
     # retrieve relevant primitives and results
-    @unpack k_grid, K_grid, nk, nK, nZ, nE, ē, w_mkt, r_mkt, β, δ, k_forecast, z_val, e_val, u, y, util = prim
+    @unpack k_grid, K_grid, nk, nK, nZ, nE, ē, w_mkt, r_mkt, β, δ, k_forecast, z_val, e_val, u, y, util, k_min, k_max = prim
     @unpack a, b, val_fun, val_fun_interp, k_forecast_grid = res
     @unpack Π = shocks
     
@@ -233,6 +233,7 @@ function Bellman(prim::Primitives, res::Results, shocks::Shocks)
             # Knext = k_forecast(z, a, b, K)
             Knext = k_forecast_grid[Ki, zi]
             
+            
             # ! Can be the case that Knext > Kmax in that case we need to decide if
             # ! we want to censurate the value of Knext or use extrapolation with the 
             # ! interpolation object
@@ -240,58 +241,87 @@ function Bellman(prim::Primitives, res::Results, shocks::Shocks)
             # ! the last 3 K values will be the same if we censor
             # * For now I will censor to see if it works but:
             # * Testing  extrapolation
-
+            
             Knext = min(Knext, prim.K_max)
-
             # loop through individual state spaces
             for ei = 1:nE
-
-                    # initialize last candidate (for exploiting monotonicity)
-                    cand_last = 1
-
-                    # determine shock index from z and e index
-                    ezi = 2*(zi - 1) + ei
-                    e = e_val[ei]       # employment status
-
-                    # loop through capital holdings 
-                    for ki = 1:prim.nk
-
+                
+                # initialize last candidate (for exploiting monotonicity)
+                cand_last = 1
+                
+                # determine shock index from z and e index
+                ezi = 2*(zi - 1) + ei
+                e = e_val[ei]       # employment status
+                
+                # loop through capital holdings 
+                for ki = 1:prim.nk
+                    
                         # save state space variables
                         k = k_grid[ki]      # current period capital
                         cand_max = -Inf     # intial value maximum
                         pol_max  = 1        # policy function maximum
                         budget   = r*k + w*e*ē + (1-δ)*k
-
-                        # loop through next period capital
-                        for kpi = cand_last:prim.nk
-                            knext = prim.k_grid[kpi]
-                            c = budget - knext
-
-                            # if consumption is negative, skip loop
-                            if c < 0
-                                continue
-                            end
-                            # calculate value at current loop
-                            # Calculate the exptecte value of continuation
-                            # For this we will use the interpolated version of the value function
-                            # since K_tomorrow may not be in the grid
-                            # println(knext, " ---- ", Knext)
-                            # * Testing: Use extrapolation
-                            fut_vals = [res.val_fun_interp[(i, j)](knext, Knext) for i ∈ 1:2 for j ∈ 1:2]
-                            exp_val_next = shocks.Π[ezi, :]' * fut_vals
-                            val = util(c) + β*exp_val_next
-                            
-                            # update maximum candidate 
-                            if val > cand_max
-                                cand_max = val
-                                pol_max  = kpi
-                            end
-
-                        end # capital policy loop
                         
+                        if use_dense_grid
+                            
+                            if ki == 1
+                                k_grid_dense = range(prim.k_min, stop= prim.k_max, step=0.01)
+                            else
+                                k_grid_dense = range(prim.k_min, stop= prim.k_max, step=0.01)
+                            end
+
+
+                            # We can use interpolated versions of the value function to find the next period value
+                            c_pos = budget .- k_grid_dense
+                            k_grid_dense = k_grid_dense[c_pos .> 0 ]
+                            c_pos = c_pos[c_pos .> 0 ]
+                            utils = util.( c_pos )
+                            fut_vals = [res.val_fun_interp[(i, j)].(k_grid_dense, Knext) for i ∈ 1:2 for j ∈ 1:2];
+                            fut_vals = hcat(fut_vals...)
+                            # if ki == 1 && Ki == 1
+                            #     println(k_grid_dense)
+                            # end
+                            exp_val_next = [shocks.Π[ezi, :]' * fut_vals[i,:] for i ∈ 1:size(fut_vals,1)] 
+
+                            cont_val = utils + β*exp_val_next
+                            cand_last = k_grid_dense[argmax(cont_val)]
+                            cand_max = maximum(cont_val)
+                            pol_max  = argmax(cont_val)
+                        else
+                            # loop through next period capital
+                            for kpi = cand_last:prim.nk
+                                knext = prim.k_grid[kpi]
+                                c = budget - knext
+
+                                # if consumption is negative, skip loop
+                                if c < 0
+                                    continue
+                                end
+                                # calculate value at current loop
+                                # Calculate the exptecte value of continuation
+                                # For this we will use the interpolated version of the value function
+                                # since K_tomorrow may not be in the grid
+                                # println(knext, " ---- ", Knext)
+                                # * Testing: Use extrapolation
+                                fut_vals = [res.val_fun_interp[(i, j)](knext, Knext) for i ∈ 1:2 for j ∈ 1:2]
+                                exp_val_next = shocks.Π[ezi, :]' * fut_vals
+                                val = util(c) + β*exp_val_next
+                                
+                                # update maximum candidate 
+                                if val > cand_max
+                                    cand_max = val
+                                    pol_max  = kpi
+                                end
+                                
+                            end # capital policy loop
+                        end
                         # update value/policy functions
                         res.val_fun[ki, Ki, zi, ei] = cand_max
-                        res.pol_fun[ki, Ki, zi, ei] = k_grid[pol_max]
+                        if use_dense_grid
+                            res.pol_fun[ki, Ki, zi, ei] = k_grid_dense[pol_max]
+                        else
+                            res.pol_fun[ki, Ki, zi, ei] = k_grid[pol_max]
+                        end
                         
                     end # individual capital loop
             end # idiosyncratic shock loop
@@ -299,16 +329,16 @@ function Bellman(prim::Primitives, res::Results, shocks::Shocks)
     end # aggregate shock loop
     for i ∈ 1:prim.nZ
         for j ∈ 1:prim.nE
-            res.val_fun_interp[(i,j)] = LinearInterpolation( (k_grid, K_grid) , res.val_fun[:,:, i, j], extrapolation_bc=Line() )
+            res.val_fun_interp[(i,j)] = LinearInterpolation( (k_grid, K_grid) , res.val_fun[:,:, i, j], extrapolation_bc=Flat() )
             # TODO: Maybe move this to the final stage and interpolate just once
             # TODO: Experiment and report speed gains.
-            res.pol_fun_interp[(i,j)] = LinearInterpolation( (k_grid, K_grid) , res.pol_fun[:,:, i, j], extrapolation_bc=Line() )
+            res.pol_fun_interp[(i,j)] = LinearInterpolation( (k_grid, K_grid) , res.pol_fun[:,:, i, j], extrapolation_bc=Flat() )
         end
     end
 end # Bellman function 
 
 # Solve consumer's problem: Bellman iteration function
-function V_iterate(prim::Primitives, res::Results, shocks::Shocks; err::Float64 = 100.0, tol::Float64 = 1e-3)
+function V_iterate(prim::Primitives, res::Results, shocks::Shocks; use_dense_grid::Bool=false, err::Float64 = 100.0, tol::Float64 = 1e-3)
     n = 0 # iteration counter 
 
     while err > tol
@@ -319,7 +349,7 @@ function V_iterate(prim::Primitives, res::Results, shocks::Shocks; err::Float64 
         if n % 100 == 0  
             println("Iteration: ", n, " --- ", err)
         end
-        if n > 1000
+        if n > 2000
             println("WARNING: Bellman iteration did not converge in 1000 iterations.")
             break
         end
@@ -349,6 +379,7 @@ function Simulation(prim::Primitives, res::Results, shocks::Shocks)
 
     # We alredy have the time series for shocks we can iterate over it
     for t ∈ 2:T + T_burn
+        # println("Simulation: ", t, " K_agg = " , K_agg)
         z = z_seq[t]
         # Now we iterate over all agents for this period
         for n ∈ 1:N
@@ -381,7 +412,7 @@ function auto_reg(prim::Primitives, res::Results, shocks::Shocks)
     # Store resutls 
     reg_coefs = Dict()
     
-    # Estimate a regression on 
+    # Estimate a regression 
     for iz ∈ 1:nZ
         K_agg_ts_state = log_K_agg_ts[z_seq .== iz]
 
@@ -409,7 +440,7 @@ function auto_reg(prim::Primitives, res::Results, shocks::Shocks)
 end
 
 # Outer-most function that iterates to convergence
-function SolveModel(n_iter; tol = 1e-2, err = 100, I = 1)
+function SolveModel(n_iter; tol = 1e-2, err = 100, I = 1, use_dense_grid::Bool=false)
         
         # initialize environment
         println("Initializing Model")
@@ -420,7 +451,7 @@ function SolveModel(n_iter; tol = 1e-2, err = 100, I = 1)
 
         λ = 0.95
         
-        for i in 1:n_iter # Ten iteration just to see whats happening 
+        for i in 1:n_iter # Start with few iterations just to see whats happening 
         
             # given current coefficients, solve consumer problem
             V_iterate(prim, res, shocks)
