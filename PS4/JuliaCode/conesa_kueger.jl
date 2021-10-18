@@ -532,7 +532,7 @@ function FillPath(primStart::Primitives,resStart::Results, primEnd::Primitives,
         #calculate implied capital path
     end #End t loop
     # This is should be 1: sum(Ft, dims = 1:3)
-    return K_path_new, Ft
+    return K_path_new, Ft, vf_trans
 end
 
 
@@ -572,6 +572,7 @@ function TransitionPath(;err::Float64=100.0, tol::Float64=1e-3, λ::Float64=0.70
         K₀, Kₜ = resStart.K, resEnd.K
         K_path = collect(range(K₀, Kₜ, length = N + 1))
         Ft=[0]; #Initialize variable name Ft
+        vf_trans=copy(Ft)
     # generate new primitives and results structs for use in calculating
         # the transition path
         #newRes      = resEnd;
@@ -581,12 +582,12 @@ function TransitionPath(;err::Float64=100.0, tol::Float64=1e-3, λ::Float64=0.70
     while err > tol
         # pass current capital path to FillPath function
             #K_path_new, Ft = FillPath(primEnd, newRes, K_path, N)
-            K_path_new , Ft = FillPath(primStart,resStart, primEnd, resEnd, K_path,
+            K_path_new , Ft, vf_trans = FillPath(primStart,resStart, primEnd, resEnd, K_path,
                 N,Ex=Experiment)
         # test convergence and update
             err=maximum(abs.(K_path.-K_path_new))
             K_path=copy(K_path_new)
         print("$(iter) iterations; err=$(err)")
     end
-    return K_path, Ft
+    return K_path, Ft, vf_trans
 end # TransitionPath
