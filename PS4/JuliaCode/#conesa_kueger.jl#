@@ -97,7 +97,7 @@ function Initialize(; θArg = 0.11, γArg = 0.42)
         push!(μ, μ[i-1]/(1.0 + prim.n))
     end
     μ = μ/sum(μ)
-    
+
     L = Float64(sum(μ[1:(prim.J_R-1)]))                  # fixed aggregate labor
 
     # Finally we initialize the distribution of the agents
