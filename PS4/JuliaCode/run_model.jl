@@ -12,9 +12,10 @@ addprocs(2)
 #@Distributed.everywhere include("./conesa_kueger.jl");
 
 #Exercise 1: (Problem Set 4)
-@time out_K_path,out_Ft= TransitionPath(TrySaveMethod=false,Experiment=1)
+@time out_K_path,out_Ft,out_vf_trans= TransitionPath(TrySaveMethod=false,Experiment=1)
 #Exercise 2: (Problem Set 4)
-@time out_K_path_Exp2,out_Ft_Exp2= TransitionPath(TrySaveMethod=false,Experiment=2)
+@time out_K_path_Exp2,out_Ft_Exp2,out_vf_trans_Exp2=
+    TransitionPath(TrySaveMethod=false,Experiment=2)
 
 using Plots, LaTeXStrings
 
@@ -49,9 +50,9 @@ Exercise1Prob2(out_K_path)
 
 #Exercise 3 Problem 1
 out_primStart, out_resStart= MarketClearing(use_Fortran=false, tol = 1e-3);
-out_primEnd, out_resEnd= MarketClearing(ss=false, use_Fortran=false, tol = 1e-3);
+#out_primEnd, out_resEnd= MarketClearing(ss=false, use_Fortran=false, tol = 1e-3);
 function SolveProblem3()
-    @unpack nZ, nA, N_final, σ = out_primEnd
+    @unpack nZ, nA, N_final, σ = out_primStart
     γ=1
     EV=zeros(nZ,nA,N_final)
     EVj=zeros(N_final)
@@ -59,17 +60,19 @@ function SolveProblem3()
     for zi=1:nZ
         for ai=1:nA
             for ji=1:N_final
-                EV[zi,ai,ji]=(out_resStart.val_fun[ai,zi,ji] / out_resEnd.val_fun[ai,zi,ji])^(1/(γ*(1-σ)))
+                EV[zi,ai,ji]=(out_vf_trans[ai,zi,ji,1] / out_resStart.val_fun[ai,zi,ji])^(1/(γ*(1-σ)))
                 EVj[ji]+=out_resEnd.F[ai,zi,ji]*EV[zi,ai,ji]
                 if EV[zi,ai,ji]>1
-                    PortionWhoAreMadeBetterOff+=F[ai,zi,ji]
+                    PortionWhoAreMadeBetterOff+=out_resStart.F[ai,zi,ji]
                 end
             end #age loop
         end #asset loop
     end #z loop
+    print(EVj)
     plot(1:N_final,EVj, ylabel="Consumption Equivalent Variation",
         xlabel="Age",
         title="$(round(PortionWhoAreMadeBetterOff,digits=2)*100)% of the Population would
-Support the Reform")
+Support the Reform", legend=false)
         savefig("./PS4/Document/Figures/Exercise1Problem3.png")
 end
+SolveProblem3()
