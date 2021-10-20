@@ -408,6 +408,7 @@ function auto_reg(prim::Primitives, res::Results, shocks::Shocks)
     # Calculate aggregate for each period and take logarithms
     K_agg_ts = sum(V, dims=1)/N
     log_K_agg_ts = log.(K_agg_ts)
+<<<<<<< HEAD
 
 <<<<<<< HEAD
     # simulate each agent's holdings for T time periods
@@ -417,17 +418,24 @@ function auto_reg(prim::Primitives, res::Results, shocks::Shocks)
         end
         
 =======
+=======
+  
+>>>>>>> ce279ab46af26041889ae89c207f304e1a7474cd
     # Store resutls 
     reg_coefs = Dict()
     
     # Estimate a regression 
     for iz ∈ 1:nZ
         K_agg_ts_state = log_K_agg_ts[z_seq .== iz]
+<<<<<<< HEAD
 >>>>>>> ps5_simulaiton_alternative
+=======
+>>>>>>> ce279ab46af26041889ae89c207f304e1a7474cd
 
         K_agg_next = K_agg_ts_state[2:end]
         K_agg_now = K_agg_ts_state[1:end-1]
 
+<<<<<<< HEAD
 <<<<<<< HEAD
         # generate idiosyncratic shocks
         n_rand = rand(Float64, N)
@@ -440,14 +448,24 @@ function auto_reg(prim::Primitives, res::Results, shocks::Shocks)
         # Create reggression matrix
         X = hcat( ones(length(K_agg_next)), K_agg_now)
 >>>>>>> ps5_simulaiton_alternative
+=======
+        # Create reggression matrix
+        X = hcat( ones(length(K_agg_next)), K_agg_now)
+>>>>>>> ce279ab46af26041889ae89c207f304e1a7474cd
 
+        # TODO: FULLY PARALLELIZE
+        # TODO: Feed vectors into each function, avoiding loop altogether?
         reg_coefs[iz] = (X'X)^(-1)*(X'*K_agg_next)
     end
 
 <<<<<<< HEAD
+<<<<<<< HEAD
             # update agent's shock
             e_grid[n]   = (n_rand[n] < u[z]) ? 1 : 2 
 =======
+=======
+
+>>>>>>> ce279ab46af26041889ae89c207f304e1a7474cd
     # Calcualte R_squared
     k_forecasted = zeros(1, T)
     for i in 1:T
@@ -461,7 +479,11 @@ function auto_reg(prim::Primitives, res::Results, shocks::Shocks)
     
     return reg_coefs, R_squared
 end
+<<<<<<< HEAD
 >>>>>>> ps5_simulaiton_alternative
+=======
+
+>>>>>>> ce279ab46af26041889ae89c207f304e1a7474cd
 
 # Outer-most function that iterates to convergence
 function SolveModel(n_iter; tol = 1e-2, err = 100, I = 1, use_dense_grid::Bool=false)
