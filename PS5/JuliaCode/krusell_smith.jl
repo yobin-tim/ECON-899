@@ -334,22 +334,28 @@ function Simulation(prim::Primitives, res::Results, shocks::Shocks)
 
     # simulate each agent's holdings for T time periods
     for t = 2:T
-        println("Period: ", t)
+        if t % 1000 == 0
+            println("Period: ", t, ", K₀ = ", round(K₀, digits = 2))
+        end
+        
 
         # determine next period's shock 
         z_rand = rand(1)[1]
         z = (z_rand < Π_z[z₀]) ? 1 : 2 
 
+        # generate idiosyncratic shocks
+        n_rand = rand(Float64, N)
+
         # determine current capital holdings given last period's K, e, and z
         # TODO: FULLY PARALLELIZE
+        # TODO: Feed vectors into each function, avoiding loop altogether?
         for n = 1:N 
 
             # update V with agent's choice
             V[n, t] = pol_fun_interp[(z₀, e_grid[n])](V[n, t-1], K₀)
 
             # update agent's shock
-            n_rand      = rand(1)[1]
-            e_grid[n]   = (n_rand < Π[2*(z₀-1) + e_grid[n], 2*(z-1) + 1]) ? 1 : 2 
+            e_grid[n]   = (n_rand[n] < u[z]) ? 1 : 2 
 
         end # n loop
 
