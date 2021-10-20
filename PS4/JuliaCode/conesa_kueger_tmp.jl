@@ -58,7 +58,9 @@ end # Primitives
     b_path  ::Array{Float64, 1}               
     K_path  ::Array{Float64, 1}
     L_path  ::Array{Float64, 1}
-    F       ::Array{Float64, 3} 
+    K_path_new:: Array{Float64, 1}
+    L_path_new:: Array{Float64, 1}
+    F       ::Array{Float64, 4} 
 end # Results
 
 # Function that initializes the model
@@ -73,6 +75,13 @@ function Initialize()
                                       prim.N_final, prim.N)
     K_path = collect(range(d["K_θ"], d["K"], length = prim.N))
     L_path = collect(range(d["L_θ"], d["L"], length = prim.N))
+    K_path_new = zeros(prim.N) 
+    L_path_new = zeros(prim.N)
+    K_path_new[1] = K_path[1]
+    L_path_new[1] = L_path[1]
+    K_path_new[prim.N] = K_path[prim.N]
+    L_path_new[prim.N] = L_path[prim.N]
+
     w_path = prim.w_mkt.(K_path, L_path)
     r_path = prim.r_mkt.(K_path, L_path)
 
@@ -86,11 +95,14 @@ function Initialize()
     b_path = prim.b_mkt.(L_path, w_path, sum(μ[prim.J_R:end]), prim.θ)
 
     # Initial distribution by assets, productivity level etc..
-    F = d["Γ_0"]
+    F = SharedArray{Float64}(prim.nA, prim.nZ, prim.N_final, prim.N)    
+
+    F[:,:,:,1] = d["Γ_0"]
 
     # Initialize the results
     res = Results(μ, val_fun_path, pol_fun_path, l_fun_path,
-                  w_path, r_path, b_path, K_path, L_path, F)
+                  w_path, r_path, b_path, K_path, L_path, K_path_new,
+                  L_path_new, F)
 
     return (prim, res)              
 end
@@ -100,7 +112,6 @@ function V_ret(prim::Primitives, res::Results, t::Int64)
     @unpack nA, a_grid, N_final, J_R, util, β = prim
     @unpack b_path, r_path = res
     
-
     for j in N_final-1:-1:J_R
         
         choice_lower = 1
@@ -223,5 +234,75 @@ function ShootBackward(prim::Primitives, res::Results)
         V_workers(prim, res, t);
 
     end
+    return res
+end
+
+
+function CalculatedDist(prim::Primitives, res::Results, t::Int64)
+
+    @unpack N_final, n, p_L, p_H, nZ, nA, Π, a_grid, N = prim
+    
+    # Finding the steady state distribution
+    for j in 2:N_final
+        for z_ind in 1:nZ
+            for a_ind in 1:nA
+                a_next_ind = argmin(abs.(res.pol_fun_path[a_ind, z_ind, j-1, t-1].-a_grid))
+                
+                for zi = 1:nZ
+                    res.F[a_next_ind, zi, j, t] +=
+                        res.F[a_ind, z_ind, j-1, t-1] * Π[z_ind, zi] * (res.μ[j]/res.μ[j-1])
+                end # zi
+            end
+        end # z_ind
+        res.F[1, 1, 1, t] = res.μ[1] * p_H ## New born each period
+        res.F[1, 2, 1, t] = res.μ[1] * p_L ## New born each period
+    end # j loop
+end
+
+function UpdatePath(prim::Primitives, res::Results, t::Int64)
+
+    @unpack a_grid = prim
+    
+    res.K_path_new[t] = sum(res.F[:,:,:,t].* a_grid)
+    res.L_path_new[t] = sum(res.F[:,:,:,t].* res.l_fun_path[:,:,:,t])
+
+end
+
+function ShootForward(prim::Primitives, res::Results)
+
+    for t = 2:prim.N-1
+        CalculatedDist(prim, res, t)
+        UpdatePath(prim, res, t)
+    end
+end
+
+function Convergence()
+                   
+    prim, res = Initialize();
+
+    @unpack r_mkt, w_mkt, b_mkt, J_R, θ = prim
+    err = 100;
+    λ = 0.95;
+    for n = 1:10
+        println("$n iterations; err = $err")
+
+        res.r_path = r_mkt.(res.K_path, res.L_path)
+        res.w_path = w_mkt.(res.K_path, res.L_path)
+        res.b_path = b_mkt.(res.L_path, res.w_path,
+                            sum(res.μ[J_R:end]), θ)
+        ShootBackward(prim, res);
+        ShootForward(prim, res);
+
+        err = maximum(abs.(res.K_path_new - res.K_path) +
+                      abs.(res.L_path_new - res.L_path))
+
+        if err > 1e-2 
+            res.K_path = λ.*res.K_path_new + (1 - λ).*res.K_path
+            res.L_path = λ.*res.L_path_new + (1 - λ).*res.L_path
+        end
+    end
     return prim, res
 end
+
+
+

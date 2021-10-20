@@ -408,7 +408,7 @@ function auto_reg(prim::Primitives, res::Results, shocks::Shocks)
     # Calculate aggregate for each period and take logarithms
     K_agg_ts = sum(V, dims=1)/N
     log_K_agg_ts = log.(K_agg_ts)
-
+  
     # Store resutls 
     reg_coefs = Dict()
     
@@ -422,8 +422,11 @@ function auto_reg(prim::Primitives, res::Results, shocks::Shocks)
         # Create reggression matrix
         X = hcat( ones(length(K_agg_next)), K_agg_now)
 
+        # TODO: FULLY PARALLELIZE
+        # TODO: Feed vectors into each function, avoiding loop altogether?
         reg_coefs[iz] = (X'X)^(-1)*(X'*K_agg_next)
     end
+
 
     # Calcualte R_squared
     k_forecasted = zeros(1, T)
@@ -438,6 +441,7 @@ function auto_reg(prim::Primitives, res::Results, shocks::Shocks)
     
     return reg_coefs, R_squared
 end
+
 
 # Outer-most function that iterates to convergence
 function SolveModel(n_iter; tol = 1e-2, err = 100, I = 1, use_dense_grid::Bool=false)
