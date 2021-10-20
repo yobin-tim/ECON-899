@@ -1,5 +1,5 @@
 @time begin
-using Distributed, SharedArrays, NaNMath
+using Distributed, SharedArrays, NaNMath, JLD
 
 #add processes
 workers()
@@ -112,6 +112,20 @@ plot(out_prim.a_grid,out_res.F[:,1,50])
 
 # conduct policy experiments
 @time prim_noSS, res_noSS               = MarketClearing(use_Fortran=false, tol = 1e-3, ss = false);
+
+    ## for PS4 
+    save("../../PS4/Data/Initial_Conditions.jld",
+         "Γ_0", out_res.F,
+         "V_0", out_res.val_fun,
+         "K_θ", out_res.K,
+         "K", res_noSS.K,
+         "L_θ", out_res.L,
+         "L", res_noSS.L,
+         "V", res_noSS.val_fun,
+         "a", res_noSS.pol_fun,
+         "l", res_noSS.l_fun
+         )
+
 @time prim_noRisk, res_noRisk           = MarketClearing(use_Fortran=false, tol = 1e-2, i_risk = false);
 @time prim_noRisk_noSS, res_noRisk_noSS = MarketClearing(use_Fortran=false, tol = 1e-2, ss = false, i_risk = false);
 @time prim_exLab, res_exLab             = MarketClearing(use_Fortran=false, tol = 1e-3, exog_l = true);

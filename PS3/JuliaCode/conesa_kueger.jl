@@ -84,8 +84,6 @@ function Initialize(; θ = 0.11, γ = 0.42)
     # Before the model starts, we can set the initial value function at the end stage
     # We set the last age group to have a value function consuming all the assets and
     # with a labor supply 0 (i.e. no labor) and recieving a benefit of b
-    last_period_value = prim.util.( prim.a_grid .* (1 + r) .+ b, 0 )
-    val_fun[: ,: , end] = hcat(last_period_value, last_period_value)
 
     # Calculate population distribution across age cohorts
     μ = [1.0]
@@ -127,6 +125,10 @@ function V_ret(prim::Primitives, res::Results)
 
 end # V_ret
 =#
+function V_last(prim::Primitives, res::Results)
+    last_period_value = prim.util.( prim.a_grid .* (1 + res.r) .+ res.b, 0 )
+    res.val_fun[: ,: , end] = hcat(last_period_value, last_period_value)
+end
 
 function V_ret(prim::Primitives, res::Results)
     @unpack nA, a_grid, N_final, J_R, util, β = prim
@@ -312,6 +314,7 @@ function MarketClearing(; ss::Bool=true, i_risk::Bool=true, exog_l::Bool=false,
         if use_Fortran
             K, L = V_Fortran(prim,res)
         else
+            V_last(prim, res);
             V_ret(prim, res);
             V_workers(prim, res);
             SteadyStateDist(prim, res);
