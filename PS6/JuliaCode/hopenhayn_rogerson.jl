@@ -127,4 +127,5 @@ function market_clearing(prim, res; tol::Float64 = 1e-3)
         
     end
 
+
 end
