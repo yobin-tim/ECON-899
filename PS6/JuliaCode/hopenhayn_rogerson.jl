@@ -90,28 +90,41 @@ function TW_iterate(p, Π, nS, trans_mat; tol::Float64 = 1e-4)
     end
 end # TW_iterate
 
-function market_clearing(prim, res; tol::Float64 = 1e-4)
+function market_clearing(prim, res; tol::Float64 = 1e-3)
     @unpack Π, nS, trans_mat, ν, c_e, p_min, p_max = prim
 
+    θ = 0.99
     n = 0
-    while n < 100
+    
+    while n < 1000
         TW_iterate(res.p, Π, nS, trans_mat)
         # Calculate EC
         EC = sum(res.W_val .* ν)/res.p - c_e
-        println("p = ", res.p, " EC = ", EC, " tol = ", tol)
+        # println("p = ", res.p," EC = ", EC, " tol = ", tol)
+        println(n, " iterations; EC = ", EC, ", p = ", res.p, ", θ = ", θ)
         if abs( EC ) < tol
+            println("Market Cleared")
             break
-        else
-            if EC > 0
-                p_old = res.p
-                res.p = (p_min + res.p)/2
-                p_min = p_old
-            else
-                p_old = res.p
-                res.p = (p_max + res.p)/2
-                p_max = p_old
-            end
         end
+        if EC > 0       # adjust price toward bounds according to tuning parameter
+            res.p = θ*res.p + (1-θ)*p_min
+        else
+            res.p = θ*res.p + (1-θ)*p_max
+        end
+        n+=1
+
+
+        # adjust tuning parameter based on EC
+        if abs(EC) < tol * 1000
+            θ = 0.999
+        elseif abs(EC) > tol * 10000
+            θ = 0.95
+        else
+            θ = 0.99
+        end
+        
         n += 1
+        
     end
+
 end
