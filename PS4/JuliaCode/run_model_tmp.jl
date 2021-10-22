@@ -6,20 +6,53 @@ addprocs(1)
 
 @Distributed.everywhere include("./conesa_kueger_tmp.jl");
 
+prim_check, res_check = Convergence()
 
-Convergence()
+## Exercise 1 2.
+using Plots, LaTeXStrings
 
-## Exercise 1 1.
-##out_prim, out_res = MarketClearing(use_Fortran=false, tol = 1e-3);
-# prim_noSS, res_noSS = MarketClearing(use_Fortran=false, tol = 1e-3, ss = false);
+time = [1:1:res_check.N;]
 
-# save("../Data/Initial_Conditions.jld",
-#      "Γ_0", out_res.F,
-#      "V_0", out_res.val_fun,
-#      "K_θ", out_res.K,
-#      "K", res_noSS.K,
-#      "L_θ", out_res.L,
-#      "L", res_noSS.L)
+plot(time, res_check.r_path,
+     title = "Interest Rate",
+     xlabel = "Time",
+     ylabel = "",
+     color=:black,
+     legend = false,
+     lw = 2)
+
+savefig("../Document/Figures/interest_rate.pdf")
+
+plot(time, res_check.w_path,
+     title = "Wage Path",
+     xlabel = "Time",
+     ylabel = "",
+     color=:black,
+     legend = false,
+     lw = 2)
+
+savefig("../Document/Figures/wage.pdf")
+
+plot(time, res_check.K_path,
+     title = "Capital Path",
+     xlabel = "Time",
+     ylabel = "",
+     color=:black,
+     legend = false,
+     lw = 2)
+
+savefig("../Document/Figures/capital.pdf")
+
+plot(time, res_check.L_path,
+     title = "Labor Path",
+     xlabel = "Time",
+     ylabel = "",
+     color=:black,
+     legend = false,
+     lw = 2)
+
+savefig("../Document/Figures/labor.pdf")
+
 
 
 
