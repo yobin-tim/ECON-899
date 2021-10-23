@@ -12,7 +12,11 @@ using Parameters, Optim, Distributions, LinearAlgebra, Plots, LaTeXStrings
     iT      ::Int64             = 4
 end # Primitives
 @with_kw mutable struct  Results
-    b       ::Array{Float64} = [0,0]
+    bHat1TH       ::Array{Float64} = [0,0]
+    bHat2TH       ::Array{Float64} = [0,0]
+    e             ::Array{Float64}
+    JTest         ::Float64        =100
+    td            ::Array{Float64} = [0, 0] #The true data
 end # Primitives
 
 
@@ -116,6 +120,27 @@ function J(g,W,b) #The objective function
     end
 end
 
+function GraphAndFindbHat(W,prim,res,FindM,Exercise; NeweyWest=false)
+    @unpack ρgrid,σgrid,gpoints=prim
+    @unpack e, td = res
+    Jgrid=zeros(gpoints,gpoints)
+    for ρi=1:gpoints,σi=1:gpoints
+        md=ModelData(prim,e, [ρgrid[ρi] σgrid[σi]])
+        Jgrid[ρi,σi]=J(FindM(td).-FindM(md),W,[ρgrid[ρi] σgrid[σi]])
+    end
+    Solution=optimize(b->J(FindM(td).-FindM(ModelData(prim,e,b)),W,b),
+        [.3 1.2],NelderMead())
+    bHat=Solution.minimizer
+    plot(ρgrid,σgrid,Jgrid, st=:surface,
+        title=L"\hat{b}^{1}_{TH}=[%$(round(bHat[1],digits=4)) , %$(round(bHat[2],digits=4)) ]")
+    if NeweyWest
+        savefig("PS7\\Figures\\Exercise$(Exercise)NeweyWestCorrection.png")
+    else
+        savefig("PS7\\Figures\\Exercise$(Exercise).png")
+    end
+    return bHat
+end
+
 function NeweyWest(prim::Primitives,simdata::Array{Float64},
         m::Function, MTH::Array{Float64})
     @unpack iT,H,T = prim
@@ -140,9 +165,16 @@ function NeweyWest(prim::Primitives,simdata::Array{Float64},
         return inv(STH)
 end
 
+function Find∇g(res,prim, FindM; s=1e-7)
+    @unpack e, bHat2TH = res
+    ∂g∂ρ=(FindM(ModelData(prim,e,bHat2TH)).-FindM(ModelData(prim,e,bHat2TH-[s 0])))./s
+    ∂g∂σ=(FindM(ModelData(prim,e,bHat2TH)).-FindM(ModelData(prim,e,bHat2TH-[0 s])))./s
+    return hcat(∂g∂ρ,∂g∂σ)
+end
+
 function StepsAThroughD()
     prim=Primitives()
-    e=eDrawsForModel(prim)
+    res=Results(e=eDrawsForModel(prim))
     for Exercise=4:6
         if Exercise==4
             FindM=FindM2_MeanVar
@@ -154,34 +186,30 @@ function StepsAThroughD()
             FindM=FindM3
             m=m3
         end
-        td=TrueData(prim)
-
+        res.td=TrueData(prim)
         #Function for parts a and b
-            function GraphAndFindbHat(W; NeweyWest=false)
-                @unpack ρgrid,σgrid,gpoints=prim
-                Jgrid=zeros(gpoints,gpoints)
-                for ρi=1:gpoints,σi=1:gpoints
-                    md=ModelData(prim,e, [ρgrid[ρi] σgrid[σi]])
-                    Jgrid[ρi,σi]=J(FindM(td).-FindM(md),W,[ρgrid[ρi] σgrid[σi]])
-                end
-                Solution=optimize(b->J(FindM(td).-FindM(ModelData(prim,e,b)),W,b),
-                    [.3 1.2],NelderMead())
-                bHat=Solution.minimizer
-                plot(ρgrid,σgrid,Jgrid, st=:surface,
-                    title=L"\hat{b}^{1}_{TH}=[%$(round(bHat[1],digits=4)) , %$(round(bHat[2],digits=4)) ]")
-                if NeweyWest
-                    savefig("PS7\\Figures\\Exercise$(Exercise)NeweyWestCorrection.png")
-                else
-                    savefig("PS7\\Figures\\Exercise$(Exercise).png")
-                end
-                return bHat
-            end
+
         #Part a: Graph in three Dimensions
-            bHat1TH=GraphAndFindbHat(I)
+            res.bHat1TH=GraphAndFindbHat(I,prim,res,FindM,Exercise)
         #Part b: Use NeweyWest to update your guess of bHat
-            md_bHat1TH=ModelData(prim,e, bHat1TH)
-            WStar=NeweyWest(prim,ModelData(prim,e, md_bHat1TH),
+            md_bHat1TH=ModelData(prim,res.e, res.bHat1TH)
+            WStar=NeweyWest(prim,ModelData(prim,res.e, md_bHat1TH),
                     m, FindM(md_bHat1TH))
-            bHat2TH=GraphAndFindbHat(WStar; NeweyWest=true)
-    end #Ending Loop over Exercises
+            res.bHat2TH=GraphAndFindbHat(WStar,prim,res,FindM,Exercise,
+                NeweyWest=true)
+        #Part c
+            ∇g=Find∇g(res,prim,FindM)
+                print("In Exercise $(Exercise), ∇g= \n\n")
+                display(∇g)
+            VarCovarbHat2TH=(1/prim.T)*inv(transpose(∇g)*WStar*∇g)
+                print("The variance-covariance matrix for bHat2TH is given by \n\n")
+                display(VarCovarbHat2TH)
+            StdErrorsbHat2TH=sqrt.(diag(VarCovarbHat2TH))
+                print("The Standard errors are given by \n\n")
+                display(StdErrorsbHat2TH)
+        #Part d: Computing the Value of the J test
+            res.JTest=prim.T*(prim.H/(1+prim.H))*
+                J(FindM(res.td).-FindM(ModelData(prim,res.e,res.bHat2TH)),
+                    WStar,res.bHat2TH)
+    end #Exercise Loop
 end #End Function StepsAThroughD
