@@ -198,18 +198,23 @@ function StepsAThroughD()
             res.bHat2TH=GraphAndFindbHat(WStar,prim,res,FindM,Exercise,
                 NeweyWest=true)
         #Part c
+        print("
+________________________________________________________________________________
+                    Results for Exercise $(Exercise)
+________________________________________________________________________________\n")
             ∇g=Find∇g(res,prim,FindM)
-                print("In Exercise $(Exercise), ∇g= \n\n")
+                print("∇g= \n\n")
                 display(∇g)
             VarCovarbHat2TH=(1/prim.T)*inv(transpose(∇g)*WStar*∇g)
-                print("The variance-covariance matrix for bHat2TH is given by \n\n")
+                print("\n The variance-covariance matrix for bHat2TH is given by \n\n")
                 display(VarCovarbHat2TH)
             StdErrorsbHat2TH=sqrt.(diag(VarCovarbHat2TH))
-                print("The Standard errors are given by \n\n")
+                print("\n The Standard errors are given by \n\n")
                 display(StdErrorsbHat2TH)
         #Part d: Computing the Value of the J test
             res.JTest=prim.T*(prim.H/(1+prim.H))*
                 J(FindM(res.td).-FindM(ModelData(prim,res.e,res.bHat2TH)),
                     WStar,res.bHat2TH)
+                print("\n The J-Test is $(res.JTest)")
     end #Exercise Loop
 end #End Function StepsAThroughD
