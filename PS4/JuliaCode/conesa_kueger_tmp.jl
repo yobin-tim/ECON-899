@@ -307,7 +307,7 @@ function Convergence()
 
     it = 1
     
-    maxit = 10
+    maxit = 20
     
     while ((convergence == 0) && (it < maxit)) 
         
@@ -332,7 +332,7 @@ function Convergence()
                 abs(res.L_path[res.N]-prim.L_last)
                     println("$it iterations; err2 = $err2")
 
-            if err2 < 1e-2
+            if err2 < 5e-2
                 
                 convergence = 1
 
