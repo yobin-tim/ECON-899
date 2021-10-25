@@ -126,15 +126,5 @@ function market_clearing(prim, res; tol::Float64 = 1e-3)
         n += 1
         
     end
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-end
-=======
 end
 
->>>>>>> ps5_simulaiton_alternative
-=======
-
-end
->>>>>>> ce279ab46af26041889ae89c207f304e1a7474cd

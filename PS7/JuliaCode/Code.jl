@@ -134,9 +134,11 @@ function GraphAndFindbHat(W,prim,res,FindM,Exercise; NeweyWest=false)
     plot(ρgrid,σgrid,Jgrid, st=:surface,
         title=L"\hat{b}^{1}_{TH}=[%$(round(bHat[1],digits=4)) , %$(round(bHat[2],digits=4)) ]")
     if NeweyWest
-        savefig("PS7\\Figures\\Exercise$(Exercise)NeweyWestCorrection.png")
+        # savefig("PS7\\Figures\\Exercise$(Exercise)NeweyWestCorrection.png")
+        savefig("PS7/Figures/Exercise$(Exercise)NeweyWestCorrection.png")
     else
-        savefig("PS7\\Figures\\Exercise$(Exercise).png")
+        # savefig("PS7\\Figures\\Exercise$(Exercise).png")
+        savefig("PS7/Figures/Exercise$(Exercise).png")
     end
     return bHat
 end
