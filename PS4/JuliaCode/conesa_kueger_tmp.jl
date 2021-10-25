@@ -67,13 +67,22 @@ end # Primitives
 end 
 
 # Function that initializes the model
-function Initialize(N::Int64)
+function Initialize(N::Int64, ex1::Bool=true)
+    
     prim = Primitives()                   # Initialize the primitives
     d = load("../Data/Initial_Conditions.jld") # Initial Conditions from PS3
     ## Initial Guess for the transition
 
-    θ = append!([0.11], fill(0.0, N-1))
+    if ex1
+        
+        θ = append!([0.11], fill(0.0, N-1))
+        
+    else
+        
+        θ = append!(fill(0.11,21), fill(0.0, N-21))
 
+    end
+    
     val_fun_path = SharedArray{Float64}(prim.nA, prim.nZ,
                                         prim.N_final, N)    
     pol_fun_path = SharedArray{Float64}(prim.nA, prim.nZ,
@@ -295,10 +304,16 @@ function ShootForward(prim::Primitives, res::Results)
     end
 end
 
-function Convergence()
-    
-    prim, res = Initialize(56);
-                   
+function Convergence(ex1::Bool=true)
+
+    if ex1
+        tmp = 57
+    else
+        tmp = 80
+    end
+
+    prim, res = Initialize(tmp, ex1);
+
     @unpack r_mkt, w_mkt, b_mkt, J_R = prim
     err = 100;
     λ = 0.5;
@@ -340,7 +355,7 @@ function Convergence()
 
                 res.N += 1
 
-                prim, res = Initialize(res.N);
+                prim, res = Initialize(res.N, ex1);
 
             end
             
