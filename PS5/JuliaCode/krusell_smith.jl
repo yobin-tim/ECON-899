@@ -416,6 +416,8 @@ function auto_reg(prim::Primitives, res::Results, shocks::Shocks)
         if t % 1000 == 0
             println("Period: ", t, ", K₀ = ", round(K₀, digits = 2))
         end
+    end
+    
     # Store resutls 
     reg_coefs = Dict()
     

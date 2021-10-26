@@ -1,8 +1,4 @@
-# --------------------------------------------------------------------------
-# File Name: ks_model.jl
-# Author: Philip Coyle
-# --------------------------------------------------------------------------
-## Housekeeping
+@everywhere using Parameters, LinearAlgebra, Random, Distributions
 @with_kw struct Params
     cBET::Float64 = 0.99
     cALPHA::Float64 = 0.36
@@ -291,4 +287,26 @@ function get_index(val::Float64, grid::Array{Float64,1})
         index = index_lower + (val - val_lower) / (val_upper - val_lower)
     end
     return index
+end
+
+## Adding functions
+function Initialize()
+
+    prim = Params()
+    grid = Grids()
+    shock = Shocks()
+
+    pf_k = zeros(grid.n_k, grid.n_eps, grid.n_K, grid.n_z)
+    pf_v = zeros(grid.n_k, grid.n_eps, grid.n_K, grid.n_z)
+
+    a0 = 0.095
+    a1 = 0.999
+    b0 = 0.085
+    b1 = 0.999
+
+
+    
+    shocks = Shocks(Π, Π_z, z_seq, ℇ)
+    res = Results(val_fun, pol_fun, val_fun_interp, pol_fun_interp, a, b, k_forecast_grid, V)
+    
 end
