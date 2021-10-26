@@ -59,8 +59,17 @@
 \begin{document}
 	
 	\begin{enumerate}
-		\item Derive the following asymptotic moments associated with $ m_3(x) $ : mean, variance, first order autocorrelation. Furthermore, compute $ \nabla_b g(b_0) $. Which moments are informative for estimating $ b $?
+		\item Derive the following asymptotic moments associated with $ m_3(x) $ : mean, variance, first order auto-correlation. Furthermore, compute $ \nabla_b g(b_0) $. Which moments are informative for estimating $ b $?
+		\begin{solution}
+			We obtain the asymptotic moments as follows:
+			\begin{align*}
+				\E[x_t] & = \E[\rho_0 x_{t-1} + \epsilon_t] = \rho_0 \E[x_{t-1}] + \E[\epsilon_t] = \rho_0 \E[ \rho_0 x_{t-2} + \epsilon_{t-1} ] =  \rho_0^t \E[x_0] = 0.\\
+				\E[(x_t - \E[x_t])^2] & = \E[x_t^2] = \E[(\rho_0 x_{t-1} + \epsilon_t)^2 ] \\ &= \rho_0^2 \E[x_{t-1}^2] + 2 \rho_0 \E[x_{t-1} \epsilon_t] + \E[\epsilon_t^2] \\ & = \rho_0^2 \E[ (\rho_0 x_{t-2} + \epsilon_{t-1})^2 ] + \sigma_0^2 \\ & = \rho_0^{2T} \E[x_0^2] + \sigma_0^2 \sum_{i=0}^{T-1} (\rho_0^2)^{i}  \rightarrow \frac{\sigma_0^2}{1 - \rho_0^2} = \frac{4}{3}.\\
+				\E[(x_t - \E[x_t]) (x_{t-1} - \E[x_{t-1}]) ]&  =  \E[x_t x_{t-1}]  \\ &= \rho_0  \E[x_{t-1}^2]  + \E[ \epsilon_t x_{t-1} ] \\ & =   \rho_0 \E[ (\rho_0 x_{t-2} + \epsilon_{t-1})^2 ] \\ & =  \rho_0^3 \E[x_{t-2}^2] + \rho_0 \E[\epsilon_{t-1}^2]  \\ & = \rho_0^{2T - 1} \E[x_0^2] + \rho_0  \sigma_0^2 \sum_{i=0}^{T-2} (\rho_0^2)^{i}    \rightarrow  \frac{\rho_0 \sigma_0^2}{1 - \rho_0^2} = \frac{2}{3}   \\
+			\end{align*}
 		
+			Both the variance and the first order correlation are informative for estimating $ b $.
+		\end{solution}
 		\item Simulate a series of “true” data of length $ T = 200 $ using (1). We will use this to compute
 		$ M_T (x) $.
 		
