@@ -13,6 +13,8 @@
     tol_coef::Float64 = 1e-4
     tol_r2::Float64 = 1.0 - 1e-2
     maxit::Int64 = 10000
+    w_mkt  ::Function         = (K, L, z) -> (1 - cALPHA)*z*(K/L)^cALPHA
+    r_mkt  ::Function         = (K, L, z) -> cALPHA*z*(K/L)^(cALPHA-1)    
 end
 
 @with_kw struct Grids
@@ -208,7 +210,7 @@ end
 # i_Kp = get_index(K_tomorrow, K_grid)
 
 function Bellman(P::Params, G::Grids, S::Shocks, R::Results)
-    @unpack cBET, cALPHA, cDEL = P
+    @unpack cBET, cALPHA, cDEL, w_mkt, r_mkt = P
     @unpack n_k, k_grid, n_eps, eps_grid, eps_h, K_grid, n_K, n_z, z_grid = G
     @unpack u_g, u_b, markov = S
     @unpack pf_k, pf_v, a0, a1, b0, b1= R
@@ -223,6 +225,13 @@ function Bellman(P::Params, G::Grids, S::Shocks, R::Results)
     v_interp = interpolate(pf_v, BSpline(Linear()))
 
     for (i_z, z_today) in enumerate(z_grid)
+
+        if i_z == 1
+            L_today = (1 - u_g)*eps_h  # aggregate effective labor
+        else
+            L_today = (1 - u_b)*eps_h  # aggregate effective labor
+        end
+        
         for (i_K, K_today) in enumerate(K_grid)
             if i_z == 1
                 K_tomorrow = a0 + a1*log(K_today)
@@ -230,31 +239,43 @@ function Bellman(P::Params, G::Grids, S::Shocks, R::Results)
                 K_tomorrow = b0 + b1*log(K_today)
             end
             K_tomorrow = exp(K_tomorrow)
+            println(K_tomorrow)
+            println(z_today)
+            println(K_today)
+            println(L_today)
+            println(cALPHA)
 
-            # See that K_tomorrow likely does not fall on our K_grid...this is why we need to interpolate!
+            w_today = (1 - cALPHA)*z_today*(K_today/L_today)^cALPHA
+
+            r_today = 0.1 #w_mkt(K_today, L_today, z_today)
+
             i_Kp = get_index(K_tomorrow, K_grid)
-
+            
             for (i_eps, eps_today) in enumerate(eps_grid)
                 row = i_eps + n_eps*(i_z-1)
 
                 for (i_k, k_today) in enumerate(k_grid)
-                    budget_today = r_today*k_today + w_today*eps_today + (1.0 - cDEL)*k_today
+                    budget_today = r_today*k_today + w_today*eps_today +
+                        (1.0 - cDEL)*k_today
 
-                    # We are defining the continuation value. Notice that we are interpolating over k and K.
+                    # We are defining the continuation value.
+                    # Notice that we are interpolating over k and K.
                     v_tomorrow(i_kp) = markov[row,1]*v_interp(i_kp,1,i_Kp,1) + markov[row,2]*v_interp(i_kp,2,i_Kp,1) +
                                         markov[row,3]*v_interp(i_kp,1,i_Kp,2) + markov[row,4]*v_interp(i_kp,2,i_Kp,2)
 
 
                     # We are now going to solve the HH's problem (solve for k).
                     # We are defining a function val_func as a function of the agent's capital choice.
-                    val_func(i_kp) = log(budget_today - k_interp(i_kp)) +  cBET*v_tomorrow(i_kp)
+                    val_func(i_kp) = log(budget_today - k_interp(i_kp)) +
+                        cBET*v_tomorrow(i_kp)
 
                     # Need to make our "maximization" problem a "minimization" problem.
                     obj(i_kp) = -val_func(i_kp)
                     lower = 1.0
                     upper = get_index(budget_today, k_grid)
 
-                    # Then, we are going to maximize the value function using an optimization routine.
+                    # Then, we are going to maximize the value function
+                    # using an optimization routine.
                     # Note: Need to call in optimize to use this package.
                     opt = optimize(obj, lower, upper)
 
@@ -289,24 +310,34 @@ function get_index(val::Float64, grid::Array{Float64,1})
     return index
 end
 
-## Adding functions
+## Adding functions3
 function Initialize()
 
     prim = Params()
+
     grid = Grids()
+
     shock = Shocks()
 
-    pf_k = zeros(grid.n_k, grid.n_eps, grid.n_K, grid.n_z)
-    pf_v = zeros(grid.n_k, grid.n_eps, grid.n_K, grid.n_z)
+    pf_k = zeros(grid.n_k, grid.n_eps, grid.n_K, grid.n_z);
+    pf_v = zeros(grid.n_k, grid.n_eps, grid.n_K, grid.n_z);
 
-    a0 = 0.095
-    a1 = 0.999
-    b0 = 0.085
-    b1 = 0.999
+    a0 = 0.095;
+    a1 = 0.999;
+    b0 = 0.085;
+    b1 = 0.999;
 
+    R2 = [0.000];
 
+    res = Results(pf_k, pf_v, a0, a1, b0, b1, R2)
     
-    shocks = Shocks(Π, Π_z, z_seq, ℇ)
-    res = Results(val_fun, pol_fun, val_fun_interp, pol_fun_interp, a, b, k_forecast_grid, V)
-    
+    return prim, grid, shock, res
+     
 end
+
+function SimulateCapitalPath()
+    K_ss = 11.55
+    pf_k_up[K_ss]
+end
+
+    
