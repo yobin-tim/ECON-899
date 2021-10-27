@@ -1,4 +1,5 @@
-
+theme(:juno)
+default(fontfamily="Computer Modern", framestyle=:box)
 #Load the Code
     include("Code.jl");
 

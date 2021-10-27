@@ -1,8 +1,4 @@
-# --------------------------------------------------------------------------
-# File Name: ks_model.jl
-# Author: Philip Coyle
-# --------------------------------------------------------------------------
-## Housekeeping
+@everywhere using Parameters, LinearAlgebra, Random, Distributions
 @with_kw struct Params
     cBET::Float64 = 0.99
     cALPHA::Float64 = 0.36
@@ -195,25 +191,22 @@ function draw_shocks(S::Shocks, N::Int64,T::Int64)
     return idio_state, agg_state
 end
 
-<<<<<<< HEAD
-k_lb= 0.001
-k_ub= 20.0
-n_k= 21
-k_grid= range(k_lb, stop = k_ub, length = n_k)
+# k_lb= 0.001
+# k_ub= 20.0
+# n_k= 21
+# k_grid= range(k_lb, stop = k_ub, length = n_k)
 
-K_lb = 10.0
-K_ub = 15.0
-n_K = 11
-K_grid = range(K_lb, stop = K_ub, length = n_K)
+# K_lb = 10.0
+# K_ub = 15.0
+# n_K = 11
+# K_grid = range(K_lb, stop = K_ub, length = n_K)
 
-K_today = K_grid[10]
+# K_today = K_grid[10]
 
-K_tomorrow = exp(0.095 + 0.999*log(K_today))
+# K_tomorrow = exp(0.095 + 0.999*log(K_today))
 
-i_Kp = get_index(K_tomorrow, K_grid)
+# i_Kp = get_index(K_tomorrow, K_grid)
 
-=======
->>>>>>> 57236ffec3dd22b2701c7f30979643c20b5cc1c8
 function Bellman(P::Params, G::Grids, S::Shocks, R::Results)
     @unpack cBET, cALPHA, cDEL = P
     @unpack n_k, k_grid, n_eps, eps_grid, eps_h, K_grid, n_K, n_z, z_grid = G
@@ -226,10 +219,6 @@ function Bellman(P::Params, G::Grids, S::Shocks, R::Results)
     # In Julia, this is how we define an interpolated function.
     # Need to use the package "Interpolations".
     # (If you so desire, you can write your own interpolation function too!)
-<<<<<<< HEAD
-
-=======
->>>>>>> 57236ffec3dd22b2701c7f30979643c20b5cc1c8
     k_interp = interpolate(k_grid, BSpline(Linear()))
     v_interp = interpolate(pf_v, BSpline(Linear()))
 
@@ -283,11 +272,7 @@ function Bellman(P::Params, G::Grids, S::Shocks, R::Results)
     return pf_k_up, pf_v_up
 end
 
-<<<<<<< HEAD
-function get_index(val::Float64, grid)
-=======
 function get_index(val::Float64, grid::Array{Float64,1})
->>>>>>> 57236ffec3dd22b2701c7f30979643c20b5cc1c8
     n = length(grid)
     index = 0
     if val <= grid[1]
@@ -302,4 +287,26 @@ function get_index(val::Float64, grid::Array{Float64,1})
         index = index_lower + (val - val_lower) / (val_upper - val_lower)
     end
     return index
+end
+
+## Adding functions
+function Initialize()
+
+    prim = Params()
+    grid = Grids()
+    shock = Shocks()
+
+    pf_k = zeros(grid.n_k, grid.n_eps, grid.n_K, grid.n_z)
+    pf_v = zeros(grid.n_k, grid.n_eps, grid.n_K, grid.n_z)
+
+    a0 = 0.095
+    a1 = 0.999
+    b0 = 0.085
+    b1 = 0.999
+
+
+    
+    shocks = Shocks(Π, Π_z, z_seq, ℇ)
+    res = Results(val_fun, pol_fun, val_fun_interp, pol_fun_interp, a, b, k_forecast_grid, V)
+    
 end

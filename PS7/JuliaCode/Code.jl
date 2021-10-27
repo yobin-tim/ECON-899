@@ -28,7 +28,7 @@ function TrueData(prim)
     for t=2:(T+1)
         xt[t]=ρ0*xt[t-1]+ϵ[t-1]
     end
-    xt=xt[2:end]
+    # xt=xt[2:end]
     return xt
 end
 function eDrawsForModel(prim)
@@ -134,9 +134,11 @@ function GraphAndFindbHat(W,prim,res,FindM,Exercise; NeweyWest=false)
     plot(ρgrid,σgrid,Jgrid, st=:surface,
         title=L"\hat{b}^{1}_{TH}=[%$(round(bHat[1],digits=4)) , %$(round(bHat[2],digits=4)) ]")
     if NeweyWest
-        savefig("PS7\\Figures\\Exercise$(Exercise)NeweyWestCorrection.png")
+        # savefig("PS7\\Figures\\Exercise$(Exercise)NeweyWestCorrection.png")
+        savefig("PS7/Figures/Exercise$(Exercise)NeweyWestCorrection.png")
     else
-        savefig("PS7\\Figures\\Exercise$(Exercise).png")
+        # savefig("PS7\\Figures\\Exercise$(Exercise).png")
+        savefig("PS7/Figures/Exercise$(Exercise).png")
     end
     return bHat
 end
@@ -191,17 +193,21 @@ function StepsAThroughD()
 
         #Part a: Graph in three Dimensions
             res.bHat1TH=GraphAndFindbHat(I,prim,res,FindM,Exercise)
+            print("
+________________________________________________________________________________
+                    Results for Exercise $(Exercise)
+________________________________________________________________________________\n")
+            println("The estimate of b using W = I is ", res.bHat1TH,".")
+
         #Part b: Use NeweyWest to update your guess of bHat
             md_bHat1TH=ModelData(prim,res.e, res.bHat1TH)
             WStar=NeweyWest(prim,ModelData(prim,res.e, md_bHat1TH),
                     m, FindM(md_bHat1TH))
             res.bHat2TH=GraphAndFindbHat(WStar,prim,res,FindM,Exercise,
                 NeweyWest=true)
+            println("The estimate of b using Wstar is ", res.bHat2TH,".")
+
         #Part c
-        print("
-________________________________________________________________________________
-                    Results for Exercise $(Exercise)
-________________________________________________________________________________\n")
             ∇g=Find∇g(res,prim,FindM)
                 print("∇g= \n\n")
                 display(∇g)

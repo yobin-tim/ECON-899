@@ -408,6 +408,14 @@ function auto_reg(prim::Primitives, res::Results, shocks::Shocks)
     # Calculate aggregate for each period and take logarithms
     K_agg_ts = sum(V, dims=1)/N
     log_K_agg_ts = log.(K_agg_ts)
+
+    # simulate each agent's holdings for T time periods
+    for t = 2:T
+        if t % 1000 == 0
+            println("Period: ", t, ", K₀ = ", round(K₀, digits = 2))
+        end
+    end
+    
     # Store resutls 
     reg_coefs = Dict()
     
