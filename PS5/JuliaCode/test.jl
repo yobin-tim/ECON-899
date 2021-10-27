@@ -22,7 +22,7 @@ err = sum( (res.a - reg_coefs[1]).^2) + sum( (res.b - reg_coefs[2]).^2 )
 res.a = reg_coefs[1] * (1 - λ) + λ * res.a  
 res.b = reg_coefs[2] * (1 - λ) + λ * res.b
 
-k_forecast_grid_old = copy(k_forecast_grid)
+k_forecast_grid_old = copy(res.k_forecast_grid)
 
 # Re-calculate forcasted capital values
 k_forecast_grid = zeros(prim.nK, prim.nZ)

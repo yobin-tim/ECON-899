@@ -20,14 +20,14 @@ using Parameters
 
     # Price grid
     p_min       ::Float64 = 0.01
-    p_max       ::Float64 = 15.0
+    p_max       ::Float64 = 1.5
     # nP          ::Int64   = 10
     # p_grid      ::Array{Float64}   = range(p_min, stop = p_max, length = nP)
 
     # Optimal decision rules
     n_optim     ::Function         = ( s , p ) -> (θ * p * s) ^ (1/(1 - θ))
 
-    Π           ::Function         = ( s , p ) -> p*s*( n_optim( s , p) )^θ - n_optim( s , p) - p * c_f
+    Π           ::Function         = ( s , p,  n ) -> p*s*( n )^θ - n  - p * c_f
 
 end
 
@@ -36,7 +36,9 @@ mutable struct Results
     W_val   ::Array{Float64}         # Firm value given state variables
     n_opt   ::Array{Float64}         # Optimal labor demand for each possible state
     x_opt   ::Array{Int64}           # Optimal firm decicion for each state
-    p       ::Float64                # Price that clears the market
+    p       ::Float64                # Market clearing price
+    μ       ::Array{Float64}         # Distribution of Firms
+    M       ::Float64                # Mass of entrants
 end
 
 # Initialize model
@@ -47,28 +49,31 @@ function Initialize()
     n_opt = zeros(prim.nS)
     x_opt = zeros(prim.nS)
     p = 7.0
+    μ = ones(prim.nS) / prim.nS # Uniform distribution is the initial guess
+    M = 0.5 # Random number for intial guess
 
-    res = Results(W_val, n_opt, x_opt, p)
+    res = Results(W_val, n_opt, x_opt, p, μ, M)
 
     return prim, res
 
 end
 
 # Bellman operator for W
-function W(p, Π, nS, trans_mat)
-        
+function W(prim::Primitives, res::Results)
+    @unpack Π, n_optim, nS, trans_mat, c_f, β = prim
+    @unpack p = res 
     # Iterate over all possible states
     for s_i ∈ 1:nS
 
-        prof = Π(s_i, p)
+        prof = Π(s_i, p, n_optim(s_i, p))
 
         # Calculate expected continuation value
 
         exp_cont_value = trans_mat[s_i, :]' * res.W_val
 
-        x = ( exp_cont_value > 0 ) ? 1 : 0
+        x = ( exp_cont_value > 0 ) ? 0 : 1
         
-        res.W_val[s_i] = prof + (1 - x) * exp_cont_value
+        res.W_val[s_i] = prof + β * (1 - x) * (exp_cont_value )
         res.x_opt[s_i] = x
 
     end
@@ -76,13 +81,14 @@ function W(p, Π, nS, trans_mat)
 end # W
 
 #Value function iteration for W operator
-function TW_iterate(p, Π, nS, trans_mat; tol::Float64 = 1e-4)
+function TW_iterate(prim::Primitives, res::Results; tol::Float64 = 1e-4)
+    
     n = 0 #counter
     err = 100.0 #initialize error
     while  (err > tol) & (n < 4000)#begin iteration
         W_val_old = copy(res.W_val)
-        W(p, Π, nS, trans_mat)
-        err = abs.( maximum( W_val_old - res.W_val ) ) #reset error level
+        W(prim, res)
+        err = maximum(  abs.(W_val_old - res.W_val ) ) #reset error level
         n+=1
         if n % 100 == 0
             println("Iter =", n , " Error = ", err)
@@ -90,14 +96,14 @@ function TW_iterate(p, Π, nS, trans_mat; tol::Float64 = 1e-4)
     end
 end # TW_iterate
 
-function market_clearing(prim, res; tol::Float64 = 1e-3)
+function market_clearing(prim::Primitives, res::Results; tol::Float64 = 1e-3)
     @unpack Π, nS, trans_mat, ν, c_e, p_min, p_max = prim
 
     θ = 0.99
     n = 0
     
     while n < 1000
-        TW_iterate(res.p, Π, nS, trans_mat)
+        TW_iterate(prim, res)
         # Calculate EC
         EC = sum(res.W_val .* ν)/res.p - c_e
         # println("p = ", res.p," EC = ", EC, " tol = ", tol)
@@ -111,7 +117,6 @@ function market_clearing(prim, res; tol::Float64 = 1e-3)
         else
             res.p = θ*res.p + (1-θ)*p_max
         end
-        n+=1
 
 
         # adjust tuning parameter based on EC
@@ -126,15 +131,97 @@ function market_clearing(prim, res; tol::Float64 = 1e-3)
         n += 1
         
     end
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-end
-=======
 end
 
->>>>>>> ps5_simulaiton_alternative
-=======
+# Calculate distribution of firms
+function Tμ(prim::Primitives, res::Results)
+    @unpack trans_mat, nS, ν = prim
+    
+    stay = 1 .- res.x_opt   
+    μ₁ = zeros(nS)
+    for s_i ∈ 1:nS
+        # Add the mass of firms that stay in the market
+
+        μ₁[s_i] += trans_mat[s_i, :]' * (stay .* res.μ)
+        # Add the mass of entrants
+        μ₁[s_i] += trans_mat[s_i, :]' * (stay .*  ν * res.M)
+    end
+    return μ₁
+end # 
+
+# Calculate steady state distribution of firms
+# TODO: Check why this is not necesary
+function Tμ_iterate(prim::Primitives, res::Results; tol::Float64 = 1e-3)
+    
+    n = 0 #counter
+    err = 100.0 #initialize error
+    while  (err > tol) & (n < 4000)#begin iteration
+        μ_new = Tμ(prim, res)
+        err = maximum( abs.( μ_new .- res.μ ) ) #reset error level
+        res.μ = μ_new
+        n+=1
+        if n % 100 == 0
+            println("Iter =", n , " Error = ", err)
+        end
+        if n == 4000
+            println("Iteration limit reached")
+        end
+        if err < tol
+            println("Distribution converged in $n iterations")
+            break
+        end
+    end
+
+end # Tμ_iterate
+
+# Iterate until labor market clears
+function Tμ_iterate_until_cleared(prim::Primitives, res::Results;  tol::Float64 = 1e-3)
+    @unpack Π, n_optim , s_vals, ν, A = prim
+    
+    θ = 0.99
+    n = 0 #counter
+    err = 100.0 #initialize error
+    while  (err > tol) & (n < 4000)#begin iteration
+        
+        res.μ = Tμ(prim, res ) # Find the distribution of firms using initial guess for entrants
+        
+        # Calculate optimal labor demand for each firm (for each productivity level)
+        n_opt = n_optim.(s_vals, res.p)
+        # Calculate profit for each firm (for each productivity level)
+        prof = Π.(s_vals, res.p, n_opt)
+        # Calculate  mass of firms in the market (for each productivity level)
+        mass = res.μ + res.M * ν
+
+        # Calculate Total labor demand
+        tot_labor_demand = sum(n_opt' .* mass)
+        # Calculate total profits 
+        tot_profit = sum(prof' .* mass)
+        # Calculate total supply of labor
+        tot_labor_supply = 1/A - tot_profit
+
+        err =  tot_labor_demand - tot_labor_supply #reset error level
+        println(n, " iterations; err = ", err, ", M = ", res.M, ", θ = ", θ)
+        if abs( err ) < tol
+            println("Labor Market Cleared")
+            break
+        end
+        if err > 0       # adjust price toward bounds according to tuning parameter assuming M∈[1, 5]
+            res.M = θ*res.M + (1-θ)*1
+        else
+            res.M = θ*res.M + (1-θ)*5
+        end
+
+
+        # adjust tuning parameter based on EC
+        if abs( err ) < tol * 1000
+            θ = 0.999
+        elseif abs(EC) > tol * 10000
+            θ = 0.95
+        else
+            θ = 0.99
+        end
+        
+        n += 1
+    end
 
 end
->>>>>>> ce279ab46af26041889ae89c207f304e1a7474cd

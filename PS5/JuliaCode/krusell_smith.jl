@@ -408,64 +408,22 @@ function auto_reg(prim::Primitives, res::Results, shocks::Shocks)
     # Calculate aggregate for each period and take logarithms
     K_agg_ts = sum(V, dims=1)/N
     log_K_agg_ts = log.(K_agg_ts)
-<<<<<<< HEAD
-
-<<<<<<< HEAD
-    # simulate each agent's holdings for T time periods
-    for t = 2:T
-        if t % 1000 == 0
-            println("Period: ", t, ", K₀ = ", round(K₀, digits = 2))
-        end
-        
-=======
-=======
-  
->>>>>>> ce279ab46af26041889ae89c207f304e1a7474cd
     # Store resutls 
     reg_coefs = Dict()
     
     # Estimate a regression 
     for iz ∈ 1:nZ
         K_agg_ts_state = log_K_agg_ts[z_seq .== iz]
-<<<<<<< HEAD
->>>>>>> ps5_simulaiton_alternative
-=======
->>>>>>> ce279ab46af26041889ae89c207f304e1a7474cd
 
         K_agg_next = K_agg_ts_state[2:end]
         K_agg_now = K_agg_ts_state[1:end-1]
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-        # generate idiosyncratic shocks
-        n_rand = rand(Float64, N)
-
-        # determine current capital holdings given last period's K, e, and z
-        # TODO: FULLY PARALLELIZE
-        # TODO: Feed vectors into each function, avoiding loop altogether?
-        for n = 1:N 
-=======
         # Create reggression matrix
         X = hcat( ones(length(K_agg_next)), K_agg_now)
->>>>>>> ps5_simulaiton_alternative
-=======
-        # Create reggression matrix
-        X = hcat( ones(length(K_agg_next)), K_agg_now)
->>>>>>> ce279ab46af26041889ae89c207f304e1a7474cd
-
-        # TODO: FULLY PARALLELIZE
-        # TODO: Feed vectors into each function, avoiding loop altogether?
-        reg_coefs[iz] = (X'X)^(-1)*(X'*K_agg_next)
+        # Calculate regression coefficients
+        reg_coefs[iz] = (X'X)^(-1) * X' * K_agg_next
     end
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-            # update agent's shock
-            e_grid[n]   = (n_rand[n] < u[z]) ? 1 : 2 
-=======
-=======
-
->>>>>>> ce279ab46af26041889ae89c207f304e1a7474cd
     # Calcualte R_squared
     k_forecasted = zeros(1, T)
     for i in 1:T
@@ -479,11 +437,7 @@ function auto_reg(prim::Primitives, res::Results, shocks::Shocks)
     
     return reg_coefs, R_squared
 end
-<<<<<<< HEAD
->>>>>>> ps5_simulaiton_alternative
-=======
 
->>>>>>> ce279ab46af26041889ae89c207f304e1a7474cd
 
 # Outer-most function that iterates to convergence
 function SolveModel(n_iter; tol = 1e-2, err = 100, I = 1, use_dense_grid::Bool=false)
@@ -500,9 +454,10 @@ function SolveModel(n_iter; tol = 1e-2, err = 100, I = 1, use_dense_grid::Bool=f
         for i in 1:n_iter # Start with few iterations just to see whats happening 
         
             # given current coefficients, solve consumer problem
-            V_iterate(prim, res, shocks)
+            V_iterate(prim, res, shocks; use_dense_grid=use_dense_grid)
 
             # given consumers' policy functions, simulate time series
+            println("Simulating time series")
             V = Simulation(prim, res, shocks)
             
             # Do (auto)regression with simulated data
@@ -511,19 +466,19 @@ function SolveModel(n_iter; tol = 1e-2, err = 100, I = 1, use_dense_grid::Bool=f
             # Get error:
             err = sum( (res.a - reg_coefs[1]).^2) + sum( (res.b - reg_coefs[2]).^2 )
 
-            println("Iteration: ", i, " --- ", err, " --- R² = ", R_squared)
-
+            
             # Update regression coefficients
-            res.a = reg_coefs[1] * (1 - λ) + λ * res.a  
-            res.b = reg_coefs[2] * (1 - λ) + λ * res.b 
-
+            res.a = reg_coefs[1] #* (1 - λ) + λ * res.a  
+            res.b = reg_coefs[2] #* (1 - λ) + λ * res.b 
+            
             # Re-calculate forcasted capital values
             k_forecast_grid = zeros(prim.nK, prim.nZ)
             k_forecast_grid[:, 1] = prim.k_forecast.(1, Ref(res.a), Ref(res.b), prim.K_grid)
             k_forecast_grid[:, 2] = prim.k_forecast.(2, Ref(res.a), Ref(res.b), prim.K_grid)
-
+            
             res.k_forecast_grid = k_forecast_grid
-
+            
+            println("Iteration: ", i, " --- ", err, " --- a = ", res.a, " --- b = ", res.b, " --- R² = ", R_squared)
         end 
 
         # Iterate until convergence
