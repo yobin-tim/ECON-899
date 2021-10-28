@@ -67,8 +67,28 @@
 				\E[(x_t - \E[x_t])^2] & = \E[x_t^2] = \E[(\rho_0 x_{t-1} + \epsilon_t)^2 ] \\ &= \rho_0^2 \E[x_{t-1}^2] + 2 \rho_0 \E[x_{t-1} \epsilon_t] + \E[\epsilon_t^2] \\ & = \rho_0^2 \E[ (\rho_0 x_{t-2} + \epsilon_{t-1})^2 ] + \sigma_0^2 \\ & = \rho_0^{2T} \E[x_0^2] + \sigma_0^2 \sum_{i=0}^{T-1} (\rho_0^2)^{i}  \rightarrow \frac{\sigma_0^2}{1 - \rho_0^2} = \frac{4}{3}.\\
 				\E[(x_t - \E[x_t]) (x_{t-1} - \E[x_{t-1}]) ]&  =  \E[x_t x_{t-1}]  \\ &= \rho_0  \E[x_{t-1}^2]  + \E[ \epsilon_t x_{t-1} ] \\ & =   \rho_0 \E[ (\rho_0 x_{t-2} + \epsilon_{t-1})^2 ] \\ & =  \rho_0^3 \E[x_{t-2}^2] + \rho_0 \E[\epsilon_{t-1}^2]  \\ & = \rho_0^{2T - 1} \E[x_0^2] + \rho_0  \sigma_0^2 \sum_{i=0}^{T-2} (\rho_0^2)^{i}    \rightarrow  \frac{\rho_0 \sigma_0^2}{1 - \rho_0^2} = \frac{2}{3}   \\
 			\end{align*}
+			Moreover, we have that $ \nabla_b =
+				\renewcommand\arraystretch{1.6}
+			\begin{pmatrix}
+				\frac{\partial}{\partial \rho} \\
+				 \frac{\partial}{\partial \sigma^2}
+			\end{pmatrix} $. Evaulating the derivative of $ g(\cdot) $ at $ b = b_0 $ gives us
+			\begin{align*}
+				\nabla_b g(b_0) = 
+				\renewcommand\arraystretch{2}
+				\begin{bmatrix}
+					0 & 0 \\ \frac{2 \rho_0 \sigma_0^2}{(1 - \rho_0)^2} & \frac{1}{1 - \rho_0^2} \\  \frac{\sigma_0^2( 1 + 2 \rho_0^2)}{(1 - \rho_0^2)^2}  & \frac{\rho_0}{1 - \rho_0^2}
+				\end{bmatrix}
+				\xlongequal{\text{true values}}
+				\begin{bmatrix}
+					0 & 0 \\  4 & \frac{4}{3} \\  \frac{8}{3} & \frac{2}{3}
+				\end{bmatrix}
+			\end{align*}
 		
-			Both the variance and the first order correlation are informative for estimating $ b $.
+			Both the variance and the first order correlation are informative for estimating $ b $. This is because we can estimate the true parameters given the two moments as follows,
+			\begin{align*}
+				\rho_0 = \frac{ \E[(x_t - \E[x_t]) (x_{t-1} - \E[x_{t-1}]) ] }{ 	\E[(x_t - \E[x_t])^2]  } && \sigma^2 =  \E[(x_t - \E[x_t])^2] -  \frac{ \E[(x_t - \E[x_t]) (x_{t-1} - \E[x_{t-1}]) ] }{ 	\E[(x_t - \E[x_t])^2]  }
+			\end{align*}
 		\end{solution}
 		\item Simulate a series of “true” data of length $ T = 200 $ using (1). We will use this to compute
 		$ M_T (x) $.

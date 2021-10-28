@@ -1,7 +1,7 @@
 using Parameters, Optim, Distributions, LinearAlgebra, Plots, LaTeXStrings
 
 @with_kw mutable struct  Primitives
-    T       ::Int64             = 200        #Time Series Length
+    T       ::Int64             = 2000        #Time Series Length
     H       ::Int64             = 10     #Number of Simulations
     ρ0      ::Float64           = .5
     σ0      ::Float64           = 1
@@ -28,7 +28,7 @@ function TrueData(prim)
     for t=2:(T+1)
         xt[t]=ρ0*xt[t-1]+ϵ[t-1]
     end
-    # xt=xt[2:end]
+    xt=xt[2:end]
     return xt
 end
 function eDrawsForModel(prim)
@@ -48,7 +48,8 @@ function ModelData(prim,e,b)
         yt=zeros(T+1,H)
         for hi=1:H
             for t=2:(T+1)
-                yt[t,hi]=b[1]*yt[t-1,hi]+sqrt(b[2])*e[t-1,hi]
+                # yt[t,hi]=b[1]*yt[t-1,hi]+sqrt(b[2])*e[t-1,hi]
+                yt[t,hi]=b[1]*yt[t-1,hi]+ b[2]*e[t-1,hi] # Removed sqrt if sigma is being used
             end
         end
         yt=yt[2:end,:]
@@ -89,7 +90,12 @@ function FindM2_VarCoVar(data)
     return M
 end
 function m_VarCovar(x,ind,mean)
-    return [(x[ind]-mean)^2      (x[ind]-mean)*(x[ind-1]-mean)]
+    @unpack x0 = prim
+    if ind - 1 == 0 
+        return [(x[ind]-mean)^2      (x[ind]-mean)*(x0-mean)]
+    else
+        return [(x[ind]-mean)^2      (x[ind]-mean)*(x[ind-1]-mean)]
+    end
 end
 function FindM3(data)
     M=zeros(3)
@@ -110,7 +116,12 @@ function FindM3(data)
     return M
 end
 function m3(x,ind,mean)
-    [x[ind]   (x[ind]-mean)^2      (x[ind]-mean)*(x[ind-1]-mean)]
+    @unpack x0 = prim
+    if ind - 1 == 0
+        return [x[ind]   (x[ind]-mean)^2      (x[ind]-mean)*(x0-mean)] #We can replace this by x0
+    else 
+        return [x[ind]   (x[ind]-mean)^2      (x[ind]-mean)*(x[ind-1]-mean)]
+    end
 end
 function J(g,W,b) #The objective function
     if b[2]<0 #We shouldn't allow there to be a negative variance term
@@ -128,11 +139,14 @@ function GraphAndFindbHat(W,prim,res,FindM,Exercise; NeweyWest=false)
         md=ModelData(prim,e, [ρgrid[ρi] σgrid[σi]])
         Jgrid[ρi,σi]=J(FindM(td).-FindM(md),W,[ρgrid[ρi] σgrid[σi]])
     end
-    Solution=optimize(b->J(FindM(td).-FindM(ModelData(prim,e,b)),W,b),
-        [.3 1.2],NelderMead())
+    Solution=optimize(b->J(FindM(td).-FindM(ModelData(prim,e,b)),W,b),[.3 1.2], NelderMead())
+    # Solution=optimize(b->J(FindM(td).-FindM(ModelData(prim,e,b)),W,b),
+    #     [.3 1.2],[ρgrid[1] σgrid[1]],[ρgrid[end] σgrid[end]], NelderMead()) #I want to restrict the parameter space as in the question
     bHat=Solution.minimizer
+    # println("The minimizer is ", bHat)
     plot(ρgrid,σgrid,Jgrid, st=:surface,
-        title=L"\hat{b}^{1}_{TH}=[%$(round(bHat[1],digits=4)) , %$(round(bHat[2],digits=4)) ]")
+        title=L"\hat{b}^{1}_{TH}=[%$(round(bHat[1],digits=4)) , %$(round(bHat[2],digits=4)) ]", xlabel = "ρ",
+        ylabel = "σ", zlabel ="J")
     if NeweyWest
         # savefig("PS7\\Figures\\Exercise$(Exercise)NeweyWestCorrection.png")
         savefig("PS7/Figures/Exercise$(Exercise)NeweyWestCorrection.png")
@@ -151,7 +165,8 @@ function NeweyWest(prim::Primitives,simdata::Array{Float64},
         function ΓjTH(j)
             out=zeros(length(MTH),length(MTH))
             for hi=1:H, ti=(j+1+1):T
-                #Necessary to add one twice above because one moment includes a lag
+                #Necessary to add one twice above because one moment includes a lag ( I removed the twice addition and 
+                # changed the m function to consider cases)
                 out+=(m(simdata[:,hi],ti,Hmeans[hi]).-MTH)*
                     transpose(m(simdata[:,hi],ti-j,Hmeans[hi]).-MTH)
             end
@@ -169,8 +184,8 @@ end
 
 function Find∇g(res,prim, FindM; s=1e-7)
     @unpack e, bHat2TH = res
-    ∂g∂ρ=(FindM(ModelData(prim,e,bHat2TH)).-FindM(ModelData(prim,e,bHat2TH-[s 0])))./s
-    ∂g∂σ=(FindM(ModelData(prim,e,bHat2TH)).-FindM(ModelData(prim,e,bHat2TH-[0 s])))./s
+    ∂g∂ρ= -(FindM(ModelData(prim,e,bHat2TH)).-FindM(ModelData(prim,e,bHat2TH-[s 0])))./s
+    ∂g∂σ= -(FindM(ModelData(prim,e,bHat2TH)).-FindM(ModelData(prim,e,bHat2TH-[0 s])))./s
     return hcat(∂g∂ρ,∂g∂σ)
 end
 
@@ -221,6 +236,6 @@ ________________________________________________________________________________
             res.JTest=prim.T*(prim.H/(1+prim.H))*
                 J(FindM(res.td).-FindM(ModelData(prim,res.e,res.bHat2TH)),
                     WStar,res.bHat2TH)
-                print("\n The J-Test is $(res.JTest)")
+                println("\n The J-Test is $(res.JTest)")
     end #Exercise Loop
 end #End Function StepsAThroughD

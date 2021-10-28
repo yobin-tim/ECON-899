@@ -1,6 +1,7 @@
+
 theme(:juno)
 default(fontfamily="Computer Modern", framestyle=:box)
-#Load the Code
+# Load the Code
     include("Code.jl");
 
 #Run The Code
