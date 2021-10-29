@@ -1,4 +1,4 @@
-using Parameters
+using Parameters, LinearAlgebra
 
 # Structure that holds the parameters for the model
 @with_kw struct Primitives
@@ -133,7 +133,7 @@ function market_clearing(prim::Primitives, res::Results; tol::Float64 = 1e-3,  n
         end    
         # println(n+1, " iterations; EC = ", EC, ", p = ", res.p, ", p_min = ", p_min, ", p_max = ", p_max, ", θ = ", θ)
         if abs( EC ) < tol
-            # println("Market Cleared")
+            println("Market Cleared in $(n+1) iterations.")
             break
         end
 
@@ -200,23 +200,28 @@ function Tμ_iterate_until_cleared(prim::Primitives, res::Results;  tol::Float64
     θ = 0.5
     n = 0 #counter
     err = 100.0 #initialize error
+
+    # Find Z Matrix
+    Z = repeat((1 .- res.x_opt)', prim.nS)
+
+    # Calculate optimal labor demand for each firm (for each productivity level)
+    n_opt = prim.n_optim.(prim.s_vals, res.p)
+    # Calculate profit for each firm (for each productivity level)
+    prof =  prim.Π.( prim.s_vals, res.p, n_opt)
+    
     while  (abs(err) > tol) & (n < n_max)#begin iteration
         
-        res.μ = Tμ( prim, res ) # Find the distribution of firms using initial guess for entrants
+        res.μ = res.M *((Z - I)^(-1)) * Z*ν # Find the distribution of firms using initial guess for entrants
         
-        # Calculate optimal labor demand for each firm (for each productivity level)
-        n_opt = prim.n_optim.(prim.s_vals, res.p)
-        # Calculate profit for each firm (for each productivity level)
-        prof =  prim.Π.( prim.s_vals, res.p, n_opt)
         # Calculate  mass of firms in the market (for each productivity level)
-        mass = res.μ + res.M *  prim.ν
+        mass = res.μ + res.M * ν
 
         # Calculate Total labor demand
         tot_labor_demand = n_opt' * mass
         # Calculate total profits 
         tot_profit = prof' * mass
         # Calculate total supply of labor
-        tot_labor_supply = 1/prim.A - tot_profit
+        tot_labor_supply = 1/A - tot_profit
 
         # Labor MarketClearing condition
         LMC = tot_labor_demand - tot_labor_supply
