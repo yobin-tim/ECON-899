@@ -20,7 +20,7 @@ using Parameters, LinearAlgebra
 
     # Price grid
     p_min       ::Float64 = 0.01
-    p_max       ::Float64 = 10
+    p_max       ::Float64 = 3.0
     # nP          ::Int64   = 10
     # p_grid      ::Array{Float64}   = range(p_min, stop = p_max, length = nP)
 
@@ -40,7 +40,7 @@ end
 mutable struct Results
     W_val   ::Array{Float64}         # Firm value given state variables
     n_opt   ::Array{Float64}         # Optimal labor demand for each possible state
-    x_opt   ::Array{Int64}           # Optimal firm decicion for each state
+    x_opt   ::Array{Float64}           # Optimal firm decicion for each state
     p       ::Float64                # Market clearing price
     μ       ::Array{Float64}         # Distribution of Firms
     M       ::Float64                # Mass of entrants
@@ -53,7 +53,7 @@ function Initialize()
     W_val = zeros(prim.nS)
     n_opt = zeros(prim.nS)
     x_opt = zeros(prim.nS)
-    p = 7.0
+    p = (prim.p_max + prim.p_min)/2
     μ = ones(prim.nS) / prim.nS # Uniform distribution is the initial guess
     M = 5.0
 
