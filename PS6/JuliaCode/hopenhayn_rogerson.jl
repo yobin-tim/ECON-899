@@ -49,7 +49,7 @@ end
 # Initialize model
 function Initialize()
     prim  = Primitives()
-    
+
     W_val = zeros(prim.nS)
     n_opt = zeros(prim.nS)
     x_opt = zeros(prim.nS)
@@ -66,7 +66,7 @@ end
 # Bellman operator for W
 function W(prim::Primitives, res::Results)
     @unpack Π, n_optim,s_vals, nS, trans_mat, c_f, β = prim
-    @unpack p = res 
+    @unpack p = res
 
     temp_val = zeros(size(res.W_val))
 
@@ -83,19 +83,19 @@ function W(prim::Primitives, res::Results)
         exp_cont_value = trans_mat[s_i, :]' * res.W_val
 
         x = ( exp_cont_value > 0 ) ? 0 : 1
-        
+
         temp_val[s_i] = prof + β * (1 - x) * (exp_cont_value )
         res.x_opt[s_i] = x
-        
+
     end
-    
+
     res.W_val = temp_val
-    
+
 end # W
 
 #Value function iteration for W operator
 function TW_iterate(prim::Primitives, res::Results; tol::Float64 = 1e-4)
-    
+
     n = 0 #counter
     err = 100.0 #initialize error
     while  (err > tol) & (n < 4000)#begin iteration
@@ -114,12 +114,12 @@ function market_clearing(prim::Primitives, res::Results; tol::Float64 = 1e-3,  n
 
     θ = 0.99
     n = 0
-    
+
     while n < n_max
         TW_iterate(prim, res)
         # W(prim, res)
         # Calculate EC
-        EC = sum(res.W_val .* ν) - res.p * c_e
+        EC = sum(res.W_val .* ν)/res.p - c_e  #This was previously - res.p * c_e, but that doesn't seem right?
         # println("p = ", res.p," EC = ", EC, " tol = ", tol)
         if abs(EC) > tol * 10000
         # adjust tuning parameter based on EC
@@ -130,7 +130,7 @@ function market_clearing(prim::Primitives, res::Results; tol::Float64 = 1e-3,  n
             θ = 0.9
         else
             θ = 0.99
-        end    
+        end
         # println(n+1, " iterations; EC = ", EC, ", p = ", res.p, ", p_min = ", p_min, ", p_max = ", p_max, ", θ = ", θ)
         if abs( EC ) < tol
             println("Market Cleared in $(n+1) iterations.")
@@ -147,31 +147,31 @@ function market_clearing(prim::Primitives, res::Results; tol::Float64 = 1e-3,  n
             res.p = θ*res.p + (1-θ)*p_max
             p_min = p_old
         end
-        
+
         n += 1
-        
+
     end
 end
 
 # Calculate distribution of firms
 function Tμ(prim::Primitives, res::Results)
     @unpack trans_mat, nS, ν = prim
-    
-    stay = 1 .- res.x_opt   
+
+    stay = 1 .- res.x_opt
     μ₁ = zeros(nS)
     for s_i ∈ 1:nS
         # Add the mass of firms that stay in the market
-        μ₁[s_i] = trans_mat[s_i, :]' * (stay .* res.μ) 
+        μ₁[s_i] = trans_mat[s_i, :]' * (stay .* res.μ)
         # and the mass of firms that enter the market
-        μ₁[s_i] += trans_mat[s_i, :]' * (stay .*  ν * res.M) 
+        μ₁[s_i] += trans_mat[s_i, :]' * (stay .*  ν * res.M)
     end
     return μ₁
-end # 
+end #
 
 # Calculate steady state distribution of firms
 # TODO: Check why this is not necesary
 function Tμ_iterate(prim::Primitives, res::Results; tol::Float64 = 1e-3, n_max::Int64 = 1000)
-    
+
     n = 0 #counter
     err = 100.0 #initialize error
     while  (err > tol) & (n < n_max)#begin iteration
@@ -196,7 +196,7 @@ end # Tμ_iterate
 # Iterate until labor market clears
 function Tμ_iterate_until_cleared(prim::Primitives, res::Results;  tol::Float64 = 1e-3, n_max::Int64 = 1000)
     @unpack Π, n_optim , s_vals, ν, A, M_min, M_max = prim
-    
+
     θ = 0.5
     n = 0 #counter
     err = 100.0 #initialize error
@@ -208,17 +208,17 @@ function Tμ_iterate_until_cleared(prim::Primitives, res::Results;  tol::Float64
     n_opt = prim.n_optim.(prim.s_vals, res.p)
     # Calculate profit for each firm (for each productivity level)
     prof =  prim.Π.( prim.s_vals, res.p, n_opt)
-    
+
     while  (abs(err) > tol) & (n < n_max)#begin iteration
-        
+
         res.μ = res.M *((Z - I)^(-1)) * Z*ν # Find the distribution of firms using initial guess for entrants
-        
+
         # Calculate  mass of firms in the market (for each productivity level)
         mass = res.μ + res.M * ν
 
         # Calculate Total labor demand
         tot_labor_demand = n_opt' * mass
-        # Calculate total profits 
+        # Calculate total profits
         tot_profit = prof' * mass
         # Calculate total supply of labor
         tot_labor_supply = 1/A - tot_profit
@@ -235,10 +235,10 @@ function Tμ_iterate_until_cleared(prim::Primitives, res::Results;  tol::Float64
                 θ = 0.9
             else
                 θ = 0.99
-            end    
+            end
 
         println(n+1, " iterations; LMC = ", LMC, ", M = ", res.M, ", M_min = ", M_min, ", M_max = ", M_max, ", θ = ", θ)
-        
+
         if abs( LMC ) < tol
             println("Labor Market Cleared")
             break
@@ -253,7 +253,7 @@ function Tμ_iterate_until_cleared(prim::Primitives, res::Results;  tol::Float64
             res.M = θ*res.M + (1-θ)*M_max
             M_min = M_old
         end
-        
+
         n += 1
     end
 
