@@ -66,7 +66,7 @@ end
 # Bellman operator for W
 function W(prim::Primitives, res::Results)
     @unpack Π, n_optim,s_vals, nS, trans_mat, c_f, β = prim
-    @unpack p = res
+    @unpack p = res 
 
     temp_val = zeros(size(res.W_val))
 
@@ -82,20 +82,21 @@ function W(prim::Primitives, res::Results)
 
         exp_cont_value = trans_mat[s_i, :]' * res.W_val
 
+        # Firm exit the market if next period's expected value of stay is negative
         x = ( exp_cont_value > 0 ) ? 0 : 1
-
+        
         temp_val[s_i] = prof + β * (1 - x) * (exp_cont_value )
         res.x_opt[s_i] = x
-
+        
     end
-
+    
     res.W_val = temp_val
-
+    
 end # W
 
 #Value function iteration for W operator
 function TW_iterate(prim::Primitives, res::Results; tol::Float64 = 1e-4)
-
+    
     n = 0 #counter
     err = 100.0 #initialize error
     while  (err > tol) & (n < 4000)#begin iteration
@@ -109,17 +110,19 @@ function TW_iterate(prim::Primitives, res::Results; tol::Float64 = 1e-4)
     end
 end # TW_iterate
 
+
 function market_clearing(prim::Primitives, res::Results; tol::Float64 = 1e-3,  n_max::Int64 = 1000)
     @unpack Π, nS, trans_mat, ν, c_e, p_min, p_max = prim
 
     θ = 0.99
     n = 0
-
+    
     while n < n_max
         TW_iterate(prim, res)
         # W(prim, res)
         # Calculate EC
-        EC = sum(res.W_val .* ν)/res.p - c_e  #This was previously - res.p * c_e, but that doesn't seem right?
+        EC = sum(res.W_val .* ν) - res.p * c_e
+        
         # println("p = ", res.p," EC = ", EC, " tol = ", tol)
         if abs(EC) > tol * 10000
         # adjust tuning parameter based on EC
@@ -130,10 +133,12 @@ function market_clearing(prim::Primitives, res::Results; tol::Float64 = 1e-3,  n
             θ = 0.9
         else
             θ = 0.99
+        end    
+        if n % 10 == 0
+            println(n+1, " iterations; EC = ", EC, ", p = ", res.p, ", p_min = ", p_min, ", p_max = ", p_max, ", θ = ", θ)
         end
-        # println(n+1, " iterations; EC = ", EC, ", p = ", res.p, ", p_min = ", p_min, ", p_max = ", p_max, ", θ = ", θ)
         if abs( EC ) < tol
-            println("Market Cleared in $(n+1) iterations.")
+            println("Price converged in $(n+1) iterations, p = $(res.p)")
             break
         end
 
@@ -147,100 +152,79 @@ function market_clearing(prim::Primitives, res::Results; tol::Float64 = 1e-3,  n
             res.p = θ*res.p + (1-θ)*p_max
             p_min = p_old
         end
-
+        
         n += 1
-
+        
     end
 end
 
-# Calculate distribution of firms
-function Tμ(prim::Primitives, res::Results)
-    @unpack trans_mat, nS, ν = prim
 
-    stay = 1 .- res.x_opt
-    μ₁ = zeros(nS)
-    for s_i ∈ 1:nS
-        # Add the mass of firms that stay in the market
-        μ₁[s_i] = trans_mat[s_i, :]' * (stay .* res.μ)
-        # and the mass of firms that enter the market
-        μ₁[s_i] += trans_mat[s_i, :]' * (stay .*  ν * res.M)
-    end
-    return μ₁
-end #
+function Tμ(prim::Primitives, x::Array{Float64}, M::Float64)
+    @unpack ν, nS, trans_mat = prim
+    # Calculate B Matrix
+    B = repeat((1 .- x)', nS) .* trans_mat'
+    return M* (I - B)^(-1) * B * ν
+end
 
-# Calculate steady state distribution of firms
-# TODO: Check why this is not necesary
-function Tμ_iterate(prim::Primitives, res::Results; tol::Float64 = 1e-3, n_max::Int64 = 1000)
+# Calculate aggregate labor supply and demand for a given mass of entrants
+function labor_supply_demand(prim::Primitives, res::Results; M::Float64=res.M)
+    @unpack c_e, ν = prim
 
-    n = 0 #counter
-    err = 100.0 #initialize error
-    while  (err > tol) & (n < n_max)#begin iteration
-        μ_new = Tμ(prim, res)
-        err = maximum( abs.( μ_new .- res.μ ) ) #reset error level
-        res.μ = μ_new
-        n+=1
-        if n % 100 == 0
-            println("Iter =", n , " Error = ", err)
-        end
-        if n == 4000
-            println("Iteration limit reached")
-        end
-        if err < tol
-            println("Distribution converged in $n iterations")
-            break
-        end
-    end
-
-end # Tμ_iterate
-
-# Iterate until labor market clears
-function Tμ_iterate_until_cleared(prim::Primitives, res::Results;  tol::Float64 = 1e-3, n_max::Int64 = 1000)
-    @unpack Π, n_optim , s_vals, ν, A, M_min, M_max = prim
-
-    θ = 0.5
-    n = 0 #counter
-    err = 100.0 #initialize error
-
-    # Find Z Matrix
-    Z = repeat((1 .- res.x_opt)', prim.nS)
-
+    res.μ = Tμ(prim, res.x_opt, M)
+    
     # Calculate optimal labor demand for each firm (for each productivity level)
     n_opt = prim.n_optim.(prim.s_vals, res.p)
     # Calculate profit for each firm (for each productivity level)
     prof =  prim.Π.( prim.s_vals, res.p, n_opt)
+    # Calculate  mass of firms in the market (for each productivity level)
+    mass = res.μ  + M *  prim.ν
 
+    # Calculate Total labor demand
+    tot_labor_demand = n_opt' * mass 
+
+    # Calculate total profits 
+    tot_profit = prof' * mass
+    # Calculate total supply of labor
+    tot_labor_supply = 1/prim.A - tot_profit
+
+    return tot_labor_supply, tot_labor_demand
+
+end
+
+# Iterate until labor market clears
+function Tμ_iterate_until_cleared(prim::Primitives, res::Results;  tol::Float64 = 1e-3, n_max::Int64 = 1000)
+    @unpack Π, n_optim , s_vals, ν, A, M_min, M_max = prim
+    
+    θ = 0.5
+    n = 0 #counter
+    err = 100.0 #initialize error
+
+    
     while  (abs(err) > tol) & (n < n_max)#begin iteration
+        # Calculate optimal labor demand for a given mass of entrants
 
-        res.μ = res.M *((Z - I)^(-1)) * Z*ν # Find the distribution of firms using initial guess for entrants
-
-        # Calculate  mass of firms in the market (for each productivity level)
-        mass = res.μ + res.M * ν
-
-        # Calculate Total labor demand
-        tot_labor_demand = n_opt' * mass
-        # Calculate total profits
-        tot_profit = prof' * mass
-        # Calculate total supply of labor
-        tot_labor_supply = 1/A - tot_profit
+        tot_labor_supply, tot_labor_demand = labor_supply_demand(prim::Primitives, res::Results)
 
         # Labor MarketClearing condition
         LMC = tot_labor_demand - tot_labor_supply
 
+        # adjust tuning parameter based on LMC
         if abs(LMC) > tol * 10000
-            # adjust tuning parameter based on LMC
-                θ = 0.5
-            elseif abs(LMC) > tol * 5000
-                θ = 0.75
-            elseif abs(LMC) > tol * 1000
-                θ = 0.9
-            else
-                θ = 0.99
-            end
+            θ = 0.5
+        elseif abs(LMC) > tol * 5000
+            θ = 0.75
+        elseif abs(LMC) > tol * 1000
+            θ = 0.9
+        else
+            θ = 0.99
+        end    
 
-        println(n+1, " iterations; LMC = ", LMC, ", M = ", res.M, ", M_min = ", M_min, ", M_max = ", M_max, ", θ = ", θ)
-
+        if (n+1) % 10 == 0
+            println(n+1, " iterations; LMC = ", LMC, ", M = ", res.M, ", M_min = ", M_min, ", M_max = ", M_max, ", θ = ", θ)
+        end
+        
         if abs( LMC ) < tol
-            println("Labor Market Cleared")
+            println("Labor Market Cleared in $(n+1) iterations, Mass of entrants = $(res.M)")
             break
         end
         # adjust price toward bounds according to tuning parameter
@@ -253,8 +237,125 @@ function Tμ_iterate_until_cleared(prim::Primitives, res::Results;  tol::Float64
             res.M = θ*res.M + (1-θ)*M_max
             M_min = M_old
         end
-
+        
         n += 1
     end
 
+end # Tμ_iterate_until_cleared
+
+# Solve model withoug random disturbances
+function solve_model_no_dist(prim::Primitives, res::Results)
+
+    println("\n",'='^135, "\n",'='^135, "\n", "Solving for price such that entrants make 0 profits, no random disturbances", "\n", '='^135)
+    market_clearing(prim, res)
+    println('='^135, "\n", "Solving for optimal mass of entrants, no random disturbances", "\n", '='^135)
+    Tμ_iterate_until_cleared(prim, res)
+    println('='^135, "\n", "Model Solved without random disturbances", "\n", '='^135, "\n", '='^135, "\n")
+
 end
+
+# Obtain values assocued with exit decicion for a given random disturvance variance
+function find_Vx(prim::Primitives, res::Results,  α::Float64 ; tol::Float64 = 1e-3, n_max::Int64 = 100)
+    @unpack Π, n_optim , nS, s_vals, ν, A, M_min, M_max, β, trans_mat = prim
+    
+    nX = 2
+    
+    # Initialize error and counter
+    err = 100.0
+    n = 0
+    
+    # Make initial guess of U(s;p)
+    U₀ = zeros(nS)
+    # Optimal labor demand and profits by productivity
+    n_opt = n_optim.(s_vals, res.p)
+    prof = Π.(s_vals, res.p, n_opt)
+    
+    # Initialize V_x
+    V_x = ones(nS, nX) .* prof 
+    σ_x = zeros(nS, nX)
+    
+    while (err > tol ) & (n < n_max)
+        # Compute V_0(s;p), V_1(s;p) wont change 
+        V_x[:, 1] = prof + β * (trans_mat * U₀)
+
+        c = maximum(α * V_x, dims=2)  # Define normalization constant
+        log_sum = c .+ log.( sum( exp.( α * V_x .- c), dims = 2 ) )
+
+        # Find U₁
+        U₁ = 1/α * ( 0.5772156649 .+ log_sum )
+
+        err = maximum( abs.( U₁ - U₀ ) )
+        # if n % 10 == 0 
+        #     println("Iter $n err = $err")
+        # end
+        U₀ = copy(U₁)
+        n += 1
+
+        # We can also calculate and return σ at this point
+        σ_1 = exp.(α*V_x[:, 2] .- log_sum)
+        σ_0 = 1 .- σ_1
+        σ_x = hcat( σ_0, σ_1 )
+
+    end # end while
+    # println("Iter $n err = $err")
+    return V_x, σ_x
+end # find_Vx
+
+# Find equilibrium objects given a  variance indexer α for the shocks
+function find_equilibrium(prim::Primitives, res::Results, α::Float64; tol::Float64 = 1e-3, n_max::Int64 = 100)
+    
+    @unpack Π, n_optim , nS, s_vals, ν, p_min, p_max, c_e = prim
+    
+    θ = 0.99
+    n = 0
+    
+    println("\n",'='^135, "\n",'='^135, "\n", "Solving for price such that entrants make 0 profits, TV1 Shocks α = $α", "\n", '='^135)
+    while n < n_max
+        V_x, σ_x = find_Vx(prim, res, α);
+
+
+        # Calculate value of each firm
+        n_opt  = n_optim.(s_vals, res.p)
+        W_vals = Π.(s_vals, res.p, n_opt) + sum(σ_x .* V_x, dims=2)
+
+        EC = sum(W_vals .* ν) - res.p * c_e
+            
+
+        # adjust tuning parameter based on EC
+        if abs(EC) > tol * 10000
+            θ = 0.5
+        elseif abs(EC) > tol * 5000
+            θ = 0.75
+        elseif abs(EC) > tol * 1000
+            θ = 0.9
+        else
+            θ = 0.99
+        end    
+        if n % 10 == 0
+            println(n+1, " iterations; EC = ", EC, ", p = ", res.p, ", p_min = ", p_min, ", p_max = ", p_max, ", θ = ", θ)
+        end
+        if abs( EC ) < tol
+            # println("Market Cleared in $(n+1) iterations.")
+            break
+        end
+
+        # adjust price toward bounds according to tuning parameter
+        if EC > 0
+            p_old = res.p
+            res.p = θ*res.p + (1-θ)*p_min
+            p_max = p_old
+        else
+            p_old = res.p
+            res.p = θ*res.p + (1-θ)*p_max
+            p_min = p_old
+        end
+        n += 1
+        res.x_opt = copy(σ_x[:,2])
+    end # end while
+    println("Price converged in $(n+1) iterations, p = $(res.p)")
+
+    println('='^135, "\n", "Solving for optimal mass of entrants, TV1 Shocks α = $α", "\n", '='^135)
+    Tμ_iterate_until_cleared(prim, res)
+    println('='^135, "\n", "Model Solved with random disturbances, TV1 Shocks α = $α", "\n", '='^135, "\n",'='^135, "\n")
+end # find_equilibrium
+
