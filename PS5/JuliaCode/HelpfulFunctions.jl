@@ -1,4 +1,5 @@
 @everywhere using Parameters, LinearAlgebra, Random, Distributions
+
 @with_kw struct Params
     cBET::Float64 = 0.99
     cALPHA::Float64 = 0.36
@@ -190,24 +191,8 @@ function draw_shocks(S::Shocks, N::Int64,T::Int64)
         end
     end
 
-    return idio_state, agg_state
+    return Int.(idio_state), Int.(agg_state)
 end
-
-# k_lb= 0.001
-# k_ub= 20.0
-# n_k= 21
-# k_grid= range(k_lb, stop = k_ub, length = n_k)
-
-# K_lb = 10.0
-# K_ub = 15.0
-# n_K = 11
-# K_grid = range(K_lb, stop = K_ub, length = n_K)
-
-# K_today = K_grid[10]
-
-# K_tomorrow = exp(0.095 + 0.999*log(K_today))
-
-# i_Kp = get_index(K_tomorrow, K_grid)
 
 function Bellman(P::Params, G::Grids, S::Shocks, R::Results)
     @unpack cBET, cALPHA, cDEL, w_mkt, r_mkt = P
@@ -239,11 +224,6 @@ function Bellman(P::Params, G::Grids, S::Shocks, R::Results)
                 K_tomorrow = b0 + b1*log(K_today)
             end
             K_tomorrow = exp(K_tomorrow)
-            println(K_tomorrow)
-            println(z_today)
-            println(K_today)
-            println(L_today)
-            println(cALPHA)
 
             w_today = (1 - cALPHA)*z_today*(K_today/L_today)^cALPHA
 
@@ -290,8 +270,11 @@ function Bellman(P::Params, G::Grids, S::Shocks, R::Results)
         end
     end
 
-    return pf_k_up, pf_v_up
+    R.pf_k = pf_k_up
+    R.pf_v = pf_v_up
+    
 end
+
 
 function get_index(val::Float64, grid::Array{Float64,1})
     n = length(grid)
@@ -335,9 +318,20 @@ function Initialize()
      
 end
 
-function SimulateCapitalPath()
-    K_ss = 11.55
-    pf_k_up[K_ss]
+function VFI(prim::Params, grid::Grids, shock::Shocks, res::Results,
+             ;tol::Float64 = 1e-4, err::Float64 = 100.0)
+    
+    while err > tol
+
+        old_v = res.pf_v
+        Bellman(prim, grid, shock, res)
+        err = maximum(abs.(res.pf_v.-old_v))
+
+    end
+    
+    return res
+
 end
+
 
     
