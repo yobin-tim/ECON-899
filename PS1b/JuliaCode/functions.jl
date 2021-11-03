@@ -1,38 +1,38 @@
-using CSV
-using DataFrames
+#==
+    This file defines functions used in JF's PS1
+==#
+using Optim
 
-df = DataFrame(CSV.File("../data/mortgage.csv"))
-
-df[!, :i_25] = df[!, :i_open_year2] .- df[!, :i_open_year5]
-
-X = df[!,[:i_large_loan,:i_medium_loan,:rate_spread,
-          :i_refinance,:age_r,:cltv,:dti, :cu,
-          :first_mort_r,:score_0,:score_1, :i_FHA,
-          :i_25]] |> Matrix
-
-Y = df[!, :i_close_first_year] |> Matrix
-
-
+# Calculate log-likelihood at β
 function likelihood(β, Y, X)
-    
+
+    X = [ones(size(X, 1), 1) X] # add constant to X
+
     sum(Y.*log.(exp.(X*β) ./ (1 .+ exp.(X*β))) +
         (1 .- Y).*log.(1 ./ (1 .+ exp.(X*β))))
+
+end # log-likelihood function
+
+# calculate the log-likelihood score, given β
+function score(β, Y, X)    
     
-end
+    X = [ones(size(X, 1), 1) X] # add constant to X
 
-function score(β, Y, X)
+    return sum((Y .- (exp.(X*β) ./ (1 .+ exp.(X*β)))) .* X, dims = 1)
 
-    sum((Y .- (exp.(X*β_0) ./ (1 .+ exp.(X*β_0)))) .* X, dims = 1)
+end # end log-likelihood score
 
-end
-
+# Calculate the Hessian matrix given β
 function Hessian(X, β)
+
+    X = [ones(size(X, 1), 1) X] # add constant to X
     
     A = (exp.(X*β) ./ (1 .+ exp.(X*β))) .*
-        (1 ./ (1 .+ exp.(X*β_0)))
+        (1 ./ (1 .+ exp.(X*β)))
 
+    #==
     B = zeros(size(X,2), size(X,2), size(X,1))
-    
+
     for i = 1:size(X,1)
 
         B[:,:,i] = A[i] .* X[i,:] * transpose(X[i,:])
@@ -40,6 +40,32 @@ function Hessian(X, β)
     end
 
     dropdims(sum(B, dims = 3), dims = 3)
-    
-end
+    ==#
 
+    # Alternative method (saves memory):
+    H = 0;
+    for i = 1:size(X,1)
+        H = H .+ A[i] .* X[i,:] * transpose(X[i,:])
+    end
+
+    return H
+end # Hessian matrix
+
+# Define the Newton convergence algorithm
+function NewtonAlg(Y, X; β₀::Matrix{Float64} = [-1.0; ones(size(X, 2), 1)], err::Float64 = 100, tol::Float64 = 10e-8)
+
+    while err > tol 
+
+        # update β
+        β = β₀ - inv(Hessian(X, β₀))*score(β₀, Y, X)
+
+        # calculate error and update β₀
+        err = maximum(abs.(β - β₀))
+        β₀ = β
+
+    end # err > tol loop
+
+    # return converged β
+    return β
+
+end # Newton's algorithm
