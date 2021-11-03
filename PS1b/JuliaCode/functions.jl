@@ -1,9 +1,12 @@
 #==
     This file defines functions used in JF's PS1
 ==#
+using Optim
 
 # Calculate log-likelihood at β
 function likelihood(β, Y, X)
+
+    X = [ones(size(X, 1), 1) X] # add constant to X
 
     sum(Y.*log.(exp.(X*β) ./ (1 .+ exp.(X*β))) +
         (1 .- Y).*log.(1 ./ (1 .+ exp.(X*β))))
@@ -11,18 +14,23 @@ function likelihood(β, Y, X)
 end # log-likelihood function
 
 # calculate the log-likelihood score, given β
-function score(β, Y, X)
+function score(β, Y, X)    
+    
+    X = [ones(size(X, 1), 1) X] # add constant to X
 
-    sum((Y .- (exp.(X*β_0) ./ (1 .+ exp.(X*β_0)))) .* X, dims = 1)
+    return sum((Y .- (exp.(X*β) ./ (1 .+ exp.(X*β)))) .* X, dims = 1)
 
 end # end log-likelihood score
 
 # Calculate the Hessian matrix given β
 function Hessian(X, β)
 
+    X = [ones(size(X, 1), 1) X] # add constant to X
+    
     A = (exp.(X*β) ./ (1 .+ exp.(X*β))) .*
-        (1 ./ (1 .+ exp.(X*β_0)))
+        (1 ./ (1 .+ exp.(X*β)))
 
+    #==
     B = zeros(size(X,2), size(X,2), size(X,1))
 
     for i = 1:size(X,1)
@@ -32,11 +40,19 @@ function Hessian(X, β)
     end
 
     dropdims(sum(B, dims = 3), dims = 3)
+    ==#
 
+    # Alternative method (saves memory):
+    H = 0;
+    for i = 1:size(X,1)
+        H = H .+ A[i] .* X[i,:] * transpose(X[i,:])
+    end
+
+    return H
 end # Hessian matrix
 
 # Define the Newton convergence algorithm
-function Newton(Y, X; β₀ = [-1.0; ones(size(X, 2), 1)], err::Float64 = 100, tol::Float64 = 10e-8)
+function NewtonAlg(Y, X; β₀::Matrix{Float64} = [-1.0; ones(size(X, 2), 1)], err::Float64 = 100, tol::Float64 = 10e-8)
 
     while err > tol 
 
