@@ -3,11 +3,11 @@
 ==#
 
 using CSV, DataFrames, Optim
-#include("./PS1b/JuliaCode/functions.jl")
-include("../JuliaCode/functions.jl")
+include("./PS1b/JuliaCode/functions.jl")
+#include("../JuliaCode/functions.jl")
 ## load the mortgage data as a DataFrame
-#df = DataFrame(CSV.File("./PS1b/data/mortgage.csv"))
-df = DataFrame(CSV.File("C:/Users/ryana/OneDrive/Documents/School/PhD Economics/Research/GitHub/ECON-899/PS1b/data/mortgage.csv"))
+df = DataFrame(CSV.File("./PS1b/data/mortgage.csv"))
+#df = DataFrame(CSV.File("C:/Users/ryana/OneDrive/Documents/School/PhD Economics/Research/GitHub/ECON-899/PS1b/data/mortgage.csv"))
 
 #df[!, :i_25] = df[!, :i_open_year2] .- df[!, :i_open_year5]
 #I think i_open_year2-i_open_year5 is Stata notation for
@@ -45,6 +45,7 @@ H_num=Find_H_num(β,Y,X)
 
 
 ## 4. Compare the solution and speed with  BFGS and Simplex
-f(b) = likelihood(b, Y, X);
-@time β_BFGS    = optimize(f, β, BFGS())
-@time β_simplex = optimize(f, β, )
+#f(b) = likelihood(b, Y, X);
+#Optimize minimizes the function, so we need to use the negative of liklihood to maximize
+@time β_BFGS    = optimize(b->-likelihood(b, Y, X), β, BFGS()).minimizer
+@time β_simplex = optimize(b->-likelihood(b, Y, X), β, NelderMead()).minimizer

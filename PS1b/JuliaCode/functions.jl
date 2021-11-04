@@ -44,14 +44,14 @@ function Hessian(X, β)
     # Alternative method (saves memory):
     H = 0;
     for i = 1:size(X,1)
-        H = H .+ A[i] .* X[i,:] * transpose(X[i,:])
+        H = H .+ (A[i] .* X[i,:] * transpose(X[i,:]))
     end
 
     return H
 end # Hessian matrix
 
 #Calculate First Derivate numerically
-function ∂F(β,Y,X;h=1e-7)
+function ∂F(β,Y,X;h=1e-5)
     ∂=zeros(length(β))
     for ii=1:length(β)
         hi=zeros(length(β))
@@ -61,7 +61,7 @@ function ∂F(β,Y,X;h=1e-7)
     return transpose(∂)
 end
 #Calculate the Hessian numerically
-function Find_H_num(β,Y,X;h=1e-7)
+function Find_H_num(β,Y,X;h=1e-5)
     H_num=zeros(length(β),length(β))
     d=1
     for i1=1:length(β)
@@ -70,8 +70,17 @@ function Find_H_num(β,Y,X;h=1e-7)
             h2=copy(h1)
             h1[i1], h2[i2] = copy(h),copy(h)
             #This formula was taken from http://www.holoborodko.com/pavel/2014/11/04/computing-mixed-derivatives-by-finite-differences/
-            H_num[i1,i2]=(likelihood(β.-h1.-h2,Y,X)+likelihood(β.+h1.+h2,Y,X)+
-                likelihood(β.+h1.-h2,Y,X)+likelihood(β.-h1.+h2,Y,X))/(4*(h^2))
+            #H_num[i1,i2]=(likelihood(β.-h1.-h2,Y,X)+likelihood(β.+h1.+h2,Y,X)+
+            #    likelihood(β.+h1.-h2,Y,X)+likelihood(β.-h1.+h2,Y,X))/(4*(h^2))
+            #Alternate, more accurate formula also from the above link
+            H_num[i1,i2]=( 8*(likelihood(β.+h1.-2 .*h2,Y,X)+likelihood(β.+2 .* h1.-h2,Y,X)+
+                            likelihood(β.-2 .*h1.+h2,Y,X)+likelihood(β.-h1.+2 .*h2,Y,X))-
+                            8*(likelihood(β.-h1.-2 .*h2,Y,X)+likelihood(β.-2 .* h1.-h2,Y,X)+
+                            likelihood(β.+h1.+ 2 .*h2,Y,X)+likelihood(β.+ 2 .* h1.+h2,Y,X))-
+                            (likelihood(β.+2 .*h1.-2 .*h2,Y,X)+likelihood(β.-2 .* h1.+ 2 .*h2,Y,X)-
+                            likelihood(β.-2 .*h1.- 2 .*h2,Y,X)-likelihood(β.+ 2 .*h1.+2 .*h2,Y,X))+
+                            64*(likelihood(β.-h1.-h2,Y,X)+likelihood(β.+h1.+h2,Y,X)-
+                            likelihood(β.+h1.-h2,Y,X)-likelihood(β.-h1.+h2,Y,X)))/(144*(h^2))
         end
         d+=1
     end
@@ -86,20 +95,19 @@ function Find_H_num(β,Y,X;h=1e-7)
     return H_num
 end
 # Define the Newton convergence algorithm
-function NewtonAlg(Y, X; β₀::Matrix{Float64} = [-1.0; ones(size(X, 2), 1)], err::Float64 = 100, tol::Float64 = 10e-8)
-
+function NewtonAlg(Y, X; β₀::Matrix{Float64} = [-1.0; ones(size(X, 2), 1)], err::Float64 = 100.0, tol::Float64 = 1e-8)
+    β_out=0
     while err > tol
 
         # update β
-        β = β₀ - inv(Hessian(X, β₀))*score(β₀, Y, X)
+        β_out = β₀ - inv(Hessian(X, β₀))*transpose(score(β₀, Y, X))
 
         # calculate error and update β₀
-        err = maximum(abs.(β - β₀))
-        β₀ = β
+        err = maximum(abs.(β_out - β₀))
+        β₀ = copy(β_out)
 
     end # err > tol loop
 
     # return converged β
-    return β
-
+    return β_out
 end # Newton's algorithm
