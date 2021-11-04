@@ -8,14 +8,13 @@ function likelihood(β, Y, X)
 
     X = [ones(size(X, 1), 1) X] # add constant to X
 
-    sum(Y.*log.(exp.(X*β) ./ (1 .+ exp.(X*β))) +
+    return sum(Y.*log.(exp.(X*β) ./ (1 .+ exp.(X*β))) +
         (1 .- Y).*log.(1 ./ (1 .+ exp.(X*β))))
-
 end # log-likelihood function
 
 # calculate the log-likelihood score, given β
-function score(β, Y, X)    
-    
+function score(β, Y, X)
+
     X = [ones(size(X, 1), 1) X] # add constant to X
 
     return sum((Y .- (exp.(X*β) ./ (1 .+ exp.(X*β)))) .* X, dims = 1)
@@ -26,7 +25,7 @@ end # end log-likelihood score
 function Hessian(X, β)
 
     X = [ones(size(X, 1), 1) X] # add constant to X
-    
+
     A = (exp.(X*β) ./ (1 .+ exp.(X*β))) .*
         (1 ./ (1 .+ exp.(X*β)))
 
@@ -51,10 +50,20 @@ function Hessian(X, β)
     return H
 end # Hessian matrix
 
+#Calculate FirstDerivate
+function ∂F(β,Y,X;h=1e-7)
+    ∂=zeros(length(β))
+    for ii=1:length(β)
+        hi=zeros(length(β))
+        hi[ii]=copy(h)
+        ∂[ii]=(likelihood(β.+h,Y,X)-likelihood(β,Y,X))/h
+    end
+    return transpose(∂)
+end
 # Define the Newton convergence algorithm
 function NewtonAlg(Y, X; β₀::Matrix{Float64} = [-1.0; ones(size(X, 2), 1)], err::Float64 = 100, tol::Float64 = 10e-8)
 
-    while err > tol 
+    while err > tol
 
         # update β
         β = β₀ - inv(Hessian(X, β₀))*score(β₀, Y, X)

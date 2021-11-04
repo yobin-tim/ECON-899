@@ -4,9 +4,10 @@
 
 using CSV, DataFrames, Optim
 include("./PS1b/JuliaCode/functions.jl")
-
-## load the mortgage data as a DataFrame 
+#include("../JuliaCode/functions.jl")
+## load the mortgage data as a DataFrame
 df = DataFrame(CSV.File("./PS1b/data/mortgage.csv"))
+#df = DataFrame(CSV.File("C:/Users/ryana/OneDrive/Documents/School/PhD Economics/Research/GitHub/ECON-899/PS1b/data/mortgage.csv"))
 
 #df[!, :i_25] = df[!, :i_open_year2] .- df[!, :i_open_year5]
 #I think i_open_year2-i_open_year5 is Stata notation for
@@ -25,13 +26,16 @@ Y = df[!, :i_close_first_year]; #|> Matrix
 
 
 ## 1. Evaluate functions at β₀ = -1 and β = 0
-β = [0; zeros(size(X, 2), 1)];
+β = [-1; zeros(size(X, 2), 1)];
 LL = likelihood(β, Y, X);
 gβ = score(β, Y, X);
 H  = Hessian(X, β);
 
 ## 2. Compare score and hessian from (1) with numerical
 ##    first and second derivative of the log-likelihood
+gβ_num=∂F(β,Y,X)
+    diff_gβ=gβ.-gβ_num
+
 
 
 ## 3. Write a routine that solves the maximum likelihood
