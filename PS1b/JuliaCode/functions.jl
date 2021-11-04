@@ -50,7 +50,7 @@ function Hessian(X, β)
     return H
 end # Hessian matrix
 
-#Calculate FirstDerivate
+#Calculate First Derivate numerically
 function ∂F(β,Y,X;h=1e-7)
     ∂=zeros(length(β))
     for ii=1:length(β)
@@ -59,6 +59,31 @@ function ∂F(β,Y,X;h=1e-7)
         ∂[ii]=(likelihood(β.+h,Y,X)-likelihood(β,Y,X))/h
     end
     return transpose(∂)
+end
+#Calculate the Hessian numerically
+function Find_H_num(β,Y,X;h=1e-7)
+    H_num=zeros(length(β),length(β))
+    d=1
+    for i1=1:length(β)
+        for i2=d:length(β)
+            h1=zeros(length(β))
+            h2=copy(h1)
+            h1[i1], h2[i2] = copy(h),copy(h)
+            #This formula was taken from http://www.holoborodko.com/pavel/2014/11/04/computing-mixed-derivatives-by-finite-differences/
+            H_num[i1,i2]=(likelihood(β.-h1.-h2,Y,X)+likelihood(β.+h1.+h2,Y,X)+
+                likelihood(β.+h1.-h2,Y,X)+likelihood(β.-h1.+h2,Y,X))/(4*(h^2))
+        end
+        d+=1
+    end
+    #Exploit Hessian symmetry to find the remaining entries
+    d=length(β)-1
+    for i1=length(β):-1:2
+        for i2=d:-1:1
+            H_num[i1,i2]=H_num[i2,i1]
+        end
+        d-=1
+    end
+    return H_num
 end
 # Define the Newton convergence algorithm
 function NewtonAlg(Y, X; β₀::Matrix{Float64} = [-1.0; ones(size(X, 2), 1)], err::Float64 = 100, tol::Float64 = 10e-8)

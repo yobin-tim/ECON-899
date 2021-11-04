@@ -3,11 +3,11 @@
 ==#
 
 using CSV, DataFrames, Optim
-include("./PS1b/JuliaCode/functions.jl")
-#include("../JuliaCode/functions.jl")
+#include("./PS1b/JuliaCode/functions.jl")
+include("../JuliaCode/functions.jl")
 ## load the mortgage data as a DataFrame
-df = DataFrame(CSV.File("./PS1b/data/mortgage.csv"))
-#df = DataFrame(CSV.File("C:/Users/ryana/OneDrive/Documents/School/PhD Economics/Research/GitHub/ECON-899/PS1b/data/mortgage.csv"))
+#df = DataFrame(CSV.File("./PS1b/data/mortgage.csv"))
+df = DataFrame(CSV.File("C:/Users/ryana/OneDrive/Documents/School/PhD Economics/Research/GitHub/ECON-899/PS1b/data/mortgage.csv"))
 
 #df[!, :i_25] = df[!, :i_open_year2] .- df[!, :i_open_year5]
 #I think i_open_year2-i_open_year5 is Stata notation for
@@ -35,7 +35,8 @@ H  = Hessian(X, β);
 ##    first and second derivative of the log-likelihood
 gβ_num=∂F(β,Y,X)
     diff_gβ=gβ.-gβ_num
-
+H_num=Find_H_num(β,Y,X)
+    diff_H=H-H_num
 
 
 ## 3. Write a routine that solves the maximum likelihood
