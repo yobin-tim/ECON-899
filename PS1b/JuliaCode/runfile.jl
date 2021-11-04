@@ -2,9 +2,13 @@
     This file conducts the analyses for JF's PS1
 ==#
 
-using CSV, DataFrames, Optim
-include("./PS1b/JuliaCode/functions.jl")
-#include("../JuliaCode/functions.jl")
+using CSV, DataFrames, Optim, BenchmarkTools
+# We can use BenchmarkTools for better precision. Just need to replace time
+# with btime. The runtime of the overall code get longer as btime runs the 
+# code multiple times to reduce noise
+
+# include("./PS1b/JuliaCode/functions.jl")
+include("../JuliaCode/functions.jl")
 ## load the mortgage data as a DataFrame
 df = DataFrame(CSV.File("./PS1b/data/mortgage.csv"))
 #df = DataFrame(CSV.File("C:/Users/ryana/OneDrive/Documents/School/PhD Economics/Research/GitHub/ECON-899/PS1b/data/mortgage.csv"))
@@ -41,11 +45,16 @@ H_num=Find_H_num(β,Y,X)
 
 ## 3. Write a routine that solves the maximum likelihood
 ##    using a Newton algorithm
-@time β_Newton = NewtonAlg(Y, X); #Newton(Y, X; β₀ = β);
+print("The Newton algorithm takes")
+@btime β_Newton = NewtonAlg(Y, X); #Newton(Y, X; β₀ = β);
 
 
 ## 4. Compare the solution and speed with  BFGS and Simplex
 #f(b) = likelihood(b, Y, X);
 #Optimize minimizes the function, so we need to use the negative of liklihood to maximize
-@time β_BFGS    = optimize(b->-likelihood(b, Y, X), β, BFGS()).minimizer
-@time β_simplex = optimize(b->-likelihood(b, Y, X), β, NelderMead()).minimizer
+println("\n For Quasi-Newton Methods:")
+print("\n The BFGS algorithm takes")
+@btime β_BFGS    = optimize(b->-likelihood(b, Y, X), β, BFGS()).minimizer
+
+print("\n The Simplex algorithm takes")
+@btime β_simplex = optimize(b->-likelihood(b, Y, X), β, NelderMead()).minimizer

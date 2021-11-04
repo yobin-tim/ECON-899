@@ -1,7 +1,7 @@
 using Parameters, Optim, Distributions, LinearAlgebra, Plots, LaTeXStrings
 
 @with_kw mutable struct  Primitives
-    T       ::Int64             = 2000        #Time Series Length
+    T       ::Int64             = 200        #Time Series Length
     H       ::Int64             = 10     #Number of Simulations
     ρ0      ::Float64           = .5
     σ0      ::Float64           = 1
@@ -213,6 +213,13 @@ ________________________________________________________________________________
                     Results for Exercise $(Exercise)
 ________________________________________________________________________________\n")
             println("The estimate of b using W = I is ", res.bHat1TH,".")
+
+            # ∇g1=Find∇g(res,prim,FindM)
+            #     print("∇g= \n\n")
+            #     display(∇g1)
+            # StdErrorsbHat1TH = sqrt.(diag((1/prim.T)*inv(transpose(∇g1)*I*∇g1)))
+            # print("\n The Standard errors are given by \n\n")
+            #     display(StdErrorsbHat1TH)
 
         #Part b: Use NeweyWest to update your guess of bHat
             md_bHat1TH=ModelData(prim,res.e, res.bHat1TH)
