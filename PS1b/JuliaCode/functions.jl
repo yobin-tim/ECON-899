@@ -47,7 +47,7 @@ function Hessian(X, β)
         H = H .+ (A[i] .* X[i,:] * transpose(X[i,:]))
     end
 
-    return H
+    return -H
 end # Hessian matrix
 
 #Calculate First Derivate numerically
