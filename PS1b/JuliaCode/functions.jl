@@ -95,17 +95,34 @@ function Find_H_num(β,Y,X;h=1e-5)
     return H_num
 end
 # Define the Newton convergence algorithm
-function NewtonAlg(Y, X; β₀::Matrix{Float64} = [-1.0; ones(size(X, 2), 1)], err::Float64 = 100.0, tol::Float64 = 1e-8)
+function NewtonAlg(Y, X; β₀::Matrix{Float64} = [-1.0; ones(size(X, 2), 1)],
+        err::Float64 = 100.0, tol::Float64 = 1e-32, sk::Float64=1e-7)
     β_out=0
+    iter=1;
+    print("="^35,"\n","Newton's Method","\n")
     while err > tol
 
         # update β
-        β_out = β₀ - inv(Hessian(X, β₀))*transpose(score(β₀, Y, X))
-
+        β_out = β₀ - sk*inv(Hessian(X, β₀))*transpose(score(β₀, Y, X))
+        #If you have made β_out NaN, you've gone too far
+            while isnan((transpose(β_out)ones(size(X, 2)+1, 1))[1])
+                sk=sk/10;
+                β_out = β₀ - sk*inv(Hessian(X, β₀))*transpose(score(β₀, Y, X))
+            end
         # calculate error and update β₀
-        err = maximum(abs.(β_out - β₀))
+        err_new = maximum(abs.(β_out - β₀))
         β₀ = copy(β_out)
-
+        if iter % 5==0
+            println("Newton Iteration $(iter) with error $(err_new)")
+        end
+        iter+=1
+        #Update sk depending on whether things are going well or not
+            if err_new<err
+                sk=sk*2;
+            else
+                sk=sk/10
+            end
+            err=copy(err_new)
     end # err > tol loop
 
     # return converged β

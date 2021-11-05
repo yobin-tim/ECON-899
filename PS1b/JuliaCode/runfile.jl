@@ -4,7 +4,7 @@
 
 using CSV, DataFrames, Optim, BenchmarkTools
 # We can use BenchmarkTools for better precision. Just need to replace time
-# with btime. The runtime of the overall code get longer as btime runs the 
+# with btime. The runtime of the overall code get longer as btime runs the
 # code multiple times to reduce noise
 
 # include("./PS1b/JuliaCode/functions.jl")
@@ -47,14 +47,18 @@ H_num=Find_H_num(β,Y,X)
 ##    using a Newton algorithm
 print("The Newton algorithm takes")
 @btime β_Newton = NewtonAlg(Y, X); #Newton(Y, X; β₀ = β);
-
+β_Newton = NewtonAlg(Y, X);
 
 ## 4. Compare the solution and speed with  BFGS and Simplex
 #f(b) = likelihood(b, Y, X);
 #Optimize minimizes the function, so we need to use the negative of liklihood to maximize
 println("\n For Quasi-Newton Methods:")
 print("\n The BFGS algorithm takes")
-@btime β_BFGS    = optimize(b->-likelihood(b, Y, X), β, BFGS()).minimizer
+@btime β_BFGS    = optimize(b->-likelihood(b, Y, X), β, BFGS(),abs_tol=1e-12).minimizer
+    β_BFGS    = optimize(b->-likelihood(b, Y, X), β, method=BFGS(),
+        f_tol=1e-32,g_tol=1e-32).minimizer
 
 print("\n The Simplex algorithm takes")
 @btime β_simplex = optimize(b->-likelihood(b, Y, X), β, NelderMead()).minimizer
+    β_simplex = optimize(b->-likelihood(b, Y, X), β, method=NelderMead(),
+    f_tol=1e-32,g_tol=1e-32).minimizer
