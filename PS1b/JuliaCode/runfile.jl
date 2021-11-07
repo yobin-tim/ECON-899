@@ -10,7 +10,7 @@ using CSV, DataFrames, Optim, BenchmarkTools
 # include("./PS1b/JuliaCode/functions.jl")
 include("../JuliaCode/functions.jl")
 ## load the mortgage data as a DataFrame
-df = DataFrame(CSV.File("./PS1b/data/mortgage.csv"))
+df = DataFrame(CSV.File("../data/mortgage.csv"))
 #df = DataFrame(CSV.File("C:/Users/ryana/OneDrive/Documents/School/PhD Economics/Research/GitHub/ECON-899/PS1b/data/mortgage.csv"))
 
 #df[!, :i_25] = df[!, :i_open_year2] .- df[!, :i_open_year5]
@@ -32,12 +32,15 @@ Y = df[!, :i_close_first_year]; #|> Matrix
 ## 1. Evaluate functions at β₀ = -1 and β = 0
 β = [-1; zeros(size(X, 2), 1)];
 LL = likelihood(β, Y, X);
+
 gβ = score(β, Y, X);
 H  = Hessian(X, β);
 
 ## 2. Compare score and hessian from (1) with numerical
 ##    first and second derivative of the log-likelihood
 gβ_num=∂F(β,Y,X)
+gβ_num=score_num(β,Y,X)
+
     diff_gβ=gβ.-gβ_num
 H_num=Find_H_num(β,Y,X)
     diff_H=H-H_num
