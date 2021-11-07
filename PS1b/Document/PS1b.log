@@ -1,0 +1,253 @@
+This is LuaHBTeX, Version 1.13.0 (TeX Live 2021)  (format=lualatex 2021.11.4)  7 NOV 2021 16:05
+ system commands enabled.
+ file:line:error style messages enabled.
+**PS1b.tex
+(./PS1b.tex
+LaTeX2e <2020-10-01> patch level 4
+Lua module: luaotfload 2021-01-08 3.17 Lua based OpenType font support
+Lua module: lualibs 2020-12-30 2.73 ConTeXt Lua standard libraries.
+Lua module: lualibs-extended 2020-12-30 2.73 ConTeXt Lua libraries -- extended c
+ollection.
+luaotfload | conf : Root cache directory is "/Users/hiroaki/Library/texlive/2021
+/texmf-var/luatex-cache/generic/names".
+luaotfload | init : Loading fontloader "fontloader-2021-01-07.lua" from kpse-res
+olved path "/usr/local/texlive/2021/texmf-dist/tex/luatex/luaotfload/fontloader-
+2021-01-07.lua".
+Lua-only attribute luaotfload@noligature = 1
+Lua-only attribute luaotfload@syllabe = 2
+luaotfload | init : Context OpenType loader version 0x1.8e76c8b439581p+1
+Inserting `luaotfload.node_processor' at position 1 in `pre_linebreak_filter'.
+Inserting `luaotfload.node_processor' at position 1 in `hpack_filter'.
+Inserting `luaotfload.glyph_stream' at position 1 in `glyph_stream_provider'.
+Inserting `luaotfload.define_font' at position 1 in `define_font'.
+Lua-only attribute luaotfload_color_attribute = 3
+luaotfload | conf : Root cache directory is "/Users/hiroaki/Library/texlive/2021
+/texmf-var/luatex-cache/generic/names".
+Inserting `luaotfload.harf.strip_prefix' at position 1 in `find_opentype_file'.
+Inserting `luaotfload.harf.strip_prefix' at position 1 in `find_truetype_file'.
+Inserting `luaotfload.harf.finalize_vlist' at position 1 in `post_linebreak_filt
+er'.
+Inserting `luaotfload.harf.finalize_hlist' at position 2 in `hpack_filter'.
+Inserting `luaotfload.cleanup_files' at position 1 in `wrapup_run'.
+Inserting `luaotfload.harf.finalize_unicode' at position 1 in `finish_pdffile'.
+Inserting `luaotfload.glyphinfo' at position 1 in `glyph_info'.
+Inserting `luaotfload.aux.set_sscale_dimens' at position 1 in `luaotfload.patch_
+font'.
+Inserting `luaotfload.aux.set_font_index' at position 2 in `luaotfload.patch_fon
+t'.
+Inserting `luaotfload.aux.patch_cambria_domh' at position 3 in `luaotfload.patch
+_font'.
+Inserting `luaotfload.aux.fixup_fontdata' at position 1 in `luaotfload.patch_fon
+t_unsafe'.
+Inserting `luaotfload.aux.set_capheight' at position 4 in `luaotfload.patch_font
+'.
+Inserting `luaotfload.aux.set_xheight' at position 5 in `luaotfload.patch_font'.
+Inserting `luaotfload.rewrite_fontname' at position 6 in `luaotfload.patch_font'
+. L3 programming layer <2021-02-18>
+(/usr/local/texlive/2021/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2020/04/10 v1.4m Standard LaTeX document class
+(/usr/local/texlive/2021/texmf-dist/tex/latex/base/size10.clo
+File: size10.clo 2020/04/10 v1.4m Standard LaTeX file (size option)
+luaotfload | db : Font names database loaded from /Users/hiroaki/Library/texlive
+/2021/texmf-var/luatex-cache/generic/names/luaotfload-names.luc)
+\c@part=\count175
+\c@section=\count176
+\c@subsection=\count177
+\c@subsubsection=\count178
+\c@paragraph=\count179
+\c@subparagraph=\count180
+\c@figure=\count181
+\c@table=\count182
+\abovecaptionskip=\skip47
+\belowcaptionskip=\skip48
+\bibindent=\dimen138
+)
+(/usr/local/texlive/2021/texmf-dist/tex/latex/listings/listings.sty
+(/usr/local/texlive/2021/texmf-dist/tex/latex/graphics/keyval.sty
+Package: keyval 2014/10/28 v1.15 key=value parser (DPC)
+\KV@toks@=\toks15
+)
+\lst@mode=\count183
+\lst@gtempboxa=\box47
+\lst@token=\toks16
+\lst@length=\count184
+\lst@currlwidth=\dimen139
+\lst@column=\count185
+\lst@pos=\count186
+\lst@lostspace=\dimen140
+\lst@width=\dimen141
+\lst@newlines=\count187
+\lst@lineno=\count188
+\lst@maxwidth=\dimen142
+
+(/usr/local/texlive/2021/texmf-dist/tex/latex/listings/lstmisc.sty
+File: lstmisc.sty 2020/03/24 1.8d (Carsten Heinz)
+\c@lstnumber=\count189
+\lst@skipnumbers=\count190
+\lst@framebox=\box48
+)
+(/usr/local/texlive/2021/texmf-dist/tex/latex/listings/listings.cfg
+File: listings.cfg 2020/03/24 1.8d listings configuration
+))
+Package: listings 2020/03/24 1.8d (Carsten Heinz)
+
+(/usr/local/texlive/2021/texmf-dist/tex/latex/l3backend/l3backend-luatex.def
+File: l3backend-luatex.def 2021-03-18 L3 backend support: PDF output (LuaTeX)
+\l__color_backend_stack_int=\count191
+\l__pdf_internal_box=\box49
+)
+(./PS1b.aux)
+\openout1 = PS1b.aux
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 4.
+LaTeX Font Info:    ... okay on input line 4.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 4.
+LaTeX Font Info:    ... okay on input line 4.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 4.
+LaTeX Font Info:    ... okay on input line 4.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 4.
+LaTeX Font Info:    ... okay on input line 4.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 4.
+LaTeX Font Info:    Trying to load font information for TS1+cmr on input line 4
+.
+ (/usr/local/texlive/2021/texmf-dist/tex/latex/base/ts1cmr.fd
+File: ts1cmr.fd 2019/12/16 v2.5j Standard LaTeX font definitions
+)
+LaTeX Font Info:    ... okay on input line 4.
+LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 4.
+LaTeX Font Info:    ... okay on input line 4.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 4.
+LaTeX Font Info:    ... okay on input line 4.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 4.
+LaTeX Font Info:    ... okay on input line 4.
+\c@lstlisting=\count192
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <12> on input line 5.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <8> on input line 5.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <6> on input line 5.
+
+
+LaTeX Warning: No \author given.
+
+
+Overfull \hbox (16.70335pt too wide) in paragraph at lines 13--14
+[][][][][][][][][][][][][][][][][]\TU/lmr/m/n/10 …[][][][][]
+ []
+
+
+Overfull \hbox (4.70323pt too wide) in paragraph at lines 19--20
+[][][][][][][][][][][][][]\TU/lmr/m/n/10 …[][][][][]
+ []
+
+
+Overfull \hbox (70.00397pt too wide) in paragraph at lines 20--21
+[][][][][][][][][][][][][][][][][][][][][][]
+ []
+
+
+Overfull \hbox (4.0033pt too wide) in paragraph at lines 21--22
+[][][][][][][][][][][][][][][][][][]
+ []
+
+
+Overfull \hbox (4.0033pt too wide) in paragraph at lines 22--23
+[][][][][][][][][][][][][][][][][][]
+ []
+
+
+Overfull \hbox (4.0033pt too wide) in paragraph at lines 23--24
+[][][][][][][][][][][][][][][][][][]
+ []
+
+
+Overfull \hbox (4.70323pt too wide) in paragraph at lines 24--25
+[][][][][][][][][][][][][]\TU/lmr/m/n/10 …[][][][][]
+ []
+
+
+Overfull \hbox (4.0033pt too wide) in paragraph at lines 25--26
+[][][][][][][][][][][][][][][][][][]
+ []
+
+
+Overfull \hbox (4.0033pt too wide) in paragraph at lines 26--27
+[][][][][][][][][][][][][][][][][][]
+ []
+
+
+Overfull \hbox (70.00397pt too wide) in paragraph at lines 27--28
+[][][][][][][][][][][][][][][][][][][][][][]
+ []
+
+
+Overfull \hbox (70.00397pt too wide) in paragraph at lines 28--29
+[][][][][][][][][][][][][][][][][][][][][][]
+ []
+
+
+Overfull \hbox (4.70323pt too wide) in paragraph at lines 29--30
+[][][][][][][][][][][][][]\TU/lmr/m/n/10 …[][][][][]
+ []
+
+
+Overfull \hbox (4.0033pt too wide) in paragraph at lines 30--31
+[][][][][][][][][][][][][][][][][][]
+ []
+
+
+Overfull \hbox (4.0033pt too wide) in paragraph at lines 31--32
+[][][][][][][][][][][][][][][][][][]
+ []
+
+
+Overfull \hbox (10.00336pt too wide) in paragraph at lines 32--33
+[][][][][][][][][][][][][][][][][][]
+ []
+
+[1
+
+{/usr/local/texlive/2021/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
+Overfull \hbox (10.00336pt too wide) in paragraph at lines 33--34
+[][][][][][][][][][][][][][][][][][]
+ []
+
+
+Overfull \hbox (82.70403pt too wide) in paragraph at lines 34--35
+[][][][][][][][][][][][][]\TU/lmr/m/n/10 …[][][][][][][][][]
+ []
+
+
+Overfull \hbox (10.00336pt too wide) in paragraph at lines 35--36
+[][][][][][][][][][][][][][][][][][]
+ []
+
+
+Overfull \hbox (16.70335pt too wide) in paragraph at lines 40--41
+[][][][][][][][][][][][][][][][][]\TU/lmr/m/n/10 …[][][][][]
+ []
+
+[2] (./PS1b.aux))
+
+Here is how much of LuaTeX's memory you used:
+ 1926 strings out of 478531
+ 100000,383344 words of node,token memory allocated
+ 406 words of node memory still in use:
+   3 hlist, 1 vlist, 1 rule, 2 glue, 3 kern, 1 glyph, 4 attribute, 48 glue_spec,
+ 4 attribute_list, 1 write nodes
+   avail lists: 2:1421,3:91,4:3,5:2001,6:46,7:5145,8:1,9:3921,10:2,11:157
+ 21918 multiletter control sequences out of 65536+600000
+ 35 fonts using 3533311 bytes
+ 52i,6n,58p,151b,582s stack positions out of 5000i,500n,10000p,200000b,80000s
+</usr/local/texlive/2021/texmf-dist/fonts/opentype/public/lm/lmroman10-regular.o
+tf></usr/local/texlive/2021/texmf-dist/fonts/opentype/public/lm/lmroman12-regula
+r.otf></usr/local/texlive/2021/texmf-dist/fonts/opentype/public/lm/lmroman17-reg
+ular.otf>
+Output written on PS1b.pdf (2 pages, 14018 bytes).
+
+PDF statistics: 32 PDF objects out of 1000 (max. 8388607)
+ 18 compressed objects within 1 object stream
+ 0 named destinations out of 1000 (max. 131072)
+ 1 words of extra memory for PDF output out of 10000 (max. 100000000)
+
