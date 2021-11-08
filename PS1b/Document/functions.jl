@@ -67,7 +67,7 @@ function score_num(β,Y,X;h=1e-5)
     partial = zeros(length(β))
     for i =1:length(β)
         β1=copy(β)
-        β1[i] += h 
+        β1[i] += h
         partial[i]=(likelihood(β1,Y,X)-likelihood(β,Y,X))/h
     end
     return transpose(partial)
@@ -84,7 +84,8 @@ function Find_H_num(β,Y,X;h=1e-5)
             h1=zeros(length(β))
             h2=copy(h1)
             h1[i1], h2[i2] = copy(h),copy(h)
-            #This formula was taken from http://www.holoborodko.com/pavel/2014/11/04/computing-mixed-derivatives-by-finite-differences/
+            #This formula was taken from
+            #http://www.holoborodko.com/pavel/2014/11/04/computing-mixed-derivatives-by-finite-differences/
             #H_num[i1,i2]=(likelihood(β.-h1.-h2,Y,X)+likelihood(β.+h1.+h2,Y,X)+
             #    likelihood(β.+h1.-h2,Y,X)+likelihood(β.-h1.+h2,Y,X))/(4*(h^2))
             #Alternate, more accurate formula also from the above link
