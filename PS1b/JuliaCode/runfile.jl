@@ -50,7 +50,6 @@ diff_gβ
 H_num=Find_H_num(β,Y,X)
 diff_H=H-H_num
 
-
 ## 3. Write a routine that solves the maximum likelihood
 ##    using a Newton algorithm
 @btime β_Newton = NewtonAlg(Y, X); #Newton(Y, X; β₀ = β);

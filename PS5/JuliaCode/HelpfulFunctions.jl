@@ -81,16 +81,16 @@ end
 
     # Markov Transition Matrix
     Mgg::Array{Float64,2} = [pgg11 pgg01
-                            pgg10 pgg00]
+                             pgg10 pgg00]
 
     Mbg::Array{Float64,2} = [pgb11 pgb01
-                            pgb10 pgb00]
+                             pgb10 pgb00]
 
     Mgb::Array{Float64,2} = [pbg11 pbg01
-                            pbg10 pbg00]
+                             pbg10 pbg00]
 
     Mbb ::Array{Float64,2} = [pbb11 pbb01
-                             pbb10 pbb00]
+                              pbb10 pbb00]
 
     markov::Array{Float64,2} = [pgg*Mgg pgb*Mgb
                                 pbg*Mbg pbb*Mbb]
@@ -100,6 +100,8 @@ mutable struct Results
     pf_k::Array{Float64,4}
     pf_v::Array{Float64,4}
 
+    K::Array{Float64,1}
+    
     a0::Float64
     a1::Float64
     b0::Float64
@@ -241,7 +243,7 @@ function Bellman(P::Params, G::Grids, S::Shocks, R::Results)
                     # We are defining the continuation value.
                     # Notice that we are interpolating over k and K.
                     v_tomorrow(i_kp) = markov[row,1]*v_interp(i_kp,1,i_Kp,1) + markov[row,2]*v_interp(i_kp,2,i_Kp,1) +
-                                        markov[row,3]*v_interp(i_kp,1,i_Kp,2) + markov[row,4]*v_interp(i_kp,2,i_Kp,2)
+                        markov[row,3]*v_interp(i_kp,1,i_Kp,2) + markov[row,4]*v_interp(i_kp,2,i_Kp,2)
 
 
                     # We are now going to solve the HH's problem (solve for k).
@@ -304,6 +306,8 @@ function Initialize()
 
     pf_k = zeros(grid.n_k, grid.n_eps, grid.n_K, grid.n_z);
     pf_v = zeros(grid.n_k, grid.n_eps, grid.n_K, grid.n_z);
+    
+    K = zeros(prim.T);
 
     a0 = 0.095;
     a1 = 0.999;
@@ -312,10 +316,10 @@ function Initialize()
 
     R2 = [0.000];
 
-    res = Results(pf_k, pf_v, a0, a1, b0, b1, R2)
+    res = Results(pf_k, pf_v, K, a0, a1, b0, b1, R2)
     
     return prim, grid, shock, res
-     
+    
 end
 
 function VFI(prim::Params, grid::Grids, shock::Shocks, res::Results,
@@ -333,5 +337,111 @@ function VFI(prim::Params, grid::Grids, shock::Shocks, res::Results,
 
 end
 
+function SimulateCapitalPath(prim::Params, grid::Grids, res::Results,
+                             ℇ_idio::Matrix{Int64},
+                             ℇ_agg::Vector{Int64})
+    i_k = floor(Int, get_index(11.55, grid.k_grid)) # Index for k
+    i_K = floor(Int, get_index(11.55, grid.K_grid)) # Index for K
+    k_interp = interpolate(res.pf_k, BSpline(Linear()))
+    i_eps = ℇ_idio[:,1]
+    i_z = ℇ_agg[1]
+    k_choice = k_interp(i_k, i_eps, i_K, i_z)
+    res.K[1] = mean(k_choice) 
+    for t in 2:prim.T # For each time
+        i_z = ℇ_agg[t]
+        k_choice_next = zeros(5000)
+        for n in 1:5000 # For each person
+            i_eps = ℇ_idio[n,t]
+            i_k = floor(Int, get_index(k_choice[n], grid.k_grid))
+            i_K = floor(Int, get_index(k_choice[n], grid.K_grid))
+            k_choice_next[n] = k_interp(i_k, i_eps, i_K, i_z)
+        end
+        res.K[t] = mean(k_choice_next)
+        k_choice = k_choice_next
+    end
+end
 
+function EstimateRegression(prim::Params, grid::Grids, res::Results,
+                            ℇ_agg::Vector{Int64})
+
+    A = [ℇ_agg res.K]
+    K_old = append!([11.5],res.K)[1:prim.T]
+    A = [ℇ_agg K_old res.K]
+    B = A[A[:,1] .== 1.0, :]
+    X = hcat(ones(size(B,1)), log.(B[:,2]))
+    coef_1 = (X'X)^(-1)*X'* log.(B[:,3])
+    C = A[A[:,1] .== 2.0, :]
+    X = hcat(ones(size(C,1)), log.(C[:,2]))
+    coef_2 = (X'X)^(-1)*X'* log.(C[:,3])
+    res.a0 = coef_1[1]
+    res.a1 = coef_1[2]
+    res.b0 = coef_2[1]
+    res.b1 = coef_2[2]
+
+end
+
+
+function Krusell_Smith()
     
+    lambda = 0.5
+
+    prim, grid, shock, res = Initialize();
+
+    ℇ_idio, ℇ_agg = draw_shocks(shock, prim.N, prim.T);
+
+    a0_old = res.a0
+
+    a1_old = res.a1
+    
+    b0_old = res.b0
+
+    b1_old = res.b1
+
+    convergence = 0
+
+    while convergence == 0 
+
+        VFI(prim, grid, shock, res);
+        
+        SimulateCapitalPath(prim, grid, res, ℇ_idio, ℇ_agg);
+
+        EstimateRegression(prim, grid, res, ℇ_agg);
+
+        err = abs(res.a0 - a0_old) + abs(res.a1 - a1_old) + 
+            abs(res.b0 - b0_old) + abs(res.b1 - b1_old)
+
+        if err > 0.01
+
+            res.a0 = lambda * res.a0 + (1 - lambda) * a0_old
+            res.a1 = lambda * res.a1 + (1 - lambda) * a1_old 
+            res.b0 = lambda * res.b0 + (1 - lambda) * b0_old 
+            res.b1 = lambda * res.b1 + (1 - lambda) * b1_old 
+
+            a0_old = res.a0
+            a1_old = res.a1
+            b0_old = res.b0
+            b1_old = res.b1
+        else
+            
+            convergence = 1
+            
+        end
+
+        println("the error is " ,err, " a0 is ", res.a0)
+        
+    end
+
+    println("a0 is ", round(res.a0, digits = 3))
+    println("a1 is ", round(res.a1, digits = 3))
+    println("b0 is ", round(res.b0, digits = 3))
+    println("b1 is ", round(res.b1, digits = 3))
+    
+
+end
+
+
+
+
+
+
+
