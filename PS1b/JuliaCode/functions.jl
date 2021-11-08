@@ -152,5 +152,6 @@ function NewtonAlg(Y, X; β₀::Matrix{Float64} = [-1.0; ones(size(X, 2), 1)],
     end # err > tol loop
 
     # return converged β
+    print("\nThe Newton algorithm takes")
     return β_out
 end # Newton's algorithm
