@@ -62,24 +62,13 @@ function ∂F(β,Y,X;h=1e-5)
     return transpose(∂)
 end
 
-## I think to calculate partial derivative, we should think about X.+h
-## The following code yields this version, but, after column 2 becomes 0.0
-## So, there may be errors.
-
 function score_num(β,Y,X;h=1e-5)
-
-    X1 = [ones(size(X, 1), 1) X] # add constant to X
-
-    function likelihood2(β, Y, X)
-        return sum(Y.*log.(exp.(X*β) ./ (1 .+ exp.(X*β))) +
-            (1 .- Y).*log.(1 ./ (1 .+ exp.(X*β))))
-    end # log-likelihood function
 
     partial = zeros(length(β))
     for i =1:length(β)
-        X2=copy(X1)
-        X2[:,i] .-= h 
-        partial[i]=(likelihood2(β,Y,X2)-likelihood2(β,Y,X1))/h
+        β1=copy(β)
+        β1[i] += h 
+        partial[i]=(likelihood(β1,Y,X)-likelihood(β,Y,X))/h
     end
     return transpose(partial)
 end

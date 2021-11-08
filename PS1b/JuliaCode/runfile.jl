@@ -8,9 +8,9 @@ using CSV, DataFrames, Optim, BenchmarkTools, Latexify
 # code multiple times to reduce noise
 
 # include("./PS1b/JuliaCode/functions.jl")
-include("../JuliaCode/functions.jl")
+include("./functions.jl")
 ## load the mortgage data as a DataFrame
-# df = DataFrame(CSV.File("../data/mortgage.csv"))
+df = DataFrame(CSV.File("../data/mortgage.csv"))
 
 # Use this if you are loading data from the root folder.
 df = DataFrame(CSV.File("PS1b/Data/mortgage.csv"))  
@@ -42,9 +42,10 @@ latexify(H)
 
 ## 2. Compare score and hessian from (1) with numerical
 ##    first and second derivative of the log-likelihood
-gβ_num=∂F(β,Y,X)
-# gβ_num=score_num(β,Y,X)
+##gβ_num=∂F(β,Y,X)
+gβ_num=score_num(β,Y,X)
 diff_gβ=gβ.-gβ_num
+diff_gβ
 
 H_num=Find_H_num(β,Y,X)
 diff_H=H-H_num
