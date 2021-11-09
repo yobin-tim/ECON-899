@@ -15,6 +15,7 @@ end # Primitives
 @with_kw mutable struct  Results
     bHat1TH       ::Array{Float64} = [0,0]
     bHat2TH       ::Array{Float64} = [0,0]
+    b_dist        ::Array{Float64} = zeros(5000,2)
     e             ::Array{Float64}
     JTest         ::Float64        =100
     td            ::Array{Float64} = [0, 0] #The true data
@@ -135,7 +136,7 @@ function J(g,W,b) #The objective function
     end
 end
 
-function GraphAndFindbHat(W,prim,res,FindM,Exercise; NeweyWest=false)
+function GraphAndFindbHat(W,prim,res,FindM,Exercise; NeweyWest=false,Graph=true)
     @unpack ρgrid,σgrid,gpoints=prim
     @unpack e, td = res
     Jgrid=zeros(gpoints,gpoints)
@@ -147,6 +148,7 @@ function GraphAndFindbHat(W,prim,res,FindM,Exercise; NeweyWest=false)
     # Solution=optimize(b->J(FindM(td).-FindM(ModelData(prim,e,b)),W,b),
     #     [.3 1.2],[ρgrid[1] σgrid[1]],[ρgrid[end] σgrid[end]], NelderMead()) #I want to restrict the parameter space as in the question
     bHat=Solution.minimizer
+    if Graph
     # println("The minimizer is ", bHat)
     plot(ρgrid,σgrid,Jgrid, st=:surface,
         title=L"\hat{b}^{1}_{TH}=[%$(round(bHat[1],digits=4)) , %$(round(bHat[2],digits=4)) ]", xlabel = "ρ",
@@ -158,6 +160,7 @@ function GraphAndFindbHat(W,prim,res,FindM,Exercise; NeweyWest=false)
         # savefig("PS7\\Figures\\Exercise$(Exercise).png")
         savefig("PS7/Figures/Exercise$(Exercise).png")
     end
+    end #if Graph statement
     return bHat
 end
 
@@ -258,5 +261,35 @@ ________________________________________________________________________________
                 J(FindM(res.td).-FindM(ModelData(prim,res.e,res.bHat2TH)),
                     WStar,res.bHat2TH)
                 println("\n The J-Test is $(res.JTest)")
+        #Bootstrapping for Exercise 6
+        if Exercise==6
+            @unpack ρgrid,σgrid,gpoints=prim
+            Density=zeros(gpoints,gpoints)
+            for iter=1:size(res.b_dist,1)
+                res=Results(e=eDrawsForModel(prim,URS=true))
+                res.td=TrueData(prim)
+                res.b_dist[iter,:]=GraphAndFindbHat(I,prim,res,FindM,Exercise, Graph=false)
+
+                if res.b_dist[iter,1]<= ρgrid[1] || res.b_dist[iter,1]>= ρgrid[gpoints] ||
+                        res.b_dist[iter,2]>= σgrid[gpoints] || res.b_dist[iter,2]<= σgrid[1]
+                        #Out of range, do nothing
+                else
+                    for ρi=1:gpoints,σi=1:gpoints
+                        if (ρgrid[ρi+1]>=res.b_dist[iter,1]>=ρgrid[ρi] && σgrid[σi+1]>=res.b_dist[iter,2]>=σgrid[σi])
+                            Density[ρi,σi]+=1
+                            break
+                        end
+                    end
+                end
+                if iter % 250 ==0
+                    print("\n Iteration $(iter) of Bootstrapping")
+                end
+            end #End bootstrapping with iter
+            Density=Density./size(res.b_dist,1)
+            plot(ρgrid,σgrid,Density, st=:surface,
+                title="Bootstrapping Density of Parameter Estimates", xlabel = "ρ",
+                ylabel = "σ", zlabel ="Frequency")
+            savefig("PS7/Figures/Exercise$(Exercise)Bootstrapping.png")
+        end
     end #Exercise Loop
 end #End Function StepsAThroughD

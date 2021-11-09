@@ -13,4 +13,4 @@
     #is not the case. Refresh Julia after you do this to reset the seed somewhere
     #more truly random
     StepsAThroughD(UseRandomSeed=false)
-    StepsAThroughD(UseRandomSeed=true)
+        #StepsAThroughD(UseRandomSeed=true)
