@@ -4,4 +4,4 @@ default(fontfamily="Computer Modern", framestyle=:box) # LaTex-style
 
 include("krusell_smith.jl")
 
-SolveModel(2)
+SolveModel()
