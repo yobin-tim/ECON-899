@@ -1,8 +1,9 @@
-using Parameters, Optim, Distributions, LinearAlgebra, Plots, LaTeXStrings
+using Parameters, Optim, Distributions, LinearAlgebra, Plots, LaTeXStrings,
+    Random
 
 @with_kw mutable struct  Primitives
-    T       ::Int64             = 200        #Time Series Length
-    H       ::Int64             = 10     #Number of Simulations
+    T       ::Int64      #Time Series Length
+    H       ::Int64      #Number of Simulations
     ρ0      ::Float64           = .5
     σ0      ::Float64           = 1
     x0      ::Float64           = 0
@@ -31,7 +32,10 @@ function TrueData(prim)
     xt=xt[2:end]
     return xt
 end
-function eDrawsForModel(prim)
+function eDrawsForModel(prim;URS=false)
+    if ~URS
+        Random.seed!(9193) #543
+    end
     @unpack H,T=prim
     e=zeros(T,H)
     for hi=1:H
@@ -41,10 +45,10 @@ function eDrawsForModel(prim)
 end
 function ModelData(prim,e,b)
     @unpack T, σ0, x0, ρ0, H = prim
-    if b[2]<0
-        #Here J is set to return a very high value so this will not be picked
-        return zeros(T,H)
-    else
+    #if b[2]<0
+    #    #Here J is set to return a very high value so this will not be picked
+    #    return zeros(T,H)
+    #else
         yt=zeros(T+1,H)
         for hi=1:H
             for t=2:(T+1)
@@ -54,7 +58,7 @@ function ModelData(prim,e,b)
         end
         yt=yt[2:end,:]
         return yt
-    end
+    #end
 end
 function FindM2_MeanVar(data)
     M=zeros(2)
@@ -70,7 +74,7 @@ function FindM2_MeanVar(data)
     end
     return M
 end
-function m_MeanVar(x,ind, mean)
+function m_MeanVar(x,ind, mean,prim)
     return [x[ind]  (x[ind]-mean)^2]
 end
 function FindM2_VarCoVar(data)
@@ -89,9 +93,9 @@ function FindM2_VarCoVar(data)
     end
     return M
 end
-function m_VarCovar(x,ind,mean)
+function m_VarCovar(x,ind,mean,prim)
     @unpack x0 = prim
-    if ind - 1 == 0 
+    if ind - 1 == 0
         return [(x[ind]-mean)^2      (x[ind]-mean)*(x0-mean)]
     else
         return [(x[ind]-mean)^2      (x[ind]-mean)*(x[ind-1]-mean)]
@@ -115,11 +119,11 @@ function FindM3(data)
     end
     return M
 end
-function m3(x,ind,mean)
+function m3(x,ind,mean,prim)
     @unpack x0 = prim
     if ind - 1 == 0
         return [x[ind]   (x[ind]-mean)^2      (x[ind]-mean)*(x0-mean)] #We can replace this by x0
-    else 
+    else
         return [x[ind]   (x[ind]-mean)^2      (x[ind]-mean)*(x[ind-1]-mean)]
     end
 end
@@ -160,17 +164,20 @@ end
 function NeweyWest(prim::Primitives,simdata::Array{Float64},
         m::Function, MTH::Array{Float64})
     @unpack iT,H,T = prim
-    Hmeans=sum(simdata,dims=1)./size(simdata,1)
+    #Can either use the simulation-H specific mean
+        Hmeans=sum(simdata,dims=1)./size(simdata,1)
+    #Or can Try using the overall mean:
+        #Hmeans=ones(size(simdata,1))*(sum(simdata)/(T*H))
     #Defining Γ function
         function ΓjTH(j)
             out=zeros(length(MTH),length(MTH))
-            for hi=1:H, ti=(j+1+1):T
-                #Necessary to add one twice above because one moment includes a lag ( I removed the twice addition and 
+            for hi=1:H, ti=(j+1):T
+                #Necessary to add one twice above because one moment includes a lag ( I removed the twice addition and
                 # changed the m function to consider cases)
-                out+=(m(simdata[:,hi],ti,Hmeans[hi]).-MTH)*
-                    transpose(m(simdata[:,hi],ti-j,Hmeans[hi]).-MTH)
+                out+=(m(simdata[:,hi],ti,Hmeans[hi],prim).-MTH)*
+                    transpose(m(simdata[:,hi],ti-j,Hmeans[hi],prim).-MTH)
             end
-            return (1/((T-1)*H))*out
+            return (1/(T*H))*out
         end
     #Finding STH
         SyTH=ΓjTH(0)
@@ -182,16 +189,21 @@ function NeweyWest(prim::Primitives,simdata::Array{Float64},
         return inv(STH)
 end
 
-function Find∇g(res,prim, FindM; s=1e-7)
+function Find∇g(res,prim, FindM; s=1e-15)
     @unpack e, bHat2TH = res
-    ∂g∂ρ= -(FindM(ModelData(prim,e,bHat2TH)).-FindM(ModelData(prim,e,bHat2TH-[s 0])))./s
-    ∂g∂σ= -(FindM(ModelData(prim,e,bHat2TH)).-FindM(ModelData(prim,e,bHat2TH-[0 s])))./s
-    return hcat(∂g∂ρ,∂g∂σ)
+    #∂g∂ρ= -(FindM(ModelData(prim,e,bHat2TH)).-FindM(ModelData(prim,e,bHat2TH-[s 0])))./s
+    #∂g∂σ= -(FindM(ModelData(prim,e,bHat2TH)).-FindM(ModelData(prim,e,bHat2TH-[0 s])))./s
+    #Alternate Derivative calculation for (hopefully) improved accuracy from
+    #https://en.wikipedia.org/wiki/Numerical_differentiation#
+    ∂g∂ρ= (FindM(ModelData(prim,e,bHat2TH+[s 0])).-FindM(ModelData(prim,e,bHat2TH-[s 0])))./s
+    ∂g∂σ= (FindM(ModelData(prim,e,bHat2TH+[0 s])).-FindM(ModelData(prim,e,bHat2TH-[0 s])))./s
+    return [∂g∂ρ ∂g∂σ]
 end
 
-function StepsAThroughD()
-    prim=Primitives()
-    res=Results(e=eDrawsForModel(prim))
+function StepsAThroughD(;T=200,H=10,UseRandomSeed=false)
+    prim=Primitives(T=T,H=H)
+    res=Results(e=eDrawsForModel(prim,URS=UseRandomSeed))
+    res.td=TrueData(prim)
     for Exercise=4:6
         if Exercise==4
             FindM=FindM2_MeanVar
@@ -203,9 +215,8 @@ function StepsAThroughD()
             FindM=FindM3
             m=m3
         end
-        res.td=TrueData(prim)
-        #Function for parts a and b
 
+        #Function for parts a and b
         #Part a: Graph in three Dimensions
             res.bHat1TH=GraphAndFindbHat(I,prim,res,FindM,Exercise)
             print("
@@ -220,7 +231,6 @@ ________________________________________________________________________________
             # StdErrorsbHat1TH = sqrt.(diag((1/prim.T)*inv(transpose(∇g1)*I*∇g1)))
             # print("\n The Standard errors are given by \n\n")
             #     display(StdErrorsbHat1TH)
-
         #Part b: Use NeweyWest to update your guess of bHat
             md_bHat1TH=ModelData(prim,res.e, res.bHat1TH)
             WStar=NeweyWest(prim,ModelData(prim,res.e, md_bHat1TH),
@@ -236,9 +246,13 @@ ________________________________________________________________________________
             VarCovarbHat2TH=(1/prim.T)*inv(transpose(∇g)*WStar*∇g)
                 print("\n The variance-covariance matrix for bHat2TH is given by \n\n")
                 display(VarCovarbHat2TH)
-            StdErrorsbHat2TH=sqrt.(diag(VarCovarbHat2TH))
-                print("\n The Standard errors are given by \n\n")
-                display(StdErrorsbHat2TH)
+            try
+                StdErrorsbHat2TH=sqrt.(diag(VarCovarbHat2TH))
+                    print("\n The Standard errors are given by \n\n")
+                    display(StdErrorsbHat2TH)
+            catch
+                print("The Standard Errors cannot be found for this epsilon draw")
+            end
         #Part d: Computing the Value of the J test
             res.JTest=prim.T*(prim.H/(1+prim.H))*
                 J(FindM(res.td).-FindM(ModelData(prim,res.e,res.bHat2TH)),
