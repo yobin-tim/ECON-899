@@ -242,8 +242,13 @@ function Bellman(P::Params, G::Grids, S::Shocks, R::Results)
 
                     # We are defining the continuation value.
                     # Notice that we are interpolating over k and K.
-                    v_tomorrow(i_kp) = markov[row,1]*v_interp(i_kp,1,i_Kp,1) + markov[row,2]*v_interp(i_kp,2,i_Kp,1) +
-                        markov[row,3]*v_interp(i_kp,1,i_Kp,2) + markov[row,4]*v_interp(i_kp,2,i_Kp,2)
+                    v_tomorrow(i_kp) = markov[row,1]*
+                        v_interp(i_kp,1,i_Kp,1) +
+                        markov[row,2]*
+                        v_interp(i_kp,2,i_Kp,1) +
+                        markov[row,3]*
+                        v_interp(i_kp,1,i_Kp,2) +
+                        markov[row,4]*v_interp(i_kp,2,i_Kp,2)
 
 
                     # We are now going to solve the HH's problem (solve for k).
@@ -340,11 +345,11 @@ end
 function SimulateCapitalPath(prim::Params, grid::Grids, res::Results,
                              ℇ_idio::Matrix{Int64},
                              ℇ_agg::Vector{Int64})
-    i_k = floor(Int, get_index(11.55, grid.k_grid)) # Index for k
-    i_K = floor(Int, get_index(11.55, grid.K_grid)) # Index for K
+    i_k = get_index(11.55, grid.k_grid) # Index for k
+    i_K = get_index(11.55, grid.K_grid) # Index for K
+    i_eps = ℇ_idio[:,1] # Idiosyncratic Shock for time 1
+    i_z = ℇ_agg[1] # Aggregate Shock for time 1
     k_interp = interpolate(res.pf_k, BSpline(Linear()))
-    i_eps = ℇ_idio[:,1]
-    i_z = ℇ_agg[1]
     k_choice = k_interp(i_k, i_eps, i_K, i_z)
     res.K[1] = mean(k_choice) 
     for t in 2:prim.T # For each time
@@ -352,8 +357,8 @@ function SimulateCapitalPath(prim::Params, grid::Grids, res::Results,
         k_choice_next = zeros(5000)
         for n in 1:5000 # For each person
             i_eps = ℇ_idio[n,t]
-            i_k = floor(Int, get_index(k_choice[n], grid.k_grid))
-            i_K = floor(Int, get_index(k_choice[n], grid.K_grid))
+            i_k = get_index(k_choice[n], grid.k_grid)
+            i_K = get_index(k_choice[n], grid.K_grid)
             k_choice_next[n] = k_interp(i_k, i_eps, i_K, i_z)
         end
         res.K[t] = mean(k_choice_next)
@@ -364,10 +369,10 @@ end
 function EstimateRegression(prim::Params, grid::Grids, res::Results,
                             ℇ_agg::Vector{Int64})
 
-    A = [ℇ_agg res.K]
-    K_old = append!([11.5],res.K)[1:prim.T]
-    A = [ℇ_agg K_old res.K]
-    B = A[A[:,1] .== 1.0, :]
+    A = [ℇ_agg res.K][1001:end,:] # discard the first 1000 period
+    K_old = append!([11.5],res.K)[1:prim.T][1001:end, :] # privious K
+    A = [A[:,1] K_old A[:,2]] 
+    B = A[A[:,1] .== 1.0, :] # Pick up z_g
     X = hcat(ones(size(B,1)), log.(B[:,2]))
     coef_1 = (X'X)^(-1)*X'* log.(B[:,3])
     C = A[A[:,1] .== 2.0, :]
