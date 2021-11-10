@@ -198,8 +198,8 @@ function Find∇g(res,prim, FindM; s=1e-15)
     #∂g∂σ= -(FindM(ModelData(prim,e,bHat2TH)).-FindM(ModelData(prim,e,bHat2TH-[0 s])))./s
     #Alternate Derivative calculation for (hopefully) improved accuracy from
     #https://en.wikipedia.org/wiki/Numerical_differentiation#
-    ∂g∂ρ= (FindM(ModelData(prim,e,bHat2TH+[s 0])).-FindM(ModelData(prim,e,bHat2TH-[s 0])))./s
-    ∂g∂σ= (FindM(ModelData(prim,e,bHat2TH+[0 s])).-FindM(ModelData(prim,e,bHat2TH-[0 s])))./s
+    ∂g∂ρ= (FindM(ModelData(prim,e,bHat2TH+[s 0])).-FindM(ModelData(prim,e,bHat2TH-[s 0])))./(2*s)
+    ∂g∂σ= (FindM(ModelData(prim,e,bHat2TH+[0 s])).-FindM(ModelData(prim,e,bHat2TH-[0 s])))./(2*s)
     return [∂g∂ρ ∂g∂σ]
 end
 
