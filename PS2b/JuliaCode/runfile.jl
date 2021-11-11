@@ -29,9 +29,10 @@ X = df[!, [:score_0, :rate_spread, :i_large_loan, :i_medium_loan,
 
 Z = df[!, [:score_0, :score_1, :score_2]] |> Matrix;
 
-Y = df[!, :i_close_first_year]; #|> Matrix
+Y = df[!, :duration]; #|> Matrix
 
 
+<<<<<<< HEAD
 for name in names(df)
     println(name)
 end
@@ -48,4 +49,3 @@ end
 ## 4. Compare predicted choice probabilities for each of the above methods
 
 
-## 5.
