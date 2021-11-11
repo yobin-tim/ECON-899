@@ -1,0 +1,272 @@
+\documentclass[landscape]{article} % kind of document 
+\usepackage[utf8]{inputenc} %encoding of choice
+\usepackage[american]{babel} %language of choice
+\usepackage[p,osf]{cochineal}
+\usepackage{fancyhdr} %for header
+\usepackage{amsmath, tabu} %math mode
+\usepackage{mathtools}
+\usepackage{extarrows} % for more options with arrows
+\usepackage{amssymb} %math symbols
+\usepackage{dsfont} %specifically for the indicator function symbol
+\usepackage{xcolor} %to color text
+\usepackage{amsthm} %math theorem
+\usepackage{tikz}
+\usepackage{caption}
+\usepackage{multirow}
+\usepackage[bottom]{footmisc}
+% \usepackage[dvipsnames]{xcolor}
+%\usepackage{pythontex}
+\usepackage{enumerate} %make lists
+\usepackage{graphicx} %insert images
+\usepackage{float} %to fix image position
+\usepackage{moreverb} %to make boxes
+\usepackage{hyperref} %to create hyperlinks
+\usepackage{lipsum} %lorem ipsum package
+\usepackage{setspace} % to use singlespace below in the solution environment
+\usepackage[shortlabels]{enumitem}
+\usepackage{parskip}
+\usepackage[us]{datetime} %package for setting due date in US format
+\newdate{duedate}{8}{11}{2021} %to set a due date
+\allowdisplaybreaks
+\usepackage[margin=.5in, landscape]{geometry}
+\usepackage{rotating}
+\usepackage{pdflscape}
+\usepackage[paper=portrait,pagesize]{typearea}
+\usepackage{jlcode}
+\pagestyle{fancy}
+
+
+\fancypagestyle{mylandscape}{
+	\fancyhf{} %Clears the header/footer
+	\fancyfoot{% Footer
+		\makebox[\textwidth][r]{% Right
+			\rlap{\hspace{.75cm}% Push out of margin by \footskip
+				\smash{% Remove vertical height
+					\raisebox{4.87in}{% Raise vertically
+						\rotatebox{90}{\thepage}}}}}}% Rotate counter-clockwise
+	\renewcommand{\headrulewidth}{0pt}% No header rule
+	\renewcommand{\footrulewidth}{0pt}% No footer rule
+}
+
+\lhead{Due: \displaydate{duedate}}
+\chead{ECON 899 -- PS1b -- }
+\rhead{Danny, Hiroaki, Mitchell, Ryan, Yobin}
+
+
+\DeclareMathOperator*{\E}{\mathbb{E}} %ease of writing e and E
+\newcommand{\e}{\mathrm{e}}
+\newcommand{\ct}{\mathsf{c}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\ifn}{\mathds{1}}
+\newcommand{\X}{\mathbf{X}}
+\newcommand{\Y}{\mathbf{Y}}
+\newcommand{\one}{\mathbf{1}}
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+\newcommand*\widebar[1]{\overline{#1}} % to get a widebar
+\theoremstyle{definition}
+\newtheorem{theorem}{theorem} % Theorem display format
+\newtheorem{problem}[theorem]{Exercise} % Problem display format, last bracket sets display choice
+
+\newenvironment{solution}[1][Answer]{\begin{singlespace}\underline{\textbf{#1:}}\quad }{\ \rule{0.3em}{0.3em}\end{singlespace}} % Answer format
+
+\newenvironment{solutions}[1][Proof]{\begin{singlespace}\underline{\textbf{#1:}}\quad }{\ \rule{0.3em}{0.3em}\end{singlespace}} % Answer format
+\title{Econ899 PS1b}
+\usepackage{listings}
+\begin{document}
+%\maketitle
+\begin{enumerate}
+\item The routine is coded in Julia. 
+	
+  The obtained log likelihood is -6942.805.
+  
+  The transpose of the score is
+\begin{equation}
+	\left[
+	\begin{array}{c}
+		-2605.9082518892865 \\
+		-556.3196848948379 \\
+		-1156.8594262530135 \\
+		-222.81767101773977 \\
+		-933.039979318137 \\
+		-1215.1317422401712 \\
+		-2109.626213790837 \\
+		-948.0740374410863 \\
+		-5049.875617650256 \\
+		-4534.790470404961 \\
+		-19401.89853086738 \\
+		-19164.659456830384 \\
+		-918.8553971099844 \\
+		-351.75306280921296 \\
+		-466.6888493111424 \\
+		-582.4690752990825 \\
+		-546.4113143620349 \\
+	\end{array}
+	\right]
+\end{equation}
+
+The Hessian matrix is too large to display, but is computed in the routine.
+%\begin{tiny}
+%	\begin{equation}
+%		\left[
+%		\begin{array}{ccccccccccccccccc}
+%			-3224.6323170931637 & -880.4282370552784 & -1428.3856949992175 & -387.59093459559625 & -1305.6998486565487 & -1546.7677033060334 & -2619.4312932302696 & -1210.687131917734 & -6304.558251320736 & -5761.319479774926 & -23783.235245210555 & -23599.15535903185 & -1404.9888749434842 & -664.3517224229178 & -681.8501844814074 & -674.378931018232 & -582.9543820609548 \\
+%			-880.4282370552784 & -880.4282370552784 & -0.0 & -10.076361578625994 & -404.23413474447085 & -421.32757532393583 & -686.2680547959762 & -331.9792492782152 & -1720.7476397292985 & -1655.0792540266505 & -6607.98944401972 & -6563.049857033983 & -390.078075551086 & -163.7777403901563 & -189.33729171154934 & -211.55444016783713 & -170.06932225388383 \\
+%			-1428.3856949992175 & -0.0 & -1428.3856949992175 & -165.22677033814392 & -560.3440097381873 & -675.9773850917877 & -1192.1387611743 & -544.7133610454712 & -2796.018302626824 & -2551.2364457412073 & -10512.663121491 & -10428.544669004126 & -586.8866207257839 & -283.71101966745806 & -308.8773471223645 & -299.4399743267746 & -266.60578147545135 \\
+%			-387.59093459559625 & -10.076361578625994 & -165.22677033814392 & -715.6050127102415 & -185.71963213990404 & -187.92797689361157 & -325.00290786402917 & -152.3491802406599 & -783.9173373851107 & -693.9968697171158 & -2739.1526435853884 & -2721.006111911267 & 43.925072005479564 & -59.79165501806744 & -104.65063370644353 & -92.37025235618046 & -77.26652364456983 \\
+%			-1305.6998486565487 & -404.23413474447085 & -560.3440097381873 & -185.71963213990404 & -1305.6998486565487 & -693.5230338117503 & -973.1307655184933 & -501.4095827490417 & -2556.3483560054883 & -2592.7215636551587 & -9553.531122014616 & -9586.876508861225 & -501.9502655654747 & -214.5036191664594 & -290.98566119739195 & -299.4399743267746 & -192.87630650989607 \\
+%			-1546.7677033060334 & -421.32757532393583 & -675.9773850917877 & -187.92797689361157 & -693.5230338117503 & -806.4437736759276 & -1231.5217025680984 & -585.3073343841065 & -3024.729094588563 & -2841.37273829907 & -11435.210328153036 & -11359.468963659121 & -660.4823984167546 & -312.0958838600313 & -326.3227234850444 & -325.5107161791306 & -282.9933855448839 \\
+%			-2619.4312932302696 & -686.2680547959762 & -1192.1387611743 & -325.0029078640292 & -973.1307655184933 & -1231.5217025680984 & -2224.6526766119855 & -992.4601736297762 & -5125.8677423309455 & -4620.750060496868 & -19218.643540892648 & -19050.914689401558 & -1228.319287200248 & -545.1144490865397 & -551.4315903293557 & -540.1342687082149 & -477.38753651362896 \\
+%			-1210.687131917734 & -331.9792492782152 & -544.7133610454712 & -152.3491802406599 & -501.4095827490417 & -585.3073343841065 & -992.4601736297762 & -528.6280472572579 & -2369.86193732619 & -2169.2686124365187 & -8869.944364220459 & -8798.625844084045 & -557.4931367061669 & -248.12425975073356 & -257.31586762977224 & -253.33447598163264 & -220.35282418037767 \\
+%			-6304.558251320736 & -1720.7476397292985 & -2796.018302626824 & -783.9173373851107 & -2556.3483560054883 & -3024.729094588563 & -5125.8677423309455 & -2369.86193732619 & -12464.410119775508 & -11264.880715070343 & -46482.68652924107 & -46118.425573643355 & -2718.946424796173 & -1297.8353713269262 & -1333.2255193103879 & -1318.8728481837618 & -1134.647466736517 \\
+%			-5761.319479774926 & -1655.0792540266505 & -2551.2364457412073 & -693.9968697171158 & -2592.7215636551587 & -2841.37273829907 & -4620.750060496868 & -2169.2686124365187 & -11264.880715070343 & -10834.69380513725 & -42612.431742976645 & -42303.332230405766 & -2419.5064504694287 & -1169.8410027867333 & -1223.7126724948937 & -1213.8820758328204 & -1033.5889330504042 \\
+%			-23783.235245210555 & -6607.98944401972 & -10512.663121491 & -2739.1526435853875 & -9553.531122014616 & -11435.210328153036 & -19218.643540892648 & -8869.944364220459 & -46482.68652924107 & -42612.431742976645 & -176722.1299155234 & -175070.8479230722 & -10062.11901277724 & -4908.226203809249 & -5017.540465533479 & -4970.0704817676 & -4271.636079694827 \\
+%			-23599.15535903185 & -6563.049857033983 & -10428.544669004126 & -2721.006111911268 & -9586.876508861225 & -11359.46896365912 & -19050.914689401558 & -8798.625844084045 & -46118.425573643355 & -42303.332230405766 & -175070.8479230722 & -174101.19245179262 & -9978.674938965785 & -4850.992462827001 & -4978.921952575023 & -4944.782256604929 & -4247.0536916281 \\
+%			-1404.9888749434842 & -390.078075551086 & -586.8866207257839 & 43.925072005479564 & -501.9502655654747 & -660.4823984167546 & -1228.319287200248 & -557.4931367061669 & -2718.946424796173 & -2419.5064504694287 & -10062.11901277724 & -9978.674938965785 & -1404.9888749434842 & -292.9517805298065 & -306.9112277899499 & -305.7315561905012 & -268.37528887462446 \\
+%			-664.3517224229178 & -163.7777403901563 & -283.71101966745806 & -59.79165501806744 & -214.5036191664594 & -312.0958838600313 & -545.1144490865397 & -248.12425975073356 & -1297.8353713269262 & -1169.8410027867333 & -4908.226203809249 & -4850.992462827001 & -292.9517805298065 & -664.3517224229178 & -0.0 & -0.0 & -0.0 \\
+%			-681.8501844814074 & -189.33729171154934 & -308.8773471223645 & -104.65063370644353 & -290.98566119739195 & -326.3227234850444 & -551.4315903293557 & -257.31586762977224 & -1333.2255193103879 & -1223.7126724948937 & -5017.540465533479 & -4978.921952575023 & -306.9112277899499 & -0.0 & -681.8501844814074 & -0.0 & -0.0 \\
+%			-674.378931018232 & -211.55444016783713 & -299.4399743267746 & -92.37025235618046 & -299.4399743267746 & -325.5107161791306 & -540.1342687082149 & -253.33447598163264 & -1318.8728481837618 & -1213.8820758328204 & -4970.0704817676 & -4944.782256604929 & -305.7315561905012 & -0.0 & -0.0 & -674.378931018232 & -0.0 \\
+%			-582.9543820609548 & -170.06932225388383 & -266.60578147545135 & -77.26652364456983 & -192.87630650989607 & -282.9933855448839 & -477.38753651362896 & -220.35282418037767 & -1134.647466736517 & -1033.5889330504042 & -4271.636079694827 & -4247.0536916281 & -268.37528887462446 & -0.0 & -0.0 & -0.0 & -582.9543820609548 \\
+%		\end{array}
+%		\right]
+%	\end{equation}
+%\end{tiny}
+
+	\item We obtain similar results using each of the two approaches. The Euclidean norm of the difference between scores obtained by the two approaches was around $ 1.40$ while the norm between the two Hessians was $ 0.35 $.
+	
+	
+	\item The results obtained from implementing the Newton algorithm are displayed in part 4. The associated code is attached in the appendix. The \textit{NewtonAlg} function within  "functions.jl" file details the algorithm.
+	
+	
+	\item  The computation speed between the three methods is compared below
+	\begin{table}[H]
+		\centering
+		\begin{tabular}{c c }
+			\hline
+			Newton Method & 838.489 ms\\
+			Quasi-Newton (BFGS) & 4.703 s\\
+			Quasi-Newton (Simplex) & 2.935 s\\\hline
+		\end{tabular}
+	\end{table}
+	
+		The estimates of $ \beta $ under each of these methods is tabulated below. We can observe that the Newton Method yields estimates closest to the true values, and does so fastest among the three methods.
+		
+		\begin{tabular}{p{10em }p{10em } p{10em}} 
+			\hline
+			 Newton& BFGS& Simplex \\
+			 \begin{equation*}
+			 	\left[
+			 	\begin{array}{c}
+			 		-1.000 \\
+			 		1.530e-7 \\
+			 		8.4296e-8 \\
+			 		1.086e-7 \\
+			 		3.010e-8 \\
+			 		1.569e-7 \\
+			 		-1.938e-8 \\
+			 		4.086e-8 \\
+			 		1.278e-7 \\
+			 		5.152e-8 \\
+			 		-5.411e-8 \\
+			 		3.651e-8 \\
+			 		1.4033e-7 \\
+			 		1.988e-7 \\
+			 		1.170e-7 \\
+			 		4.438e-8 \\
+			 		2.374e-8 \\
+			 	\end{array}
+			 	\right]
+			 \end{equation*} & 
+		 	\begin{equation*}
+		 		\left[
+		 		\begin{array}{c}
+		 			-6.056 \\
+		 			0.867 \\
+		 			0.527 \\
+		 			0.595 \\
+		 			0.163 \\
+		 			0.871 \\
+		 			-0.052 \\
+		 			0.215 \\
+		 			1.007 \\
+		 			0.335 \\
+		 			-0.284 \\
+		 			0.189 \\
+		 			0.758 \\
+		 			1.152 \\
+		 			0.770 \\
+		 			0.379 \\
+		 			0.2406 \\
+		 		\end{array}
+		 		\right]
+		 	\end{equation*} &
+	 		\begin{equation*}
+	 			\left[
+	 			\begin{array}{c}
+	 				-1.953\\
+	 				0.686\\
+	 				0.318\\
+	 				0.411\\
+	 				 0.008\\
+	 				-0.591\\
+	 				-0.074\\
+	 				-0.379\\
+	 				0.279\\
+	 				0.523\\
+	 				-0.481\\
+	 				0.233\\
+	 				0.680\\
+	 				0.344\\
+	 				0.064\\
+	 				-0.407\\
+	 				-0.486\\
+	 			\end{array}
+	 			\right]
+	 		\end{equation*}
+	 	  \\
+	 	\hline
+		\end{tabular}
+
+%  \begin{lstlisting}
+%
+%    1×17 Matrix{Float64}:
+%    -2605.91  -556.32  -1156.86  -222.818  …  -466.689  -582.469  -546.411
+%  \end{lstlisting}
+%
+%  The hessian is
+%  \begin{lstlisting}
+%    17×17 Matrix{Float64}:
+%    -3224.63    -880.428    -1428.39   …   -681.85    -674.379    -582.954
+%    -880.428   -880.428       -0.0        -189.337   -211.554    -170.069
+%    -1428.39      -0.0      -1428.39       -308.877   -299.44     -266.606
+%    -387.591    -10.0764    -165.227      -104.651    -92.3703    -77.2665
+%    -1305.7     -404.234     -560.344      -290.986   -299.44     -192.876
+%    -1546.77    -421.328     -675.977  …   -326.323   -325.511    -282.993
+%    -2619.43    -686.268    -1192.14       -551.432   -540.134    -477.388
+%    -1210.69    -331.979     -544.713      -257.316   -253.334    -220.353
+%    -6304.56   -1720.75     -2796.02      -1333.23   -1318.87    -1134.65
+%    -5761.32   -1655.08     -2551.24      -1223.71   -1213.88    -1033.59
+%    -23783.2    -6607.99    -10512.7    …  -5017.54   -4970.07    -4271.64
+%    -23599.2    -6563.05    -10428.5       -4978.92   -4944.78    -4247.05
+%    -1404.99    -390.078     -586.887      -306.911   -305.732    -268.375
+%    -664.352   -163.778     -283.711        -0.0       -0.0        -0.0
+%    -681.85    -189.337     -308.877      -681.85      -0.0        -0.0
+%    -674.379   -211.554     -299.44   …     -0.0     -674.379      -0.0
+%    -582.954   -170.069     -266.606        -0.0       -0.0      -582.954
+%  \end{lstlisting}
+%  \item The numerical first derivative is
+%  \begin{lstlisting}
+%    1×17 Matrix{Float64}:
+%    -2605.91  -556.32  -1156.86  -222.818  …  -466.689  -582.469  -546.411
+%  \end{lstlisting}
+
+\end{enumerate}
+\newpage
+\section*{Appendix}
+ 	The first codefile named "runfile.jl" runs the code.
+ 	\jlinputlisting{runfile.jl}
+	
+ 	The second codefile named "functions.jl" contains the relevant functions.
+ 	\jlinputlisting{functions.jl}
+\end{document}
