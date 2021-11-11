@@ -2,7 +2,7 @@
     This file conducts the analyses for JF's PS2
 ==#
 
-using CSV, DataFrames, Optim, BenchmarkTools, Latexify
+using StatFiles, DataFrames, Optim, BenchmarkTools, Latexify, CSV
 # We can use BenchmarkTools for better precision. Just need to replace time
 # with btime. The runtime of the overall code get longer as btime runs the
 # code multiple times to reduce noise
@@ -10,14 +10,17 @@ using CSV, DataFrames, Optim, BenchmarkTools, Latexify
 # include("./PS1b/JuliaCode/functions.jl")
 include("./functions.jl")
 
-## load the mortgage data as a DataFrame
-#df = DataFrame(CSV.File("../data/mortgage_performance_data.csv"))
+## load the mortgage data and sparse grid weights as a DataFrames (and 
+## convert weights to matrices
+df = DataFrame(StatFiles.load("PS2b/data/Mortgage_performance_data.dta"))  
+w1 = DataFrame(CSV.File("PS2b/data/KPU_d1_l20.csv")) |> Matrix
+w2 = DataFrame(CSV.File("PS2b/data/KPU_d2_l20.csv")) |> Matrix
 
 # Use this if you are loading data from the root folder.
-df = DataFrame(CSV.File("PS2b/Data/mortgage_performance_data.csv"))  
+#df = DataFrame(CSV.File("../data/mortgage_performance_data.csv"))
 #df = DataFrame(CSV.File("C:/Users/ryana/OneDrive/Documents/School/PhD Economics/Research/GitHub/ECON-899/PS1b/data/mortgage.csv"))
 
-## Separate data into independent variable matrixes X and Z and
+## Separate data into independent variable matrices X and Z and
 ## dependent variable vector Y
 X = df[!, [:score_0, :rate_spread, :i_large_loan, :i_medium_loan,
             :i_refinance, :age_r, :cltv, :dti, :cu,
@@ -29,44 +32,20 @@ Z = df[!, [:score_0, :score_1, :score_2]] |> Matrix;
 Y = df[!, :i_close_first_year]; #|> Matrix
 
 
-## 1. Evaluate functions at β₀ = -1 and β = 0
-β = [-1; zeros(size(X, 2), 1)];
-LL = likelihood(β, Y, X);
+for name in names(df)
+    println(name)
+end
+## 1. Evaluate log-likelihood using the quadrature method
+
+## 2. Evaluate simulated log-likelihood function using GHK
+@btime β_BFGS = optimize(b->-likelihood(b, Y, X), β, method=BFGS(),
+                            f_tol=1e-32,g_tol=1e-32).minimizer
 
 
-gβ = score(β, Y, X)
-# The transpose of the score evaluated at β is 
-latexify(gβ')
+## 3. Evaluate simulated log-likelihood function using accept/reject
 
-H  = Hessian(X, β)
-# The Hessian evaluated at β is
-latexify(H)
 
-## 2. Compare score and hessian from (1) with numerical
-##    first and second derivative of the log-likelihood
-##gβ_num=∂F(β,Y,X)
-gβ_num=score_num(β,Y,X)
-diff_gβ=gβ.-gβ_num
-diff_gβ
+## 4. Compare predicted choice probabilities for each of the above methods
 
-H_num=Find_H_num(β,Y,X)
-diff_H=H-H_num
 
-## 3. Write a routine that solves the maximum likelihood
-##    using a Newton algorithm
-@btime β_Newton = NewtonAlg(Y, X); #Newton(Y, X; β₀ = β);
-# β_Newton = NewtonAlg(Y, X);
-
-## 4. Compare the solution and speed with  BFGS and Simplex
-#f(b) = likelihood(b, Y, X);
-#Optimize minimizes the function, so we need to use the negative of liklihood to maximize
-println("\n For Quasi-Newton Methods:")
-print("\n The BFGS algorithm takes")
-# @btime β_BFGS    = optimize(b->-likelihood(b, Y, X), β, BFGS(),abs_tol=1e-12).minimizer
-@btime    β_BFGS    = optimize(b->-likelihood(b, Y, X), β, method=BFGS(),
-        f_tol=1e-32,g_tol=1e-32).minimizer
-
-print("\n The Simplex algorithm takes")
-@btime β_simplex = optimize(b->-likelihood(b, Y, X), β, NelderMead()).minimizer;
-    # β_simplex = optimize(b->-likelihood(b, Y, X), β, method=NelderMead(),
-    # f_tol=1e-32,g_tol=1e-32).minimizer
+## 5.

@@ -1,12 +1,39 @@
 #==
-    This file defines functions used in JF's PS1
+    This file defines functions used in JF's PS2
 ==#
-using Optim
+using Optim, Distributions
+
+# structure of model parameters
+mutable struct Parameters
+    α₀::Float64
+    α₁::Float64
+    α₂::Float6
+    β::Float64
+    γ::Float64
+    ρ::Float64
+end # parameters struct
 
 # Calculate log-likelihood at β
-function likelihood(β, Y, X)
+function likelihood(Y, X, Z, param::Parameters)
 
+    # unpack model parameters
+    @unpack α₀, α₁, α₂, β, γ, ρ = param
+
+    # Calculate σ₀²
+    σ₀² = 1/(1-ρ)^2
     X = [ones(size(X, 1), 1) X] # add constant to X
+
+    # calculate likelihood for each level of Y 
+    Y1 = Y[Y == 1]
+    Y2 = Y[Y == 2]
+    Y3 = Y[Y == 3]
+    Y4 = Y[Y == 4]
+
+    # map integral bounds to [0, 1]
+
+
+    # Y = 1 likelihood:
+    L1 = cdf(Normal(), (-α₀ - X*β - Z*γ)/σ₀²)
 
     return sum(Y.*log.(exp.(X*β) ./ (1 .+ exp.(X*β))) +
         (1 .- Y).*log.(1 ./ (1 .+ exp.(X*β))))
