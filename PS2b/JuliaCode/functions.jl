@@ -8,19 +8,24 @@ mutable struct Parameters
     α₀::Float64
     α₁::Float64
     α₂::Float6
-    β::Float64
-    γ::Float64
+    β::Array{Float64}
+    γ::Array{Float64}
     ρ::Float64
 end # parameters struct
 
 # Calculate log-likelihood at β
-function likelihood(Y, X, Z, param::Parameters)
+function likelihood(Y, X, Z, W1, W2, param::Parameters)
+    # separate weights and nodes from W1 and W2
+    u = W1[:, 1]; w = W1[:, 2]
+    μ0 = W2[:, 1]; μ1 = W2[:, 2]; ω = W2[:, 3]
 
-    # unpack model parameters
+    # unpack model parametersw
     @unpack α₀, α₁, α₂, β, γ, ρ = param
 
-    # Calculate σ₀²
+    # Calculate σ₀ and σ₀²
     σ₀² = 1/(1-ρ)^2
+    σ₀  = 1/(1-ρ)
+
     X = [ones(size(X, 1), 1) X] # add constant to X
 
     # calculate likelihood for each level of Y 
@@ -30,13 +35,16 @@ function likelihood(Y, X, Z, param::Parameters)
     Y4 = Y[Y == 4]
 
     # map integral bounds to [0, 1]
-
+    b₀ = (x) -> log(x) + α₀ - X*β - Z*γ
+    b₁ = (x) -> log(x) + α₁ - X*β - Z*γ
 
     # Y = 1 likelihood:
     L1 = cdf(Normal(), (-α₀ - X*β - Z*γ)/σ₀²)
+    L2 = sum(w.*(cdf.(Normal(), (-ρ).*b₀.(u) .- (α₁ + X*β + Z*γ))./σ₀).*pdf.(Normal(), b₀.(u./σ₀)))
+    L3 = sum(ω.*((cdf.(Normal(), (-ρ).*b₁(μ₁) .- (α₂ + X*β + Z*γ)))./σ₀).*pdf.(Normal(), b₀.(μ₀./σ₀).*pdf.(Normal(), b₁(μ₁).-ρ.*b₀(μ₀))))
+    L4 = sum(ω.*(cdf.(Normal(), (-ρ).*b₁(μ₁) .+ (α₂ + X*β + Z*γ))./σ₀).*pdf.(Normal(), b₁(μ₁./σ₀).*pdf.(Normal(), b₁(μ₁).-ρ.*b₀(μ₀))))
 
-    return sum(Y.*log.(exp.(X*β) ./ (1 .+ exp.(X*β))) +
-        (1 .- Y).*log.(1 ./ (1 .+ exp.(X*β))))
+    return sum((Y .== 1).*log.(L1) + (Y .== 2).*log.(L2) + (Y .== 3).*log.(L3) + (Y .== 4).*log.(L4))
 end # log-likelihood function
 
 # calculate the log-likelihood score, given β

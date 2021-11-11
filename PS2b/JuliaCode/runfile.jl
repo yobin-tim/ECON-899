@@ -37,6 +37,7 @@ for name in names(df)
     println(name)
 end
 ## 1. Evaluate log-likelihood using the quadrature method
+println("See likelihood() function")
 
 ## 2. Evaluate simulated log-likelihood function using GHK
 @btime β_BFGS = optimize(b->-likelihood(b, Y, X), β, method=BFGS(),
