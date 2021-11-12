@@ -380,6 +380,26 @@ function EstimateRegression(prim::Params, grid::Grids, res::Results,
     res.b0 = coef_2[1]
     res.b1 = coef_2[2]
 
+    predict_K = zeros(1, prim.T-1000); # For store prediction.
+
+    for i in 1:prim.T-1000
+
+        if A[i,1] == 1.0
+
+            predict_K[i] = res.a0 + res.a1 * log.(A[i,2])
+            
+        else
+            
+            predict_K[i] = res.b0 + res.b1 * log.(A[i,2])
+
+        end
+        
+    end
+
+    ESS_1 = sum((predict_K .- mean(log.(A[:,3]))).^2)
+    TSS = sum((log.(A[:,3]) .- mean(log.(A[:,3]))).^2)
+    res.R2 = [ESS_1/TSS]
+
 end
 
 
@@ -437,8 +457,8 @@ function Krusell_Smith()
     println("a1 is ", round(res.a1, digits = 3))
     println("b0 is ", round(res.b0, digits = 3))
     println("b1 is ", round(res.b1, digits = 3))
+    println("R2 is ", res.R2)
     
-
 end
 
 
