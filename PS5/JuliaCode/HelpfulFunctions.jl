@@ -205,9 +205,6 @@ function Bellman(P::Params, G::Grids, S::Shocks, R::Results)
     pf_k_up = zeros(n_k, n_eps, n_K, n_z)
     pf_v_up = zeros(n_k, n_eps, n_K, n_z)
 
-    # In Julia, this is how we define an interpolated function.
-    # Need to use the package "Interpolations".
-    # (If you so desire, you can write your own interpolation function too!)
     k_interp = interpolate(k_grid, BSpline(Linear()))
     v_interp = interpolate(pf_v, BSpline(Linear()))
 
@@ -229,7 +226,7 @@ function Bellman(P::Params, G::Grids, S::Shocks, R::Results)
 
             w_today = (1 - cALPHA)*z_today*(K_today/L_today)^cALPHA
 
-            r_today = 0.1 #w_mkt(K_today, L_today, z_today)
+            r_today = r_mkt(K_today, L_today, z_today)
 
             i_Kp = get_index(K_tomorrow, K_grid)
             
