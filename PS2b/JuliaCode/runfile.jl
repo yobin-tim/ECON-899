@@ -7,8 +7,8 @@ using StatFiles, DataFrames, Optim, BenchmarkTools, Latexify, CSV
 # with btime. The runtime of the overall code get longer as btime runs the
 # code multiple times to reduce noise
 
-# include("./PS1b/JuliaCode/functions.jl")
-include("./functions.jl")
+include("./PS2b/JuliaCode/functions.jl")
+#include("./functions.jl")
 
 ## load the mortgage data and sparse grid weights as a DataFrames (and 
 ## convert weights to matrices
@@ -48,5 +48,7 @@ println("See likelihood() function")
 
 
 ## 4. Compare predicted choice probabilities for each of the above methods
+true_param = ModelParameters(0, -1, -1, 0*ones(size(X, 2), 1),
+                                0.3*ones(size(Z, 2), 1), 0.5)
 
-
+likelihood(Y, X, Z, w1, w2, true_param)
