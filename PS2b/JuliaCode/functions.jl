@@ -1,23 +1,23 @@
 #==
     This file defines functions used in JF's PS2
 ==#
-using Optim, Distributions
+using Optim, Distributions, Parameters, LinearAlgebra
 
 # structure of model parameters
-mutable struct Parameters
+mutable struct ModelParameters
     α₀::Float64
     α₁::Float64
-    α₂::Float6
+    α₂::Float64
     β::Array{Float64}
     γ::Array{Float64}
     ρ::Float64
 end # parameters struct
 
 # Calculate log-likelihood at β
-function likelihood(Y, X, Z, W1, W2, param::Parameters)
+function likelihood(Y, X, Z, W1, W2, param::ModelParameters)
     # separate weights and nodes from W1 and W2
     u = W1[:, 1]; w = W1[:, 2]
-    μ0 = W2[:, 1]; μ1 = W2[:, 2]; ω = W2[:, 3]
+    μ₀ = W2[:, 1]; μ₁ = W2[:, 2]; ω = W2[:, 3]
 
     # unpack model parametersw
     @unpack α₀, α₁, α₂, β, γ, ρ = param
@@ -26,25 +26,36 @@ function likelihood(Y, X, Z, W1, W2, param::Parameters)
     σ₀² = 1/(1-ρ)^2
     σ₀  = 1/(1-ρ)
 
-    X = [ones(size(X, 1), 1) X] # add constant to X
-
-    # calculate likelihood for each level of Y 
-    Y1 = Y[Y == 1]
-    Y2 = Y[Y == 2]
-    Y3 = Y[Y == 3]
-    Y4 = Y[Y == 4]
-
     # map integral bounds to [0, 1]
-    b₀ = (x) -> log(x) + α₀ - X*β - Z*γ
-    b₁ = (x) -> log(x) + α₁ - X*β - Z*γ
+    b₀ = (a, x, z) -> log.(a) .+ (α₀ + dot(x, β) + dot(z, γ))
+    b₁ = (a, x, z) -> log.(a) .+ (α₁ + dot(x, β) + dot(z, γ))
 
-    # Y = 1 likelihood:
-    L1 = cdf(Normal(), (-α₀ - X*β - Z*γ)/σ₀²)
-    L2 = sum(w.*(cdf.(Normal(), (-ρ).*b₀.(u) .- (α₁ + X*β + Z*γ))./σ₀).*pdf.(Normal(), b₀.(u./σ₀)))
-    L3 = sum(ω.*((cdf.(Normal(), (-ρ).*b₁(μ₁) .- (α₂ + X*β + Z*γ)))./σ₀).*pdf.(Normal(), b₀.(μ₀./σ₀).*pdf.(Normal(), b₁(μ₁).-ρ.*b₀(μ₀))))
-    L4 = sum(ω.*(cdf.(Normal(), (-ρ).*b₁(μ₁) .+ (α₂ + X*β + Z*γ))./σ₀).*pdf.(Normal(), b₁(μ₁./σ₀).*pdf.(Normal(), b₁(μ₁).-ρ.*b₀(μ₀))))
+    # save indexes for each outcome
+    indvec = 1:size(Y, 1)
+    ind₁ = indvec[Y .== 1]; ind₂ = indvec[Y .== 2];
+    ind₃ = indvec[Y .== 3]; ind₄ = indvec[Y .== 4];
 
-    return sum((Y .== 1).*log.(L1) + (Y .== 2).*log.(L2) + (Y .== 3).*log.(L3) + (Y .== 4).*log.(L4))
+    # per-observation likelihood:
+    L1 = (x, z) -> log(cdf(Normal(), (-α₀ - dot(x, β) - dot(z, γ))/σ₀²))
+    L2 = (x, z) -> log(sum(w.*(cdf.(Normal(), (-ρ)*b₀(u, x, z) .- (α₁ .+ dot(x, β) + dot(z, γ)))./σ₀).*pdf.(Normal(), b₀(u./σ₀, x, z)) ./ u))
+    L3 = (x, z) -> log(sum(ω.*((cdf.(Normal(), (-ρ)*b₁(μ₁, x, z) .- (α₂ .+ dot(x, β) + dot(z, γ))))./σ₀).*pdf.(Normal(), b₀(μ₀./σ₀, x, z)).*pdf.(Normal(), b₁(μ₁, x, z).- ρ*b₀(μ₀, x, z)) ./ (μ₀ .* μ₁)))
+    L4 = (x, z) -> log(sum(ω.*(cdf.(Normal(), (-ρ)*b₁(μ₁, x, z) .+ (α₂ + dot(x, β) + dot(z, γ)))./σ₀).*pdf.(Normal(), b₁(μ₁./σ₀, x, z)).*pdf.(Normal(), b₁(μ₁, x, z) .- ρ*b₀(μ₀, x, z)) ./ (μ₀ .* μ₁)))
+
+    # calculate the log-likelihood for all observations
+    ll = 0
+    for i = 1:size(Y, 1)
+        if Y[i] == 1
+            ll = ll + L1(X[i, :], Z[i, :])
+        elseif Y[i] == 2
+            ll = ll + L2(X[i, :], Z[i, :])
+        elseif Y[i] == 3   
+            ll = ll + L3(X[i, :], Z[i, :])
+        elseif Y[i] == 4
+            ll = ll + L4(X[i, :], Z[i, :])
+        end
+    end # for i
+
+    return ll
 end # log-likelihood function
 
 # calculate the log-likelihood score, given β
