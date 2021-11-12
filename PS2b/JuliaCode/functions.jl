@@ -13,13 +13,14 @@ mutable struct ModelParameters
     ρ::Float64
 end # parameters struct
 
-# Calculate log-likelihood at β
-function likelihood(Y, X, Z, W1, W2, param::ModelParameters)
+# Calculate log-likelihood using quadrature method 
+function QuadLL(Y, X, Z, W1, W2, θ)
     # separate weights and nodes from W1 and W2
     u = W1[:, 1]; w = W1[:, 2]
     μ₀ = W2[:, 1]; μ₁ = W2[:, 2]; ω = W2[:, 3]
 
-    # unpack model parametersw
+    # unpack model parameters
+    param = ModelParameters(θ[1], θ[2], θ[3], θ[4], θ[5], θ[6])
     @unpack α₀, α₁, α₂, β, γ, ρ = param
 
     # Calculate σ₀ and σ₀²
@@ -39,7 +40,7 @@ function likelihood(Y, X, Z, W1, W2, param::ModelParameters)
     L1 = (x, z) -> log(cdf(Normal(), (-α₀ - dot(x, β) - dot(z, γ))/σ₀²))
     L2 = (x, z) -> log(sum(w.*(cdf.(Normal(), (-ρ)*b₀(u, x, z) .- (α₁ .+ dot(x, β) + dot(z, γ)))./σ₀).*pdf.(Normal(), b₀(u./σ₀, x, z)) ./ u))
     L3 = (x, z) -> log(sum(ω.*((cdf.(Normal(), (-ρ)*b₁(μ₁, x, z) .- (α₂ .+ dot(x, β) + dot(z, γ))))./σ₀).*pdf.(Normal(), b₀(μ₀./σ₀, x, z)).*pdf.(Normal(), b₁(μ₁, x, z).- ρ*b₀(μ₀, x, z)) ./ (μ₀ .* μ₁)))
-    L4 = (x, z) -> log(sum(ω.*(cdf.(Normal(), (-ρ)*b₁(μ₁, x, z) .+ (α₂ + dot(x, β) + dot(z, γ)))./σ₀).*pdf.(Normal(), b₁(μ₁./σ₀, x, z)).*pdf.(Normal(), b₁(μ₁, x, z) .- ρ*b₀(μ₀, x, z)) ./ (μ₀ .* μ₁)))
+    L4 = (x, z) -> log(sum(ω.*(cdf.(Normal(), (ρ)*b₁(μ₁, x, z) .+ (α₂ + dot(x, β) + dot(z, γ)))./σ₀).*pdf.(Normal(), b₁(μ₁./σ₀, x, z)).*pdf.(Normal(), b₁(μ₁, x, z) .- ρ*b₀(μ₀, x, z)) ./ (μ₀ .* μ₁)))
 
     # calculate the log-likelihood for all observations
     ll = 0
@@ -56,68 +57,33 @@ function likelihood(Y, X, Z, W1, W2, param::ModelParameters)
     end # for i
 
     return ll
-end # log-likelihood function
+end # quadrature log-likelihood function
 
-# calculate the log-likelihood score, given β
-function score(β, Y, X)
 
-    X = [ones(size(X, 1), 1) X] # add constant to X
 
-    return sum((Y .- (exp.(X*β) ./ (1 .+ exp.(X*β)))) .* X, dims = 1)
+# Calculate log-likelihood using quadrature method 
+function GHKLL(Y, X, Z, θ; sims = 100, k = maximum(Y))
 
-end # end log-likelihood score
-
-# Calculate the Hessian matrix given β
-function Hessian(X, β)
-
-    X = [ones(size(X, 1), 1) X] # add constant to X
-
-    A = (exp.(X*β) ./ (1 .+ exp.(X*β))) .*
-        (1 ./ (1 .+ exp.(X*β)))
+    # unpack model parameters
+    param = ModelParameters(θ[1], θ[2], θ[3], θ[4], θ[5], θ[6])
+    @unpack α₀, α₁, α₂, β, γ, ρ = param
 
     #==
-    B = zeros(size(X,2), size(X,2), size(X,1))
+    TODO: figure out how to do this; I'm lost -Danny
+    # Draw ν₁
+    Φ₁ = truncated.(Normal(), -Inf, -X*β)
+    η₁ = rand.(Φ₁, sims)
 
-    for i = 1:size(X,1)
-
-        B[:,:,i] = A[i] .* X[i,:] * transpose(X[i,:])
-
-    end
-
-    dropdims(sum(B, dims = 3), dims = 3)
+    # Draw ν₂
+    Φ₂ = truncated.(Normal(), -Inf, -X*β)
     ==#
+    
+end # quadrature log-likelihood function
 
-    # Alternative method (saves memory):
-    H = 0;
-    for i = 1:size(X,1)
-        H = H .+ (A[i] .* X[i,:] * transpose(X[i,:]))
-    end
 
-    return -H
-end # Hessian matrix
 
-####################################################################
-#Calculate First Derivate numerically
-function ∂F(β,Y,X;h=1e-5)
-    ∂=zeros(length(β))
-    for ii=1:length(β)
-        hi=zeros(length(β))
-        hi[ii]=copy(h)
-        ∂[ii]=(likelihood(β.+h,Y,X)-likelihood(β,Y,X))/h
-    end
-    return transpose(∂)
-end
 
-function score_num(β,Y,X;h=1e-5)
 
-    partial = zeros(length(β))
-    for i =1:length(β)
-        β1=copy(β)
-        β1[i] += h 
-        partial[i]=(likelihood(β1,Y,X)-likelihood(β,Y,X))/h
-    end
-    return transpose(partial)
-end
 
 ######################################################################
 

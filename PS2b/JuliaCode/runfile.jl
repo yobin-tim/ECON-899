@@ -40,7 +40,9 @@ end
 println("See likelihood() function")
 
 ## 2. Evaluate simulated log-likelihood function using GHK
-@btime β_BFGS = optimize(b->-likelihood(b, Y, X), β, method=BFGS(),
+θ = [0, 0, 0, zeros(size(X, 2), 1), zeros(size(Z, 2), 1), .5];
+@btime β_BFGS = optimize(t->-likelihood(Y, X, Z, w1, w2, t),
+                            θ, method=BFGS(), 
                             f_tol=1e-32,g_tol=1e-32).minimizer
 
 
@@ -48,7 +50,6 @@ println("See likelihood() function")
 
 
 ## 4. Compare predicted choice probabilities for each of the above methods
-true_param = ModelParameters(0, -1, -1, 0*ones(size(X, 2), 1),
-                                0.3*ones(size(Z, 2), 1), 0.5)
+θ₀ = [0, -1, -1, 0*ones(size(X, 2), 1), 0.3*ones(size(Z, 2), 1), 0.5]
 
-likelihood(Y, X, Z, w1, w2, true_param)
+likelihood(Y, X, Z, w1, w2, θ₀)
