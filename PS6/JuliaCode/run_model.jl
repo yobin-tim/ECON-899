@@ -49,9 +49,11 @@ for (α, res_struct) in results
 end
 current()
 
-savefig(p2, "./PS6/Document/Figures/decision_rules.pdf")
+# savefig(p2, "./PS6/Document/Figures/decision_rules_2.pdf")
+savefig(p2, "../Document/Figures/decision_rules_2.pdf")
 
 # Save results to a table
+## Error for i 
 n_opt = [prim.n_optim.(prim.s_vals, r.p) for (_, r) in results]
 n_incumbents = [ prim.n_optim.(prim.s_vals, r.p)' * r.μ for (_, r) in results]
 n_entrants = [ prim.n_optim.(prim.s_vals, r.p)' * prim.ν * results[i].M for (_, r) in results]
@@ -76,4 +78,7 @@ laetx_table = latexify(df; env=:table, latex=false)
 
 open("./PS6/Document/Tables/table_1.tex", "w") do file
     write(file, laetx_table)
+#open("../Document/Tables/table_2.tex", "w") do file
+#    write(file, laetx_table)
+
 end

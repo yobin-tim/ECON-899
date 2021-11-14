@@ -15,7 +15,7 @@ using Parameters, LinearAlgebra
                                     0.2000  0.2000  0.2500  0.3400  0.0100]
     ν           ::Array{Float64}   = [0.37, 0.4631, 0.1102, 0.0504, 0.0063]
     A           ::Float64          = 1/200
-    c_f         ::Int64            = 10
+    c_f         ::Int64            = 15
     c_e         ::Int64            = 5
 
     # Price grid
