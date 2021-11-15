@@ -13,7 +13,7 @@ mutable struct ModelParameters
     ρ::Float64
 end # parameters struct
 
-# Calculate log-likelihood using quadrature method 
+# Calculate log-likelihood using quadrature method
 function QuadLL(Y, X, Z, W1, W2, θ)
     # separate weights and nodes from W1 and W2
     u = W1[:, 1]; w = W1[:, 2]
@@ -37,10 +37,15 @@ function QuadLL(Y, X, Z, W1, W2, θ)
     ind₃ = indvec[Y .== 3]; ind₄ = indvec[Y .== 4];
 
     # per-observation likelihood:
-    L1 = (x, z) -> log(cdf(Normal(), (-α₀ - dot(x, β) - dot(z, γ))/σ₀²))
-    L2 = (x, z) -> log(sum(w.*(cdf.(Normal(), (-ρ)*b₀(u, x, z) .- (α₁ .+ dot(x, β) + dot(z, γ)))./σ₀).*pdf.(Normal(), b₀(u./σ₀, x, z)) ./ u))
-    L3 = (x, z) -> log(sum(ω.*((cdf.(Normal(), (-ρ)*b₁(μ₁, x, z) .- (α₂ .+ dot(x, β) + dot(z, γ))))./σ₀).*pdf.(Normal(), b₀(μ₀./σ₀, x, z)).*pdf.(Normal(), b₁(μ₁, x, z).- ρ*b₀(μ₀, x, z)) ./ (μ₀ .* μ₁)))
-    L4 = (x, z) -> log(sum(ω.*(cdf.(Normal(), (ρ)*b₁(μ₁, x, z) .+ (α₂ + dot(x, β) + dot(z, γ)))./σ₀).*pdf.(Normal(), b₁(μ₁./σ₀, x, z)).*pdf.(Normal(), b₁(μ₁, x, z) .- ρ*b₀(μ₀, x, z)) ./ (μ₀ .* μ₁)))
+    L1 = (x, z) -> log(cdf(Normal(), (-α₀ - dot(x, β) - dot(z, γ))/σ₀)) # I think this should just be σ₀ not σ₀²
+    L2 = (x, z) -> log(sum(w.*(cdf.(Normal(), (-ρ)*b₀(u, x, z) .- (α₁ .+ dot(x, β) +
+        dot(z, γ)))./σ₀).*pdf.(Normal(), b₀(u./σ₀, x, z)) ./ u))
+    L3 = (x, z) -> log(sum(ω.*((cdf.(Normal(), (-ρ)*b₁(μ₁, x, z) .- (α₂ .+ dot(x, β) +
+        dot(z, γ))))./σ₀).*pdf.(Normal(), b₀(μ₀./σ₀, x, z)).*pdf.(Normal(), b₁(μ₁, x, z).-
+        ρ*b₀(μ₀, x, z)) ./ (μ₀ .* μ₁)))
+    L4 = (x, z) -> log(sum(ω.*(cdf.(Normal(), (ρ)*b₁(μ₁, x, z) .+ (α₂ + dot(x, β) +
+        dot(z, γ)))./σ₀).*pdf.(Normal(), b₁(μ₁./σ₀, x, z)).*pdf.(Normal(), b₁(μ₁, x, z) .-
+        ρ*b₀(μ₀, x, z)) ./ (μ₀ .* μ₁)))
 
     # calculate the log-likelihood for all observations
     ll = 0
@@ -49,7 +54,7 @@ function QuadLL(Y, X, Z, W1, W2, θ)
             ll = ll + L1(X[i, :], Z[i, :])
         elseif Y[i] == 2
             ll = ll + L2(X[i, :], Z[i, :])
-        elseif Y[i] == 3   
+        elseif Y[i] == 3
             ll = ll + L3(X[i, :], Z[i, :])
         elseif Y[i] == 4
             ll = ll + L4(X[i, :], Z[i, :])
@@ -61,12 +66,13 @@ end # quadrature log-likelihood function
 
 
 
-# Calculate log-likelihood using quadrature method 
+# Calculate log-likelihood using quadrature method
 function GHKLL(Y, X, Z, θ; sims = 100, k = maximum(Y))
 
     # unpack model parameters
     param = ModelParameters(θ[1], θ[2], θ[3], θ[4], θ[5], θ[6])
     @unpack α₀, α₁, α₂, β, γ, ρ = param
+    σ₀  = 1/(1-ρ)
 
     #==
     TODO: figure out how to do this; I'm lost -Danny
@@ -77,7 +83,32 @@ function GHKLL(Y, X, Z, θ; sims = 100, k = maximum(Y))
     # Draw ν₂
     Φ₂ = truncated.(Normal(), -Inf, -X*β)
     ==#
-    
+    #=
+        Maybe it is something along the lines of what I have below? I will try to do more after lunch
+        Do we do separate random draws for each i? That is what I will do here ~Ryan
+    =#
+    ll=0
+    for i=1:size(Y,1)
+        ϵ_draws=zeros(sims,minimum(Y[i],3))
+        if Y[i]>1 #Need to draw from a distribution which won't make the borrower repay in period 1
+            ϵ_draws[:,1]=rand(truncated(Normal(0,σ₀),-Inf,-α₀-X[i,:]*β-Z[i,:]*γ),sims)
+        elseif Y[i]==1 #Need to draw from a distribution which will make the borrower repay in period 1
+            ϵ_draws[:,1]=rand(truncated(Normal(0,σ₀),-α₀-X[i,:]*β-Z[i,:]*γ,Inf),sims)
+        end
+        if Y[i]>2 #Need to draw from a distribution which won't make the borrower repay in period 2
+            ϵ_draws[:,2]=rand(truncated(Normal(0,σ₀),-Inf,-α₀-X[i,:]*β-Z[i,:]*γ-ρ*ϵ_draws[:,1]),sims)
+        elseif Y[i]==2 #Need to draw from a distribution which will make the borrower repay in period 2
+            ϵ_draws[:,2]=rand(truncated(Normal(0,σ₀),-α₀-X[i,:]*β-Z[i,:]*γ-ρ*ϵ_draws[:,1],Inf),sims)
+        end
+        if Y[i]>3 #Need to draw from a distribution which won't make the borrower repay in period 3
+            ϵ_draws[:,3]=rand(truncated(Normal(0,σ₀),-Inf,-α₀-X[i,:]*β-Z[i,:]*γ-(ρ^(2))*ϵ_draws[:,1]-ρ*ϵ_draws[:,2]),sims)
+        elseif Y[i]==3 #Need to draw from a distribution which will make the borrower repay in period 4
+            ϵ_draws[:,3]=rand(truncated(Normal(0,σ₀),-α₀-X[i,:]*β-Z[i,:]*γ-(ρ^(2))*ϵ_draws[:,1]-ρ*ϵ_draws[:,2],Inf),sims)
+        end
+
+    end
+
+
 end # quadrature log-likelihood function
 
 
