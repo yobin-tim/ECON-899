@@ -84,7 +84,7 @@ function GHKLL(Y, X, Z, θ; sims = 100, k = maximum(Y))
     Φ₂ = truncated.(Normal(), -Inf, -X*β)
     ==#
     #=
-        Maybe it is something along the lines of what I have below? I will try to do more after lunch
+        Maybe it is something along the lines of what's written below?
         Do we do separate random draws for each i? That is what I will do here ~Ryan
     =#
     ll=0
@@ -113,10 +113,9 @@ function GHKLL(Y, X, Z, θ; sims = 100, k = maximum(Y))
                 sum(  (cdf.(Normal(),(-α₀-X[i,:]*β-Z[i,:]*γ).-ρ*ϵ_draws[:,1])).*
                     (1-cdf.(Normal(),(-α₀-X[i,:]*β-Z[i,:]*γ).-(ρ^(2))*ϵ_draws[:,1].-ρ*ϵ_draws[:,2]))   )
         end
-        ll+=ll_i
+        ll+=log(ll_i)
     end
-
-
+    return ll
 end # quadrature log-likelihood function
 
 
