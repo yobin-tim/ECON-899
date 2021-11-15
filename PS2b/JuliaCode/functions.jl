@@ -89,23 +89,31 @@ function GHKLL(Y, X, Z, θ; sims = 100, k = maximum(Y))
     =#
     ll=0
     for i=1:size(Y,1)
+        ll_i=1
         ϵ_draws=zeros(sims,minimum(Y[i],3))
         if Y[i]>1 #Need to draw from a distribution which won't make the borrower repay in period 1
             ϵ_draws[:,1]=rand(truncated(Normal(0,σ₀),-Inf,-α₀-X[i,:]*β-Z[i,:]*γ),sims)
-        elseif Y[i]==1 #Need to draw from a distribution which will make the borrower repay in period 1
-            ϵ_draws[:,1]=rand(truncated(Normal(0,σ₀),-α₀-X[i,:]*β-Z[i,:]*γ,Inf),sims)
+        elseif Y[i]==1 #Find the probability that this draw would have occured
+            ll_i=1-cdf(Normal(),(-α₀-X[i,:]*β-Z[i,:]*γ)/σ₀)
         end
         if Y[i]>2 #Need to draw from a distribution which won't make the borrower repay in period 2
-            ϵ_draws[:,2]=rand(truncated(Normal(0,σ₀),-Inf,-α₀-X[i,:]*β-Z[i,:]*γ-ρ*ϵ_draws[:,1]),sims)
-        elseif Y[i]==2 #Need to draw from a distribution which will make the borrower repay in period 2
-            ϵ_draws[:,2]=rand(truncated(Normal(0,σ₀),-α₀-X[i,:]*β-Z[i,:]*γ-ρ*ϵ_draws[:,1],Inf),sims)
+            ϵ_draws[:,2]=[rand(truncated(Normal(0,σ₀),-Inf,-α₀-X[i,:]*β-Z[i,:]*γ-ρ*ϵ_draws[si,1])) for si=1:sims]
+        elseif Y[i]==2 #Find the probability that this draw would have occured
+            ll_i=(1/sims)*cdf(Normal(),(-α₀-X[i,:]*β-Z[i,:]*γ)/σ₀)*
+                sum(1.-cdf.(Normal(),(-α₀-X[i,:]*β-Z[i,:]*γ).-ρ*ϵ_draws[:,1]))
         end
         if Y[i]>3 #Need to draw from a distribution which won't make the borrower repay in period 3
-            ϵ_draws[:,3]=rand(truncated(Normal(0,σ₀),-Inf,-α₀-X[i,:]*β-Z[i,:]*γ-(ρ^(2))*ϵ_draws[:,1]-ρ*ϵ_draws[:,2]),sims)
-        elseif Y[i]==3 #Need to draw from a distribution which will make the borrower repay in period 4
-            ϵ_draws[:,3]=rand(truncated(Normal(0,σ₀),-α₀-X[i,:]*β-Z[i,:]*γ-(ρ^(2))*ϵ_draws[:,1]-ρ*ϵ_draws[:,2],Inf),sims)
+            ϵ_draws[:,3]=[rand(truncated(Normal(0,σ₀),-Inf,-α₀-X[i,:]*β-Z[i,:]*γ-(ρ^(2))*ϵ_draws[si,1]-ρ*ϵ_draws[si,2])) for si=1:sims]
+                #Find the probability that Y[i]==4 would have occured
+                ll_i=(1/sims)*cdf(Normal(),(-α₀-X[i,:]*β-Z[i,:]*γ)/σ₀)*
+                    sum(  (cdf.(Normal(),(-α₀-X[i,:]*β-Z[i,:]*γ).-ρ*ϵ_draws[:,1])).*
+                        cdf.(Normal(),(-α₀-X[i,:]*β-Z[i,:]*γ).-(ρ^(2))*ϵ_draws[:,1].-ρ*ϵ_draws[:,2])   )
+        elseif Y[i]==3 #Find the probability that this draw would have occured
+            ll_i=(1/sims)*cdf(Normal(),(-α₀-X[i,:]*β-Z[i,:]*γ)/σ₀)*
+                sum(  (cdf.(Normal(),(-α₀-X[i,:]*β-Z[i,:]*γ).-ρ*ϵ_draws[:,1])).*
+                    (1-cdf.(Normal(),(-α₀-X[i,:]*β-Z[i,:]*γ).-(ρ^(2))*ϵ_draws[:,1].-ρ*ϵ_draws[:,2]))   )
         end
-
+        ll+=ll_i
     end
 
 
