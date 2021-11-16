@@ -17,9 +17,9 @@ w1 = DataFrame(CSV.File("PS2b/data/KPU_d1_l20.csv")) |> Matrix
 w2 = DataFrame(CSV.File("PS2b/data/KPU_d2_l20.csv")) |> Matrix
 
 # Use this if you are loading data from the root folder.
-#df = DataFrame(StatFiles.load("../data/Mortgage_performance_data.dta"))
-#w1 = DataFrame(CSV.File("../data/KPU_d1_l20.csv")) |> Matrix
-#w2 = DataFrame(CSV.File("../data/KPU_d2_l20.csv")) |> Matrix
+df = DataFrame(StatFiles.load("../data/Mortgage_performance_data.dta"))
+w1 = DataFrame(CSV.File("../data/KPU_d1_l20.csv")) |> Matrix
+w2 = DataFrame(CSV.File("../data/KPU_d2_l20.csv")) |> Matrix
 
 #df = DataFrame(CSV.File("C:/Users/ryana/OneDrive/Documents/School/PhD Economics/Research/GitHub/ECON-899/PS1b/data/mortgage.csv"))
 
@@ -33,7 +33,6 @@ X = df[!, [:score_0, :rate_spread, :i_large_loan, :i_medium_loan,
 Z = df[!, [:score_0, :score_1, :score_2]] |> Matrix;
 
 Y = df[!, :duration]; #|> Matrix
-
 
 
 for name in names(df)
