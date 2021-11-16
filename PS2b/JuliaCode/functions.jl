@@ -27,14 +27,33 @@ function QuadLL(Y, X, Z, W1, W2, θ)
     σ₀² = 1/(1-ρ)^2
     σ₀  = 1/(1-ρ)
 
-    # map integral bounds to [0, 1]
+    # map integral bounds to [0, 1] Upper bound (-∞, α + Xβ + Zγ)
+    # ρ(u) = ln(u) + α + Xβ + Zγ
+    
     b₀ = (a, x, z) -> log.(a) .+ (α₀ + dot(x, β) + dot(z, γ))
     b₁ = (a, x, z) -> log.(a) .+ (α₁ + dot(x, β) + dot(z, γ))
 
     # per-observation likelihood:
-    L1 = (x, z) -> log(cdf(Normal(), (-α₀ - dot(x, β) - dot(z, γ))/σ₀)) # I think this should just be σ₀ not σ₀²
-    L2 = (x, z) -> log(sum(w.*(cdf.(Normal(), (-ρ)*b₀(u, x, z) .- (α₁ .+ dot(x, β) +
-        dot(z, γ)))./σ₀).*pdf.(Normal(), b₀(u./σ₀, x, z)) ./ u))
+
+    L1 = (x, z) -> log(cdf(Normal(), (-α₀ - dot(x, β) - dot(z, γ))/σ₀))
+    # I think this should just be σ₀ not σ₀²
+
+    # I think the location of the () about σ₀ wrong.
+    #L2 = (x, z) -> log(sum(w.*
+    #    (cdf.(Normal(), (-ρ)*b₀(u, x, z) .- (α₁ .+ dot(x, β) + dot(z, γ)))./σ₀).*
+    #    pdf.(Normal(), b₀(u./σ₀, x, z)) ./ u))
+    
+    L2 = (x, z) -> log(sum(w.*
+        (cdf.(Normal(), -α₁ .- dot(x, β) - dot(z, γ) -ρ*b₀(u, x, z))).* # Function
+        (pdf.(Normal(), b₀(σ₀ .* u, x, z))./u)./σ₀) .* # Density
+        (1/b₀(u, x, z))) # Jacobian
+
+    ##############################################
+    ## To use quadrature integration, we need to map from x to u.
+    ## When ϵ assume x, the density part ϕ(ϵ/σ) ϵ = σu?
+    ## And there was no Jacobian part.
+    ##############################################
+
     L3 = (x, z) -> log(sum(ω.*((cdf.(Normal(), (-ρ)*b₁(μ₁, x, z) .- (α₂ .+ dot(x, β) +
         dot(z, γ))))./σ₀).*pdf.(Normal(), b₀(μ₀./σ₀, x, z)).*pdf.(Normal(), b₁(μ₁, x, z).-
         ρ*b₀(μ₀, x, z)) ./ (μ₀ .* μ₁)))
