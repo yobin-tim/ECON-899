@@ -53,7 +53,7 @@ current()
 savefig(p2, "../Document/Figures/decision_rules_2.pdf")
 
 # Save results to a table
-## Error for i 
+## Error for i.
 n_opt = [prim.n_optim.(prim.s_vals, r.p) for (_, r) in results]
 n_incumbents = [ prim.n_optim.(prim.s_vals, r.p)' * r.μ for (_, r) in results]
 n_entrants = [ prim.n_optim.(prim.s_vals, r.p)' * prim.ν * results[i].M for (_, r) in results]

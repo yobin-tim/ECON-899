@@ -156,6 +156,7 @@ function GraphAndFindbHat(W,prim,res,FindM,Exercise; NeweyWest=false,Graph=true)
     if NeweyWest
         # savefig("PS7\\Figures\\Exercise$(Exercise)NeweyWestCorrection.png")
         savefig("PS7/Figures/Exercise$(Exercise)NeweyWestCorrection.png")
+
     else
         # savefig("PS7\\Figures\\Exercise$(Exercise).png")
         savefig("PS7/Figures/Exercise$(Exercise).png")

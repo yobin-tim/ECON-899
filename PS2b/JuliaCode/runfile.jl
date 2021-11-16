@@ -7,8 +7,8 @@ using StatFiles, DataFrames, Optim, BenchmarkTools, Latexify, CSV
 # with btime. The runtime of the overall code get longer as btime runs the
 # code multiple times to reduce noise
 
-include("./PS2b/JuliaCode/functions.jl")
-#include("./functions.jl")
+#include("./PS2b/JuliaCode/functions.jl")
+include("./functions.jl")
 
 ## load the mortgage data and sparse grid weights as a DataFrames (and 
 ## convert weights to matrices
@@ -17,7 +17,10 @@ w1 = DataFrame(CSV.File("PS2b/data/KPU_d1_l20.csv")) |> Matrix
 w2 = DataFrame(CSV.File("PS2b/data/KPU_d2_l20.csv")) |> Matrix
 
 # Use this if you are loading data from the root folder.
-#df = DataFrame(CSV.File("../data/mortgage_performance_data.csv"))
+#df = DataFrame(StatFiles.load("../data/Mortgage_performance_data.dta"))
+#w1 = DataFrame(CSV.File("../data/KPU_d1_l20.csv")) |> Matrix
+#w2 = DataFrame(CSV.File("../data/KPU_d2_l20.csv")) |> Matrix
+
 #df = DataFrame(CSV.File("C:/Users/ryana/OneDrive/Documents/School/PhD Economics/Research/GitHub/ECON-899/PS1b/data/mortgage.csv"))
 
 ## Separate data into independent variable matrices X and Z and
