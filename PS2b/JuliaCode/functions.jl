@@ -62,7 +62,7 @@ end # quadrature log-likelihood function
 
 
 # Calculate log-likelihood using quadrature method
-function GHKLL(Y, X, Z, θ; sims = 100, k = maximum(Y))
+function GHKLL(Y, X, Z, θ; sims = 100)
 
     # unpack model parameters
     param = ModelParameters(θ[1], θ[2], θ[3], θ[4], θ[5], θ[6])
@@ -72,33 +72,33 @@ function GHKLL(Y, X, Z, θ; sims = 100, k = maximum(Y))
     ll = 0
     for i=1:size(Y, 1)
         ll_i = 1
-        ϵ_draws = zeros(sims, minimum(Y[i], 3))
+        ϵ_draws = zeros(sims, minimum([Int(Y[i]), 3]))
         if Y[i] > 1 # Need to draw from a distribution which won't make the borrower repay in period 1
-            ϵ_draws[:, 1] = rand(truncated(Normal(0, σ₀), -Inf, -α₀ -X[i, :]*β - Z[i, :]*γ), sims)
+            ϵ_draws[:, 1] = rand.(truncated(Normal(0, σ₀), -Inf, -α₀ - dot(X[i, :], β) - dot(Z[i, :], γ)), sims)
         elseif Y[i] == 1 #Find the probability that this draw would have occured
-            ll_i=1-cdf(Normal(), (-α₀ - X[i, :]*β - Z[i, :]*γ)/σ₀)
+            ll_i=1-cdf(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ))/σ₀)
         end
         if Y[i] > 2 # Need to draw from a distribution which won't make the borrower repay in period 2
-            ϵ_draws[:, 2] = [rand(truncated(Normal(0, σ₀), -Inf, -α₀ - X[i, :]*β - Z[i, :]*γ - ρ*ϵ_draws[si, 1])) for si = 1:sims]
+            ϵ_draws[:, 2] = [rand(truncated(Normal(0, σ₀), -Inf, -α₀ - dot(X[i, :], β) - dot(Z[i, :], γ) - ρ*ϵ_draws[si, 1])) for si = 1:sims]
         elseif Y[i] == 2 # Find the probability that this draw would have occured
-            ll_i = (1/sims)*cdf(Normal(), (-α₀ - X[i, :]*β - Z[i, :]*γ)/σ₀)*
-                sum(1 .- cdf.(Normal(), (-α₀ - X[i, :]*β - Z[i, :]*γ) .- ρ*ϵ_draws[:, 1]))
+            ll_i = (1/sims)*cdf(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ))/σ₀)*
+                sum(1 .- cdf.(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ)) .- ρ*ϵ_draws[:, 1]))
         end
         if Y[i] > 3 # Need to draw from a distribution which won't make the borrower repay in period 3
-            ϵ_draws[:, 3]=[rand(truncated(Normal(0, σ₀), -Inf, -α₀ - X[i, :]*β - Z[i, :]*γ - (ρ^(2))*ϵ_draws[si, 1] - ρ*ϵ_draws[si, 2])) for si = 1:sims]
+            ϵ_draws[:, 3]=[rand(truncated(Normal(0, σ₀), -Inf, -α₀ - dot(X[i, :], β) - dot(Z[i, :], γ) - (ρ^(2))*ϵ_draws[si, 1] - ρ*ϵ_draws[si, 2])) for si = 1:sims]
                 # Find the probability that Y[i]==4 would have occured
-                ll_i = (1/sims)*cdf(Normal(), (-α₀ - X[i, :]*β - Z[i, :]*γ)/σ₀)*
-                    sum((cdf.(Normal(), (-α₀ - X[i, :]*β - Z[i, :]*γ) .- ρ*ϵ_draws[:, 1])).*
-                        cdf.(Normal(), (-α₀ - X[i, :]*β - Z[i, :]*γ) .- (ρ^(2))*ϵ_draws[:, 1] .- ρ*ϵ_draws[:, 2]))
+                ll_i = (1/sims)*cdf(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ))/σ₀)*
+                    sum((cdf.(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ)) .- ρ*ϵ_draws[:, 1])).*
+                        cdf.(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ)) .- (ρ^(2))*ϵ_draws[:, 1] .- ρ*ϵ_draws[:, 2]))
         elseif Y[i] == 3 # Find the probability that this draw would have occured
-            ll_i = (1/sims)*cdf(Normal(), (-α₀ - X[i, :]*β - Z[i, :]*γ)/σ₀)*
-                sum(  (cdf.(Normal(), (-α₀ - X[i, :]*β - Z[i, :]*γ) .- ρ*ϵ_draws[:, 1])).*
-                    (1 - cdf.(Normal(), (-α₀ - X[i, :]*β - Z[i, :]*γ) .- (ρ^(2))*ϵ_draws[:, 1] .- ρ*ϵ_draws[:, 2]))   )
+            ll_i = (1/sims)*cdf(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ))/σ₀)*
+                sum(  (cdf.(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ)) .- ρ*ϵ_draws[:, 1])).*
+                    (1 .- cdf.(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ)) .- (ρ^(2))*ϵ_draws[:, 1] .- ρ*ϵ_draws[:, 2]))   )
         end
         ll += log(ll_i)
     end
     return ll
-end # quadrature log-likelihood function
+end # GHK log-likelihood function
 
 
 
@@ -116,50 +116,44 @@ function AcceptRejectLL(Y, X, Z, θ; sims = 100, k = maximum(Y))
     I1 = (x, z, ε) -> ε .< -(α₀ .+ x * β .+ z * γ)
     I2 = (x, z, ε) -> (ε[:, 1] .< -(α₀ .+ x * β .+ z * γ)) .& (ε[:, 2] .< -(α₁ .+ x * β .+ z * γ) .- ρ * ε[:, 1])
     I3 = (x, z, ε) -> (ε[:, 1] .< -(α₀ .+ x * β .+ z * γ)) .& (ε[:, 2] .< -(α₁ .+ x * β .+ z * γ) .- ρ * ε[:, 1]) .& (
-                          ε[:, 3] .< -(α₁ .+ x * β .+ z * γ) .- (ρ^2) * ε[:, 1]ρ * ε[:, 2])
+                          ε[:, 3] .< -(α₁ .+ x * β .+ z * γ) .- (ρ^2) * ε[:, 1] .- ρ * ε[:, 2])
     I4 = (x, z, ε) -> (ε[:, 1] .< -(α₀ .+ x * β .+ z * γ)) .& (ε[:, 2] .< -(α₁ .+ x * β .+ z * γ) .- ρ * ε[:, 1]) .& (
                           ε[:, 3] .< α₁ .+ x * β .+ z * γ .- (ρ^2) * ε[:, 1] .- ρ * ε[:, 2])
 
-
-    # Generate vector of initial shocks for all simulations of all observations 
-    ε₀ = rand.(Normal(0, σ₀), sims * length(Y))
-
     # Calculate log-likelihood for Y = 1 observations 
     x, z = repeat(X[Y.==1, :], inner = [sims, 1]), repeat(Z[Y.==1, :], inner = [sims, 1])
-    for i = 1:length(Y)
-        ind = ((i - 1)*sims + 1):(i*sims);
-        ll += log(sum(I1(x[ind, :], z[ind, :], ε₀[ind, :])) / sims)
+    ε = rand.(Normal(0, σ₀), size(x, 1))
+    for i = 1:sum(Y .== 1)
+        ind = ((i-1)*sims+1):(i*sims)
+        ll += log(sum(I1(x[ind, :], z[ind, :], ε[ind, :])) / sims)
     end
 
-    # Loop through observations, calculating log-likelihood
-    ll = 0
-    for i = 1:size(Y, 1)
-        if Y[i] == 1 # Need to draw from a distribution which won't make the borrower repay in period 1
-            ϵ_draws[:, 1] = rand(truncated(Normal(0, σ₀), -Inf, -α₀ - X[i, :] * β - Z[i, :] * γ), sims)
-        elseif Y[i] == 1 #Find the probability that this draw would have occured
-            ll_i = 1 - cdf(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) / σ₀)
-        end
-        if Y[i] > 2 # Need to draw from a distribution which won't make the borrower repay in period 2
-            ϵ_draws[:, 2] = [rand(truncated(Normal(0, σ₀), -Inf, -α₀ - X[i, :] * β - Z[i, :] * γ - ρ * ϵ_draws[si, 1])) for si = 1:sims]
-        elseif Y[i] == 2 # Find the probability that this draw would have occured
-            ll_i = (1 / sims) * cdf(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) / σ₀) *
-                   sum(1 .- cdf.(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) .- ρ * ϵ_draws[:, 1]))
-        end
-        if Y[i] > 3 # Need to draw from a distribution which won't make the borrower repay in period 3
-            ϵ_draws[:, 3] = [rand(truncated(Normal(0, σ₀), -Inf, -α₀ - X[i, :] * β - Z[i, :] * γ - (ρ^(2)) * ϵ_draws[si, 1] - ρ * ϵ_draws[si, 2])) for si = 1:sims]
-            # Find the probability that Y[i]==4 would have occured
-            ll_i = (1 / sims) * cdf(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) / σ₀) *
-                   sum((cdf.(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) .- ρ * ϵ_draws[:, 1])) .*
-                       cdf.(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) .- (ρ^(2)) * ϵ_draws[:, 1] .- ρ * ϵ_draws[:, 2]))
-        elseif Y[i] == 3 # Find the probability that this draw would have occured
-            ll_i = (1 / sims) * cdf(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) / σ₀) *
-                   sum((cdf.(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) .- ρ * ϵ_draws[:, 1])) .*
-                       (1 - cdf.(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) .- (ρ^(2)) * ϵ_draws[:, 1] .- ρ * ϵ_draws[:, 2])))
-        end
-        ll += log(ll_i)
+    # Calculate log-likelihood for Y = 2 observations
+    x, z = repeat(X[Y.==2, :], inner = [sims, 1]), repeat(Z[Y.==2, :], inner = [sims, 1])
+    ε = [rand.(Normal(0, σ₀), size(x, 1)) rand.(Normal(), size(x, 1))]
+    for i = 1:sum(Y .== 2)
+        ind = ((i-1)*sims+1):(i*sims)
+        ll += log(sum(I2(x[ind, :], z[ind, :], ε[ind, :])) / sims)
     end
+
+    # Calculate log-likelihood for Y = 3 observations
+    x, z = repeat(X[Y.==3, :], inner = [sims, 1]), repeat(Z[Y.==3, :], inner = [sims, 1])
+    ε = [rand.(Normal(0, σ₀), size(x, 1)) rand.(Normal(), size(x, 1)) rand.(Normal(), size(x, 1))]
+    for i = 1:sum(Y .== 3)
+        ind = ((i-1)*sims+1):(i*sims)
+        ll += log(sum(I3(x[ind, :], z[ind, :], ε[ind, :])) / sims)
+    end
+
+    # Calculate log-likelihood for Y = 4 observations
+    x, z = repeat(X[Y.==4, :], inner = [sims, 1]), repeat(Z[Y.==4, :], inner = [sims, 1])
+    ε = [rand.(Normal(0, σ₀), size(x, 1)) rand.(Normal(), size(x, 1)) rand.(Normal(), size(x, 1))]
+    for i = 1:sum(Y .== 4)
+        ind = ((i-1)*sims+1):(i*sims)
+        ll += log(sum(I4(x[ind, :], z[ind, :], ε[ind, :])) / sims)
+    end
+
     return ll
-end # quadrature log-likelihood function
+end # accept-reject log-likelihood function
 
 
 
@@ -199,6 +193,7 @@ function Find_H_num(β,Y,X;h=1e-5)
     end
     return H_num
 end
+
 # Define the Newton convergence algorithm
 function NewtonAlg(Y, X; β₀::Matrix{Float64} = [-1.0; ones(size(X, 2), 1)],
         err::Float64 = 100.0, tol::Float64 = 1e-32, sk::Float64=1e-7)
