@@ -10,7 +10,7 @@ using StatFiles, DataFrames, Optim, BenchmarkTools, Latexify, CSV
 #include("./PS2b/JuliaCode/functions.jl")
 include("./functions.jl")
 
-## load the mortgage data and sparse grid weights as a DataFrames (and 
+## load the mortgage data and sparse grid weights as a DataFrames (and
 ## convert weights to matrices
 df = DataFrame(StatFiles.load("PS2b/data/Mortgage_performance_data.dta"))
 w1 = DataFrame(CSV.File("PS2b/data/KPU_d1_l20.csv")) |> Matrix
@@ -35,7 +35,7 @@ Z = df[!, [:score_0, :score_1, :score_2]] |> Matrix;
 Y = df[!, :duration]; #|> Matrix
 
 
-<< << << < HEAD
+
 for name in names(df)
     println(name)
 end
@@ -52,11 +52,11 @@ println("see AcceptRejectLL() function")
 ## 4. Compare predicted choice probabilities for each of the above methods
 θ₀ = [0, -1, -1, 0 * ones(size(X, 2), 1), 0.3 * ones(size(Z, 2), 1), 0.5]
 
-QuadLL(X, Z, Y, w1, w2, θ₀)
-GHKLL(X, Z, Y, θ₀)
-AcceptRejectLL(X, Z, Y, θ₀)
+QuadLL(Y, X, Z, w1, w2, θ₀)
+GHKLL(Y, X, Z, θ₀)
+AcceptRejectLL(Y, X, Z, θ₀)
 
 ## 5. Maximize quadrature log-likelihood function using BFGS
 # TODO: Figure out why this doesn't work
-θ = optimize(t -> QuadLL(X, Z, Y, w1, w2, t), θ₀,
+θ = optimize(t -> QuadLL(Y, X, Z, w1, w2, t), θ₀,
     method = BFGS(), f_tol = 1e-32, g_tol = 1e-32).minimizer

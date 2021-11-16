@@ -72,7 +72,7 @@ function GHKLL(Y, X, Z, θ; sims = 100)
     ll = 0
     for i=1:size(Y, 1)
         ll_i = 1
-        ϵ_draws = zeros(sims, minimum([Int(Y[i]), 3]))
+        ϵ_draws = zeros(sims, 3)
         if Y[i] > 1 # Need to draw from a distribution which won't make the borrower repay in period 1
             ϵ_draws[:, 1] = rand.(truncated(Normal(0, σ₀), -Inf, -α₀ - dot(X[i, :], β) - dot(Z[i, :], γ)), sims)
         elseif Y[i] == 1 #Find the probability that this draw would have occured
@@ -120,12 +120,17 @@ function AcceptRejectLL(Y, X, Z, θ; sims = 100, k = maximum(Y))
     I4 = (x, z, ε) -> (ε[:, 1] .< -(α₀ .+ x * β .+ z * γ)) .& (ε[:, 2] .< -(α₁ .+ x * β .+ z * γ) .- ρ * ε[:, 1]) .& (
                           ε[:, 3] .< α₁ .+ x * β .+ z * γ .- (ρ^2) * ε[:, 1] .- ρ * ε[:, 2])
 
-    # Calculate log-likelihood for Y = 1 observations 
+    # Calculate log-likelihood for Y = 1 observations
     x, z = repeat(X[Y.==1, :], inner = [sims, 1]), repeat(Z[Y.==1, :], inner = [sims, 1])
     ε = rand.(Normal(0, σ₀), size(x, 1))
     for i = 1:sum(Y .== 1)
         ind = ((i-1)*sims+1):(i*sims)
-        ll += log(sum(I1(x[ind, :], z[ind, :], ε[ind, :])) / sims)
+        if sum(I1(x[ind, :], z[ind, :], ε[ind, :]))!=0
+            ll += log(1/sum(I1(x[ind, :], z[ind, :], ε[ind, :])))
+            #ll += log(sum(I1(x[ind, :], z[ind, :], ε[ind, :])) / sims)
+        else
+            ll+=log(1/sims) #Act as though it happened at least once to avoid -∞
+        end
     end
 
     # Calculate log-likelihood for Y = 2 observations
@@ -133,25 +138,37 @@ function AcceptRejectLL(Y, X, Z, θ; sims = 100, k = maximum(Y))
     ε = [rand.(Normal(0, σ₀), size(x, 1)) rand.(Normal(), size(x, 1))]
     for i = 1:sum(Y .== 2)
         ind = ((i-1)*sims+1):(i*sims)
-        ll += log(sum(I2(x[ind, :], z[ind, :], ε[ind, :])) / sims)
+        if sum(I2(x[ind, :], z[ind, :], ε[ind, :]))!=0
+            ll += log(1/sum(I2(x[ind, :], z[ind, :], ε[ind, :])))
+            #ll += log(sum(I2(x[ind, :], z[ind, :], ε[ind, :])) / sims)
+        else
+            ll+=log(1/sims) #Act as though it happened at least once to avoid -∞
+        end
     end
-
     # Calculate log-likelihood for Y = 3 observations
     x, z = repeat(X[Y.==3, :], inner = [sims, 1]), repeat(Z[Y.==3, :], inner = [sims, 1])
     ε = [rand.(Normal(0, σ₀), size(x, 1)) rand.(Normal(), size(x, 1)) rand.(Normal(), size(x, 1))]
     for i = 1:sum(Y .== 3)
         ind = ((i-1)*sims+1):(i*sims)
-        ll += log(sum(I3(x[ind, :], z[ind, :], ε[ind, :])) / sims)
+        if sum(I3(x[ind, :], z[ind, :], ε[ind, :]))!=0
+            #ll += log(1/sum(I3(x[ind, :], z[ind, :], ε[ind, :])))
+            ll += log(sum(I3(x[ind, :], z[ind, :], ε[ind, :])) / sims)
+        else
+            ll+=log(1/sims) #Act as though it happened at least once to avoid -∞
+        end
     end
-
     # Calculate log-likelihood for Y = 4 observations
     x, z = repeat(X[Y.==4, :], inner = [sims, 1]), repeat(Z[Y.==4, :], inner = [sims, 1])
     ε = [rand.(Normal(0, σ₀), size(x, 1)) rand.(Normal(), size(x, 1)) rand.(Normal(), size(x, 1))]
     for i = 1:sum(Y .== 4)
         ind = ((i-1)*sims+1):(i*sims)
-        ll += log(sum(I4(x[ind, :], z[ind, :], ε[ind, :])) / sims)
+        if sum(I4(x[ind, :], z[ind, :], ε[ind, :]))!=0
+            #ll += log(1/sum(I4(x[ind, :], z[ind, :], ε[ind, :])))
+            ll += log(sum(I4(x[ind, :], z[ind, :], ε[ind, :])) / sims)
+        else
+            ll+=log(1/sims) #Act like it happened at least once to avoid -∞
+        end
     end
-
     return ll
 end # accept-reject log-likelihood function
 
