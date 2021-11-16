@@ -54,3 +54,6 @@ GHKLL(X, Z, Y, θ₀)
 AcceptRejectLL(X, Z, Y, θ₀)
 
 ## 5. Maximize quadrature log-likelihood function using BFGS
+# TODO: Figure out why this doesn't work
+θ = optimize(t -> QuadLL(X, Z, Y, w1, w2, t), θ₀,
+    method = BFGS(), f_tol = 1e-32, g_tol = 1e-32).minimizer
