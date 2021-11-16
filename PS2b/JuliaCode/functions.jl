@@ -31,11 +31,6 @@ function QuadLL(Y, X, Z, W1, W2, θ)
     b₀ = (a, x, z) -> log.(a) .+ (α₀ + dot(x, β) + dot(z, γ))
     b₁ = (a, x, z) -> log.(a) .+ (α₁ + dot(x, β) + dot(z, γ))
 
-    # save indexes for each outcome
-    indvec = 1:size(Y, 1)
-    ind₁ = indvec[Y .== 1]; ind₂ = indvec[Y .== 2];
-    ind₃ = indvec[Y .== 3]; ind₄ = indvec[Y .== 4];
-
     # per-observation likelihood:
     L1 = (x, z) -> log(cdf(Normal(), (-α₀ - dot(x, β) - dot(z, γ))/σ₀)) # I think this should just be σ₀ not σ₀²
     L2 = (x, z) -> log(sum(w.*(cdf.(Normal(), (-ρ)*b₀(u, x, z) .- (α₁ .+ dot(x, β) +
@@ -43,7 +38,7 @@ function QuadLL(Y, X, Z, W1, W2, θ)
     L3 = (x, z) -> log(sum(ω.*((cdf.(Normal(), (-ρ)*b₁(μ₁, x, z) .- (α₂ .+ dot(x, β) +
         dot(z, γ))))./σ₀).*pdf.(Normal(), b₀(μ₀./σ₀, x, z)).*pdf.(Normal(), b₁(μ₁, x, z).-
         ρ*b₀(μ₀, x, z)) ./ (μ₀ .* μ₁)))
-    L4 = (x, z) -> log(sum(ω.*(cdf.(Normal(), (ρ)*b₁(μ₁, x, z) .+ (α₂ + dot(x, β) +
+    L4 = (x, z) -> log(sum(ω.*(cdf.(Normal(), -(ρ)*b₁(μ₁, x, z) .+ (α₂ + dot(x, β) +
         dot(z, γ)))./σ₀).*pdf.(Normal(), b₁(μ₁./σ₀, x, z)).*pdf.(Normal(), b₁(μ₁, x, z) .-
         ρ*b₀(μ₀, x, z)) ./ (μ₀ .* μ₁)))
 
@@ -74,21 +69,8 @@ function GHKLL(Y, X, Z, θ; sims = 100, k = maximum(Y))
     @unpack α₀, α₁, α₂, β, γ, ρ = param
     σ₀  = 1/(1-ρ)
 
-    #==
-    TODO: figure out how to do this; I'm lost -Danny
-    # Draw ν₁
-    Φ₁ = truncated.(Normal(), -Inf, -X*β)
-    η₁ = rand.(Φ₁, sims)
-
-    # Draw ν₂
-    Φ₂ = truncated.(Normal(), -Inf, -X*β)
-    ==#
-    #=
-        Maybe it is something along the lines of what's written below?
-        Do we do separate random draws for each i? That is what I will do here ~Ryan
-    =#
     ll = 0
-    for i=1:size(Y,1)
+    for i=1:size(Y, 1)
         ll_i = 1
         ϵ_draws = zeros(sims, minimum(Y[i], 3))
         if Y[i] > 1 # Need to draw from a distribution which won't make the borrower repay in period 1
@@ -113,13 +95,71 @@ function GHKLL(Y, X, Z, θ; sims = 100, k = maximum(Y))
                 sum(  (cdf.(Normal(), (-α₀ - X[i, :]*β - Z[i, :]*γ) .- ρ*ϵ_draws[:, 1])).*
                     (1 - cdf.(Normal(), (-α₀ - X[i, :]*β - Z[i, :]*γ) .- (ρ^(2))*ϵ_draws[:, 1] .- ρ*ϵ_draws[:, 2]))   )
         end
-        ll+=log(ll_i)
+        ll += log(ll_i)
     end
     return ll
 end # quadrature log-likelihood function
 
 
 
+# Calculate log-likelihood using accept-reject method
+function AcceptRejectLL(Y, X, Z, θ; sims = 100, k = maximum(Y))
+
+    # unpack model parameters
+    param = ModelParameters(θ[1], θ[2], θ[3], θ[4], θ[5], θ[6])
+    @unpack α₀, α₁, α₂, β, γ, ρ = param
+    σ₀ = 1 / (1 - ρ)
+
+    ll = 0 # initialize log-likelihood
+
+    # Define index functions for each outcome
+    I1 = (x, z, ε) -> ε .< -(α₀ .+ x * β .+ z * γ)
+    I2 = (x, z, ε) -> (ε[:, 1] .< -(α₀ .+ x * β .+ z * γ)) .& (ε[:, 2] .< -(α₁ .+ x * β .+ z * γ) .- ρ * ε[:, 1])
+    I3 = (x, z, ε) -> (ε[:, 1] .< -(α₀ .+ x * β .+ z * γ)) .& (ε[:, 2] .< -(α₁ .+ x * β .+ z * γ) .- ρ * ε[:, 1]) .& (
+                          ε[:, 3] .< -(α₁ .+ x * β .+ z * γ) .- (ρ^2) * ε[:, 1]ρ * ε[:, 2])
+    I4 = (x, z, ε) -> (ε[:, 1] .< -(α₀ .+ x * β .+ z * γ)) .& (ε[:, 2] .< -(α₁ .+ x * β .+ z * γ) .- ρ * ε[:, 1]) .& (
+                          ε[:, 3] .< α₁ .+ x * β .+ z * γ .- (ρ^2) * ε[:, 1] .- ρ * ε[:, 2])
+
+
+    # Generate vector of initial shocks for all simulations of all observations 
+    ε₀ = rand.(Normal(0, σ₀), sims * length(Y))
+
+    # Calculate log-likelihood for Y = 1 observations 
+    x, z = repeat(X[Y.==1, :], inner = [sims, 1]), repeat(Z[Y.==1, :], inner = [sims, 1])
+    for i = 1:length(Y)
+        ind = ((i - 1)*sims + 1):(i*sims);
+        ll += log(sum(I1(x[ind, :], z[ind, :], ε₀[ind, :])) / sims)
+    end
+
+    # Loop through observations, calculating log-likelihood
+    ll = 0
+    for i = 1:size(Y, 1)
+        if Y[i] == 1 # Need to draw from a distribution which won't make the borrower repay in period 1
+            ϵ_draws[:, 1] = rand(truncated(Normal(0, σ₀), -Inf, -α₀ - X[i, :] * β - Z[i, :] * γ), sims)
+        elseif Y[i] == 1 #Find the probability that this draw would have occured
+            ll_i = 1 - cdf(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) / σ₀)
+        end
+        if Y[i] > 2 # Need to draw from a distribution which won't make the borrower repay in period 2
+            ϵ_draws[:, 2] = [rand(truncated(Normal(0, σ₀), -Inf, -α₀ - X[i, :] * β - Z[i, :] * γ - ρ * ϵ_draws[si, 1])) for si = 1:sims]
+        elseif Y[i] == 2 # Find the probability that this draw would have occured
+            ll_i = (1 / sims) * cdf(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) / σ₀) *
+                   sum(1 .- cdf.(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) .- ρ * ϵ_draws[:, 1]))
+        end
+        if Y[i] > 3 # Need to draw from a distribution which won't make the borrower repay in period 3
+            ϵ_draws[:, 3] = [rand(truncated(Normal(0, σ₀), -Inf, -α₀ - X[i, :] * β - Z[i, :] * γ - (ρ^(2)) * ϵ_draws[si, 1] - ρ * ϵ_draws[si, 2])) for si = 1:sims]
+            # Find the probability that Y[i]==4 would have occured
+            ll_i = (1 / sims) * cdf(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) / σ₀) *
+                   sum((cdf.(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) .- ρ * ϵ_draws[:, 1])) .*
+                       cdf.(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) .- (ρ^(2)) * ϵ_draws[:, 1] .- ρ * ϵ_draws[:, 2]))
+        elseif Y[i] == 3 # Find the probability that this draw would have occured
+            ll_i = (1 / sims) * cdf(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) / σ₀) *
+                   sum((cdf.(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) .- ρ * ϵ_draws[:, 1])) .*
+                       (1 - cdf.(Normal(), (-α₀ - X[i, :] * β - Z[i, :] * γ) .- (ρ^(2)) * ϵ_draws[:, 1] .- ρ * ϵ_draws[:, 2])))
+        end
+        ll += log(ll_i)
+    end
+    return ll
+end # quadrature log-likelihood function
 
 
 
