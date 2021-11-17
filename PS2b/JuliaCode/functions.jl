@@ -29,7 +29,7 @@ function QuadLL(Y, X, Z, W1, W2, θ)
 
     # map integral bounds to [0, 1] Upper bound (-∞, α + Xβ + Zγ)
     # ρ(u) = ln(u) + α + Xβ + Zγ
-    
+
     b₀ = (a, x, z) -> log.(a) .+ (α₀ + dot(x, β) + dot(z, γ))
     b₁ = (a, x, z) -> log.(a) .+ (α₁ + dot(x, β) + dot(z, γ))
 
@@ -42,11 +42,15 @@ function QuadLL(Y, X, Z, W1, W2, θ)
     #L2 = (x, z) -> log(sum(w.*
     #    (cdf.(Normal(), (-ρ)*b₀(u, x, z) .- (α₁ .+ dot(x, β) + dot(z, γ)))./σ₀).*
     #    pdf.(Normal(), b₀(u./σ₀, x, z)) ./ u))
-    
+
     L2 = (x, z) -> log(sum(w.*
-        (cdf.(Normal(), -α₁ .- dot(x, β) - dot(z, γ) -ρ*b₀(u, x, z))).* # Function
-        (pdf.(Normal(), b₀(σ₀ .* u, x, z))./u)./σ₀) .* # Density
-        (1/b₀(u, x, z))) # Jacobian
+        (cdf.(Normal(), -α₁ .- dot(x, β) .- dot(z, γ) .-ρ*b₀(u, x, z))).* # Function
+        (pdf.(Normal(), b₀(σ₀ .* u, x, z))./u)./σ₀)) # .* # Density
+        #(1/b₀(u, x, z))) # Jacobian
+        #I removed this line about the Jacobian, becuase I do not understand why it is
+            #here and when it is included, the code throws an error. If I am missing something
+            #and the Jacobian needs to be included, please feel free to change it back and
+            #resolve the error! ~Ryan
 
     ##############################################
     ## To use quadrature integration, we need to map from x to u.
@@ -55,11 +59,22 @@ function QuadLL(Y, X, Z, W1, W2, θ)
     ##############################################
 
     L3 = (x, z) -> log(sum(ω.*((cdf.(Normal(), (-ρ)*b₁(μ₁, x, z) .- (α₂ .+ dot(x, β) +
-        dot(z, γ))))./σ₀).*pdf.(Normal(), b₀(μ₀./σ₀, x, z)).*pdf.(Normal(), b₁(μ₁, x, z).-
+        dot(z, γ))))./σ₀).*pdf.(Normal(), b₀(μ₀, x, z)./σ₀).*pdf.(Normal(), b₁(μ₁, x, z).-
         ρ*b₀(μ₀, x, z)) ./ (μ₀ .* μ₁)))
-    L4 = (x, z) -> log(sum(ω.*(cdf.(Normal(), -(ρ)*b₁(μ₁, x, z) .+ (α₂ + dot(x, β) +
-        dot(z, γ)))./σ₀).*pdf.(Normal(), b₁(μ₁./σ₀, x, z)).*pdf.(Normal(), b₁(μ₁, x, z) .-
-        ρ*b₀(μ₀, x, z)) ./ (μ₀ .* μ₁)))
+    function L4(x, z)
+        out=0
+        try
+            out=log(sum(ω.*(cdf.(Normal(), -(ρ)*b₁(μ₁, x, z) .+ (α₂ + dot(x, β) +
+            dot(z, γ)))./σ₀).*pdf.(Normal(), b₁(μ₁./σ₀, x, z)).*pdf.(Normal(), b₁(μ₁, x, z) .-
+            ρ*b₀(μ₀, x, z)) ./ (μ₀ .* μ₁)))
+        catch #Sometimes parameters will be tried that make the above try to take the log
+            #of a negative number. This is an attempted fix for that which just returns something
+            #awful in that case so that it won't be picked
+            out=log(1e-5)
+            print("Attempted a point that does not work.")
+        end
+        return out
+    end
 
     # calculate the log-likelihood for all observations
     ll = 0
