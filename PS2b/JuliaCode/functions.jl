@@ -48,12 +48,9 @@ function QuadLL(Y, X, Z, W1, W2, θ)
         try
             out=log(sum(w.*
             (cdf.(Normal(), -α₁ .- dot(x, β) .- dot(z, γ) .-ρ*b₀(u, x, z))).* # Function
-            (pdf.(Normal(), b₀(σ₀ .* u, x, z))./u)./σ₀)) # .* # Density
-            #(1/b₀(u, x, z))) # Jacobian
-            #I removed this line about the Jacobian, becuase I do not understand why it is
-                #here and when it is included, the code throws an error. If I am missing something
-                #and the Jacobian needs to be included, please feel free to change it back and
-                #resolve the error! ~Ryan
+            (pdf.(Normal(), b₀(σ₀ .* u, x, z)./σ₀)./σ₀) .* # Density
+            (1 ./u))) # Jacobian
+
         catch #Sometimes parameters will be tried that make the above try to take the log
             #of a negative number. This is an attempted fix for that which just returns something
             #awful in that case so that it won't be picked
