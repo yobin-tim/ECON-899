@@ -1,5 +1,5 @@
 #==
-    This file defines functions used in JF's PS2
+This file defines functions used in JF's PS2
 ==#
 using Optim, Distributions, Parameters, LinearAlgebra
 
@@ -16,8 +16,8 @@ end # parameters struct
 # Calculate log-likelihood using quadrature method
 function QuadLL2(Y, X, Z, W1, W2, θ)
     
-    u = W1[:, 1]; w = W1[:, 2]
-    μ₀ = W2[:, 1]; μ₁ = W2[:, 2]; ω = W2[:, 3]
+    u = w1[:, 1]; w = w1[:, 2]
+    μ₀ = w2[:, 1]; μ₁ = w2[:, 2]; ω = w2[:, 3]
 
     # unpack model parameters
     param = ModelParameters(θ[1], θ[2], θ[3], θ[4], θ[5], θ[6])
@@ -44,14 +44,14 @@ function QuadLL2(Y, X, Z, W1, W2, θ)
     mdρ = ones(size(mρ,1), size(mρ,2));
 
     for i in 1:size(X,1)
-        mdρ[i,:] = mdρ[i,:] .* log.(u)
+        mdρ[i,:] = mdρ[i,:] ./u
     end
     
     L1 = cdf.(Normal(), (-α₀ .- X*β .- Z*γ)./σ₀)
     
     density = pdf.(Normal(), mρ./σ₀)./σ₀
 
-    L2 = (cdf.(Normal(), - α₁ .- X*β .- Z*γ .- ρ .* mρ) .* density) * w
+    L2 = (cdf.(Normal(), - α₁ .- X*β .- Z*γ .- ρ .* mρ) .* density.* mdρ) * w
     
     density = pdf.(Normal(), mρ1 - ρ*mρ) .* pdf.(Normal(), mρ./σ₀) ./ σ₀
     
@@ -65,10 +65,10 @@ function QuadLL2(Y, X, Z, W1, W2, θ)
 
         if Y[i] == 1
 
-            if L1[i] < 0
-                L1[i]=1e-5
+            ## If the likelihood becomes minus, I evaluate this value as 1e-10. 
+            if L1[i] < 0 
+                L1[i]=1e-10
             else
-                
             end
 
             ll = ll + log(L1[i])
@@ -76,7 +76,7 @@ function QuadLL2(Y, X, Z, W1, W2, θ)
         elseif Y[i] == 2
 
             if L2[i] < 0
-                L2[i]=1e-5
+                L2[i]=1e-10
             else
                 
             end
@@ -86,19 +86,17 @@ function QuadLL2(Y, X, Z, W1, W2, θ)
         elseif Y[i] == 3
 
             if L3[i] < 0
-                L3[i]=1e-5
+                L3[i]=1e-10
             else
-                
             end
-
+            
             ll = ll + log(L3[i])
 
         elseif Y[i] == 4
 
             if L4[i] < 0
-                L4[i]=1e-5
+                L4[i]=1e-10
             else
-                
             end
 
             ll = ll + log(L4[i])
@@ -144,9 +142,9 @@ function QuadLL(Y, X, Z, W1, W2, θ)
         out=0
         try
             out=log(sum(w.*
-            (cdf.(Normal(), -α₁ .- dot(x, β) .- dot(z, γ) .-ρ*b₀(u, x, z))).* # Function
-            (pdf.(Normal(), b₀(σ₀ .* u, x, z)./σ₀)./σ₀) .* # Density
-            (1 ./u))) # Jacobian
+                (cdf.(Normal(), -α₁ .- dot(x, β) .- dot(z, γ) .-ρ*b₀(u, x, z))).* # Function
+                (pdf.(Normal(), b₀(σ₀ .* u, x, z)./σ₀)./σ₀) .* # Density
+                (1 ./u))) # Jacobian
 
         catch #Sometimes parameters will be tried that make the above try to take the log
             #of a negative number. This is an attempted fix for that which just returns something
@@ -174,8 +172,8 @@ function QuadLL(Y, X, Z, W1, W2, θ)
         out=0
         try
             out=log(sum(ω.*(cdf.(Normal(), -(ρ)*b₁(μ₁, x, z) .+ (α₂ + dot(x, β) +
-            dot(z, γ)))./σ₀).*pdf.(Normal(), b₁(μ₁./σ₀, x, z)).*pdf.(Normal(), b₁(μ₁, x, z) .-
-            ρ*b₀(μ₀, x, z)) ./ (μ₀ .* μ₁)))
+                dot(z, γ)))./σ₀).*pdf.(Normal(), b₁(μ₁./σ₀, x, z)).*pdf.(Normal(), b₁(μ₁, x, z) .-
+                ρ*b₀(μ₀, x, z)) ./ (μ₀ .* μ₁)))
         catch
             out=log(1e-5)
             print("Attempted a point that does not work.")
@@ -227,14 +225,14 @@ function GHKLL(Y, X, Z, θ; sims = 100)
         end
         if Y[i] > 3 # Need to draw from a distribution which won't make the borrower repay in period 3
             ϵ_draws[:, 3]=[rand(truncated(Normal(0, σ₀), -Inf, -α₀ - dot(X[i, :], β) - dot(Z[i, :], γ) - (ρ^(2))*ϵ_draws[si, 1] - ρ*ϵ_draws[si, 2])) for si = 1:sims]
-                # Find the probability that Y[i]==4 would have occured
-                ll_i = (1/sims)*cdf(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ))/σ₀)*
-                    sum((cdf.(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ)) .- ρ*ϵ_draws[:, 1])).*
-                        cdf.(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ)) .- (ρ^(2))*ϵ_draws[:, 1] .- ρ*ϵ_draws[:, 2]))
+            # Find the probability that Y[i]==4 would have occured
+            ll_i = (1/sims)*cdf(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ))/σ₀)*
+                sum((cdf.(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ)) .- ρ*ϵ_draws[:, 1])).*
+                cdf.(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ)) .- (ρ^(2))*ϵ_draws[:, 1] .- ρ*ϵ_draws[:, 2]))
         elseif Y[i] == 3 # Find the probability that this draw would have occured
             ll_i = (1/sims)*cdf(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ))/σ₀)*
                 sum(  (cdf.(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ)) .- ρ*ϵ_draws[:, 1])).*
-                    (1 .- cdf.(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ)) .- (ρ^(2))*ϵ_draws[:, 1] .- ρ*ϵ_draws[:, 2]))   )
+                (1 .- cdf.(Normal(), (-α₀ - dot(X[i, :], β) - dot(Z[i, :], γ)) .- (ρ^(2))*ϵ_draws[:, 1] .- ρ*ϵ_draws[:, 2]))   )
         end
         ll += log(ll_i)
     end
@@ -257,9 +255,9 @@ function AcceptRejectLL(Y, X, Z, θ; sims = 100, k = maximum(Y))
     I1 = (x, z, ε) -> ε .< -(α₀ .+ x * β .+ z * γ)
     I2 = (x, z, ε) -> (ε[:, 1] .< -(α₀ .+ x * β .+ z * γ)) .& (ε[:, 2] .< -(α₁ .+ x * β .+ z * γ) .- ρ * ε[:, 1])
     I3 = (x, z, ε) -> (ε[:, 1] .< -(α₀ .+ x * β .+ z * γ)) .& (ε[:, 2] .< -(α₁ .+ x * β .+ z * γ) .- ρ * ε[:, 1]) .& (
-                          ε[:, 3] .< -(α₁ .+ x * β .+ z * γ) .- (ρ^2) * ε[:, 1] .- ρ * ε[:, 2])
+        ε[:, 3] .< -(α₁ .+ x * β .+ z * γ) .- (ρ^2) * ε[:, 1] .- ρ * ε[:, 2])
     I4 = (x, z, ε) -> (ε[:, 1] .< -(α₀ .+ x * β .+ z * γ)) .& (ε[:, 2] .< -(α₁ .+ x * β .+ z * γ) .- ρ * ε[:, 1]) .& (
-                          ε[:, 3] .< α₁ .+ x * β .+ z * γ .- (ρ^2) * ε[:, 1] .- ρ * ε[:, 2])
+        ε[:, 3] .< α₁ .+ x * β .+ z * γ .- (ρ^2) * ε[:, 1] .- ρ * ε[:, 2])
 
     # Calculate log-likelihood for Y = 1 observations
     x, z = repeat(X[Y.==1, :], inner = [sims, 1]), repeat(Z[Y.==1, :], inner = [sims, 1])
@@ -331,13 +329,13 @@ function Find_H_num(β,Y,X;h=1e-5)
             #    likelihood(β.+h1.-h2,Y,X)+likelihood(β.-h1.+h2,Y,X))/(4*(h^2))
             #Alternate, more accurate formula also from the above link
             H_num[i1,i2]=( 8*(likelihood(β.+h1.-2 .*h2,Y,X)+likelihood(β.+2 .* h1.-h2,Y,X)+
-                            likelihood(β.-2 .*h1.+h2,Y,X)+likelihood(β.-h1.+2 .*h2,Y,X))-
-                            8*(likelihood(β.-h1.-2 .*h2,Y,X)+likelihood(β.-2 .* h1.-h2,Y,X)+
-                            likelihood(β.+h1.+ 2 .*h2,Y,X)+likelihood(β.+ 2 .* h1.+h2,Y,X))-
-                            (likelihood(β.+2 .*h1.-2 .*h2,Y,X)+likelihood(β.-2 .* h1.+ 2 .*h2,Y,X)-
-                            likelihood(β.-2 .*h1.- 2 .*h2,Y,X)-likelihood(β.+ 2 .*h1.+2 .*h2,Y,X))+
-                            64*(likelihood(β.-h1.-h2,Y,X)+likelihood(β.+h1.+h2,Y,X)-
-                            likelihood(β.+h1.-h2,Y,X)-likelihood(β.-h1.+h2,Y,X)))/(144*(h^2))
+                likelihood(β.-2 .*h1.+h2,Y,X)+likelihood(β.-h1.+2 .*h2,Y,X))-
+                8*(likelihood(β.-h1.-2 .*h2,Y,X)+likelihood(β.-2 .* h1.-h2,Y,X)+
+                likelihood(β.+h1.+ 2 .*h2,Y,X)+likelihood(β.+ 2 .* h1.+h2,Y,X))-
+                (likelihood(β.+2 .*h1.-2 .*h2,Y,X)+likelihood(β.-2 .* h1.+ 2 .*h2,Y,X)-
+                likelihood(β.-2 .*h1.- 2 .*h2,Y,X)-likelihood(β.+ 2 .*h1.+2 .*h2,Y,X))+
+                64*(likelihood(β.-h1.-h2,Y,X)+likelihood(β.+h1.+h2,Y,X)-
+                likelihood(β.+h1.-h2,Y,X)-likelihood(β.-h1.+h2,Y,X)))/(144*(h^2))
         end
         d+=1
     end
@@ -354,7 +352,7 @@ end
 
 # Define the Newton convergence algorithm
 function NewtonAlg(Y, X; β₀::Matrix{Float64} = [-1.0; ones(size(X, 2), 1)],
-        err::Float64 = 100.0, tol::Float64 = 1e-32, sk::Float64=1e-7)
+                   err::Float64 = 100.0, tol::Float64 = 1e-32, sk::Float64=1e-7)
     β_out=0
     iter=1;
     print("="^35,"\n","Newton's Method","\n")
@@ -363,10 +361,10 @@ function NewtonAlg(Y, X; β₀::Matrix{Float64} = [-1.0; ones(size(X, 2), 1)],
         # update β
         β_out = β₀ - sk*inv(Hessian(X, β₀))*transpose(score(β₀, Y, X))
         #If you have made β_out NaN, you've gone too far
-            while isnan((transpose(β_out)ones(size(X, 2)+1, 1))[1])
-                sk=sk/10;
-                β_out = β₀ - sk*inv(Hessian(X, β₀))*transpose(score(β₀, Y, X))
-            end
+        while isnan((transpose(β_out)ones(size(X, 2)+1, 1))[1])
+            sk=sk/10;
+            β_out = β₀ - sk*inv(Hessian(X, β₀))*transpose(score(β₀, Y, X))
+        end
         # calculate error and update β₀
         err_new = maximum(abs.(β_out - β₀))
         β₀ = copy(β_out)
@@ -375,12 +373,12 @@ function NewtonAlg(Y, X; β₀::Matrix{Float64} = [-1.0; ones(size(X, 2), 1)],
         end
         iter+=1
         #Update sk depending on whether things are going well or not
-            if err_new<err
-                sk=sk*2;
-            else
-                sk=sk/10
-            end
-            err=copy(err_new)
+        if err_new<err
+            sk=sk*2;
+        else
+            sk=sk/10
+        end
+        err=copy(err_new)
     end # err > tol loop
 
     # return converged β
