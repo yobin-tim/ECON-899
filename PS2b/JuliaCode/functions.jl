@@ -33,7 +33,7 @@ function QuadLL(Y, X, Z, W1, W2, θ)
     γ = 0.3 * ones(size(Z, 2), 1)
     ρ = 0.5
 
-    tmp = α₀ .+ X*β + Z*γ
+    tmp = α₀ .+ X*β .+ Z*γ
     mρ = zeros(size(X,1), size(u,1));
     for i in 1:size(X,1)
         mρ[i,:] = log.(u') .+ tmp[i]
@@ -43,6 +43,15 @@ function QuadLL(Y, X, Z, W1, W2, θ)
     for i in 1:size(X,1)
         mdρ[i,:] = mdρ[i,:] .* log.(u)
     end
+    
+    L1 = cdf.(Normal(), (-α₀ .- X*β .- Z*γ)./σ₀)
+    
+    density = pdf.(Normal(), mρ/σ₀)./σ₀
+
+    L2 = (cdf.(Normal(), - α₁ .- X*β .- Z*γ .- ρ .* mρ) .* density .* mdρ)*w
+
+    ##TODO L3 Don't forget using different Jacobian!  
+    
     #############################################
 
     # unpack model parameters
