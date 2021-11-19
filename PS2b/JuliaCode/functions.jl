@@ -12,47 +12,109 @@ mutable struct ModelParameters
     γ::Array{Float64}
     ρ::Float64
 end # parameters struct
- 
+
 # Calculate log-likelihood using quadrature method
-function QuadLL(Y, X, Z, W1, W2, θ)
-    # separate weights and nodes from W1 and W2
+function QuadLL2(Y, X, Z, W1, W2, θ)
+    
     u = W1[:, 1]; w = W1[:, 2]
     μ₀ = W2[:, 1]; μ₁ = W2[:, 2]; ω = W2[:, 3]
 
-    ############### Test ###################################
-    ## Sorry write a code in function.
-    ## But, I think transformation part should be the following manupulation.
-    ## We have to create 16355×31 matrix about ρ and ρ'.
-    
-    u = w1[:, 1]; w = w1[:, 2]
-    μ₀ = w2[:, 1]; μ₁ = w2[:, 2]; ω = w2[:, 3]
-    α₀ = 0
-    α₁ = -1
-    α₂ = -1
-    β = 0* ones(size(X, 2), 1)
-    γ = 0.3 * ones(size(Z, 2), 1)
-    ρ = 0.5
+    # unpack model parameters
+    param = ModelParameters(θ[1], θ[2], θ[3], θ[4], θ[5], θ[6])
+    @unpack α₀, α₁, α₂, β, γ, ρ = param
 
-    tmp = α₀ .+ X*β .+ Z*γ
+    # Calculate σ₀ and σ₀²
+    σ₀² = 1/(1-ρ)^2
+    σ₀  = 1/(1-ρ)
+
+    tmp = α₀ .+ X*β .+ Z*γ;
     mρ = zeros(size(X,1), size(u,1));
+    
     for i in 1:size(X,1)
         mρ[i,:] = log.(u') .+ tmp[i]
     end
-    
+
+    tmp = α₁ .+ X*β .+ Z*γ
+    mρ1 = zeros(size(X,1), size(u,1));
+
+    for i in 1:size(X,1)
+        mρ1[i,:] = log.(u') .+ tmp[i]
+    end
+
     mdρ = ones(size(mρ,1), size(mρ,2));
+
     for i in 1:size(X,1)
         mdρ[i,:] = mdρ[i,:] .* log.(u)
     end
     
     L1 = cdf.(Normal(), (-α₀ .- X*β .- Z*γ)./σ₀)
     
-    density = pdf.(Normal(), mρ/σ₀)./σ₀
+    density = pdf.(Normal(), mρ./σ₀)./σ₀
 
-    L2 = (cdf.(Normal(), - α₁ .- X*β .- Z*γ .- ρ .* mρ) .* density .* mdρ)*w
-
-    ##TODO L3 Don't forget using different Jacobian!  
+    L2 = (cdf.(Normal(), - α₁ .- X*β .- Z*γ .- ρ .* mρ) .* density) * w
     
-    #############################################
+    density = pdf.(Normal(), mρ1 - ρ*mρ) .* pdf.(Normal(), mρ./σ₀) ./ σ₀
+    
+    L3 = (cdf.(Normal(), - α₂ .- X*β .- Z*γ .- ρ .* mρ1) .* density .* mdρ .* mdρ) * w
+
+    L4 = (cdf.(Normal(), α₂ .+ X*β .+ Z*γ .- ρ .* mρ1) .* density .* mdρ .* mdρ) * w
+
+    ll = 0
+
+    for i = 1:size(Y, 1)
+
+        if Y[i] == 1
+
+            if L1[i] < 0
+                L1[i]=1e-5
+            else
+                
+            end
+
+            ll = ll + log(L1[i])
+            
+        elseif Y[i] == 2
+
+            if L2[i] < 0
+                L2[i]=1e-5
+            else
+                
+            end
+
+            ll = ll + log(L2[i])
+            
+        elseif Y[i] == 3
+
+            if L3[i] < 0
+                L3[i]=1e-5
+            else
+                
+            end
+
+            ll = ll + log(L3[i])
+
+        elseif Y[i] == 4
+
+            if L4[i] < 0
+                L4[i]=1e-5
+            else
+                
+            end
+
+            ll = ll + log(L4[i])
+        end
+        
+    end # for i
+
+    return(ll)
+
+end
+
+# Calculate log-likelihood using quadrature method
+function QuadLL(Y, X, Z, W1, W2, θ)
+    # separate weights and nodes from W1 and W2
+    u = W1[:, 1]; w = W1[:, 2]
+    μ₀ = W2[:, 1]; μ₁ = W2[:, 2]; ω = W2[:, 3]
 
     # unpack model parameters
     param = ModelParameters(θ[1], θ[2], θ[3], θ[4], θ[5], θ[6])
@@ -95,10 +157,6 @@ function QuadLL(Y, X, Z, W1, W2, θ)
         return out
     end
 
-    ##############################################
-    ## To use quadrature integration, we need to map from x to u.
-    ## When ϵ assume x, the density part ϕ(ϵ/σ) ϵ = σu?
-    ##############################################
 
     function L3(x, z)
         out=0

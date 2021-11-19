@@ -51,7 +51,7 @@ println("see AcceptRejectLL() function")
 ## 4. Compare predicted choice probabilities for each of the above methods
 θ₀ = [0, -1, -1, 0 * ones(size(X, 2), 1), 0.3 * ones(size(Z, 2), 1), 0.5]
 
-ll_quad=QuadLL(Y, X, Z, w1, w2, θ₀)
+ll_quad=QuadLL2(Y, X, Z, w1, w2, θ₀)
 ll_ghk=GHKLL(Y, X, Z, θ₀)
 ll_ar=AcceptRejectLL(Y, X, Z, θ₀)
 
@@ -59,7 +59,7 @@ ll_ar=AcceptRejectLL(Y, X, Z, θ₀)
     # TODO: This method gives domain issues with the logs in QuadLL
     θ₀ = vcat([0, -1, -1], 0 * ones(size(X, 2), 1), 0.3 * ones(size(Z, 2), 1), [0.5])
 
-    θ = optimize(t -> -QuadLL(Y, X, Z, w1, w2,
+    θ = optimize(t -> -QuadLL2(Y, X, Z, w1, w2,
         [t[1],t[2],t[3],t[4:(3+size(X,2))],
         t[(4+size(X,2)):(3+size(X,2)+size(Z,2))],t[(4+size(X,2)+size(Z,2))]]), θ₀,
         method = BFGS(), f_tol = 1e-32, g_tol = 1e-32).minimizer
