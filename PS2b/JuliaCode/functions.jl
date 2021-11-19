@@ -19,6 +19,32 @@ function QuadLL(Y, X, Z, W1, W2, θ)
     u = W1[:, 1]; w = W1[:, 2]
     μ₀ = W2[:, 1]; μ₁ = W2[:, 2]; ω = W2[:, 3]
 
+    ############### Test ###################################
+    ## Sorry write a code in function.
+    ## But, I think transformation part should be the following manupulation.
+    ## We have to create 16355×31 matrix about ρ and ρ'.
+    
+    u = w1[:, 1]; w = w1[:, 2]
+    μ₀ = w2[:, 1]; μ₁ = w2[:, 2]; ω = w2[:, 3]
+    α₀ = 0
+    α₁ = -1
+    α₂ = -1
+    β = 0* ones(size(X, 2), 1)
+    γ = 0.3 * ones(size(Z, 2), 1)
+    ρ = 0.5
+
+    tmp = α₀ .+ X*β + Z*γ
+    mρ = zeros(size(X,1), size(u,1));
+    for i in 1:size(X,1)
+        mρ[i,:] = log.(u') .+ tmp[i]
+    end
+    
+    mdρ = ones(size(mρ,1), size(mρ,2));
+    for i in 1:size(X,1)
+        mdρ[i,:] = mdρ[i,:] .* log.(u)
+    end
+    #############################################
+
     # unpack model parameters
     param = ModelParameters(θ[1], θ[2], θ[3], θ[4], θ[5], θ[6])
     @unpack α₀, α₁, α₂, β, γ, ρ = param
@@ -63,7 +89,6 @@ function QuadLL(Y, X, Z, W1, W2, θ)
     ##############################################
     ## To use quadrature integration, we need to map from x to u.
     ## When ϵ assume x, the density part ϕ(ϵ/σ) ϵ = σu?
-    ## And there was no Jacobian part.
     ##############################################
 
     function L3(x, z)
