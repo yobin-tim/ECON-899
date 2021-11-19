@@ -12,7 +12,7 @@ mutable struct ModelParameters
     γ::Array{Float64}
     ρ::Float64
 end # parameters struct
-
+ 
 # Calculate log-likelihood using quadrature method
 function QuadLL(Y, X, Z, W1, W2, θ)
     # separate weights and nodes from W1 and W2
