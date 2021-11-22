@@ -16,8 +16,8 @@ end # parameters struct
 # Calculate log-likelihood using quadrature method
 function QuadLL2(Y, X, Z, W1, W2, θ)
     
-    u = w1[:, 1]; w = w1[:, 2]
-    μ₀ = w2[:, 1]; μ₁ = w2[:, 2]; ω = w2[:, 3]
+    u = W1[:, 1]; w = W1[:, 2]
+    μ₀ = W2[:, 1]; μ₁ = W2[:, 2]; ω = W2[:, 3]
 
     # unpack model parameters
     param = ModelParameters(θ[1], θ[2], θ[3], θ[4], θ[5], θ[6])
