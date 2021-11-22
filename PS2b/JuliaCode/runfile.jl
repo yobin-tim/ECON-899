@@ -61,4 +61,4 @@ ll_ar=AcceptRejectLL(Y, X, Z, θ₀)
                            [t[1],t[2],t[3],t[4:(3+size(X,2))],
                             t[(4+size(X,2)):(3+size(X,2)+size(Z,2))],
                             t[(4+size(X,2)+size(Z,2))]]), θ₀,
-             method = BFGS(), f_tol = 1e-3, g_tol = 1e-3).minimizer
+             method = BFGS(), f_tol = 1e-5, g_tol = 1e-5).minimizer

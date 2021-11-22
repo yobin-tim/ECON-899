@@ -1,0 +1,52 @@
+\documentclass{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\title{Econ899 PS2b}
+\begin{document}
+\maketitle
+\begin{enumerate}
+\item See the julia code
+\item For $T_i = 1$, the probability can be written as follows
+  \begin{equation}
+    \label{eq:1}
+    Pr\left(\eta_{i0} < \frac{-\alpha_0 - X_i\beta - Z_{it}\gamma}{\sigma_0}\right)
+  \end{equation}
+  For $T_i = 2$, the probability is
+  \begin{equation}
+    \label{eq:2}
+    Pr\left(\epsilon_{i0} < \alpha_0 + X_i\beta + Z_{it}\gamma, \epsilon_{i1} < - \alpha_1 - X_i\beta - Z_{it}\gamma \right)
+  \end{equation}
+  The conditional probability can be written as follows
+  \begin{align*}
+    & Pr\left(\epsilon_{i1} < - \alpha_1 - X_i\beta - Z_{it}\gamma |\epsilon_{i0} < \alpha_0 + X_i\beta + Z_{it}\gamma \right) \\  
+    & = Pr\left(\eta_{i0} + \rho \sigma_0 \eta_{i1} < - \alpha_1 - X_i\beta - Z_{it}\gamma |\eta_{i0} < \frac{\alpha_0 + X_i\beta + Z_{it}\gamma}{\sigma_0} \right)\\
+    & = Pr\left(\eta_{i1} < \frac{- \alpha_1 - X_i\beta - Z_{it}\gamma-\eta^*_{i0}}{\rho \sigma_0} \middle|\eta_{i0} < \frac{\alpha_0 + X_i\beta + Z_{it}\gamma}{\sigma_0} \right)
+  \end{align*}
+  where $\eta^*$ is a random variable from  $\eta_{i0} < \frac{\alpha_0 + X_i\beta + Z_{it}\gamma}{\sigma_0}$. Then, the probability of $T_i= 2$ is 
+  \begin{equation}
+    \label{eq:3}
+    Pr\left(\eta_{i1} < \frac{- \alpha_1 - X_i\beta - Z_{it}\gamma-\eta^*_{i0}}{\rho \sigma_0} \middle|\eta_{i0} < \frac{\alpha_0 + X_i\beta + Z_{it}\gamma}{\sigma_0} \right) Pr\left(\eta_{i0} < \frac{\alpha_0 + X_i\beta + Z_{it}\gamma}{\sigma_0} \right) 
+  \end{equation}
+  Similarly, we can define probability in $T_i = 3,4$. Based on these proababilities, we can define the log likelihood. The code is GHKLL2. 
+
+\item See the code AcceptRejectLL()
+
+\item We got the following likelihoods: 
+  \begin{itemize}
+  \item  Quarature method:
+  \item  GHK method:
+  \item  Accept/Reject method:
+  \end{itemize}
+  The value varies, but the order (-1e5) is the same.  
+\item We got the following result. Unfortunately, these values are different from results of STATA code.
+  \begin{align*}
+    \alpha_0 &= 3.12, \alpha_1 = 0.88, \alpha_2 = 2.29 \\
+    score_0 &= 0.00, rate spread = -0.25, large loan = -0.79, medium loan = -0.39 \\ 
+    i refinance &= -0.04, age r = -0.42, cltv = 0.34, dti = 0.67, cu = -0.43 \\
+    first mort &= 0.59, i FHA = -0.05, open year 2 = -0.70,open year 3 = 0.07 \\ 
+    open year 4 &= 0.12, open year 5 =0.02 \\
+    score0  &= 0.30, score1 = -0.16, score2 = 0.35, \rho = 0.57 
+  \end{align*}
+\end{enumerate}
+
+\end{document}
