@@ -1,13 +1,83 @@
-\documentclass{article}
-\usepackage[margin=1in]{geometry}
-\usepackage{amsmath}
+\documentclass[landscape]{article} % kind of document 
+\usepackage[utf8]{inputenc} %encoding of choice
+\usepackage[american]{babel} %language of choice
+\usepackage[p,osf]{cochineal}
+\usepackage{fancyhdr} %for header
+\usepackage{amsmath, tabu} %math mode
+\usepackage{mathtools}
+\usepackage{extarrows} % for more options with arrows
+\usepackage{amssymb} %math symbols
+\usepackage{dsfont} %specifically for the indicator function symbol
+\usepackage{xcolor} %to color text
+\usepackage{amsthm} %math theorem
+\usepackage{tikz}
+\usepackage{caption}
+\usepackage{multirow}
+\usepackage[bottom]{footmisc}
+% \usepackage[dvipsnames]{xcolor}
+%\usepackage{pythontex}
+\usepackage{enumerate} %make lists
+\usepackage{graphicx} %insert images
+\usepackage{float} %to fix image position
+\usepackage{moreverb} %to make boxes
+\usepackage{hyperref} %to create hyperlinks
+\usepackage{lipsum} %lorem ipsum package
+\usepackage{setspace} % to use singlespace below in the solution environment
+\usepackage[shortlabels]{enumitem}
+\usepackage{parskip}
+\usepackage[us]{datetime} %package for setting due date in US format
+\newdate{duedate}{22}{11}{2021} %to set a due date
+\allowdisplaybreaks
+\usepackage[margin=.5in, landscape]{geometry}
+\usepackage{rotating}
+\usepackage{pdflscape}
+\usepackage[paper=portrait,pagesize]{typearea}
 \usepackage{jlcode}
-\title{Econ899 PS2b}
+\pagestyle{fancy}
+
+
+\fancypagestyle{mylandscape}{
+	\fancyhf{} %Clears the header/footer
+	\fancyfoot{% Footer
+		\makebox[\textwidth][r]{% Right
+			\rlap{\hspace{.75cm}% Push out of margin by \footskip
+				\smash{% Remove vertical height
+					\raisebox{4.87in}{% Raise vertically
+						\rotatebox{90}{\thepage}}}}}}% Rotate counter-clockwise
+	\renewcommand{\headrulewidth}{0pt}% No header rule
+	\renewcommand{\footrulewidth}{0pt}% No footer rule
+}
+
+\lhead{Due: \displaydate{duedate}}
+\chead{ECON 899 -- PS2b -- }
+\rhead{Danny, Hiroaki, Mitchell, Ryan, Yobin}
+
+\DeclareMathOperator*{\E}{\mathbb{E}} %ease of writing e and E
+\newcommand{\e}{\mathrm{e}}
+\newcommand{\ct}{\mathsf{c}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\ifn}{\mathds{1}}
+\newcommand{\X}{\mathbf{X}}
+\newcommand{\Y}{\mathbf{Y}}
+\newcommand{\one}{\mathbf{1}}
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+\newcommand*\widebar[1]{\overline{#1}} % to get a widebar
+\theoremstyle{definition}
+\newtheorem{theorem}{theorem} % Theorem display format
+\newtheorem{problem}[theorem]{Exercise} % Problem display format, last bracket sets display choice
+
+\newenvironment{solution}[1][Answer]{\begin{singlespace}\underline{\textbf{#1:}}\quad }{\ \rule{0.3em}{0.3em}\end{singlespace}} % Answer format
+
+\newenvironment{solutions}[1][Proof]{\begin{singlespace}\underline{\textbf{#1:}}\quad }{\ \rule{0.3em}{0.3em}\end{singlespace}} % Answer format
+\title{Econ899 PS1b}
+\usepackage{listings}
 
 \begin{document}
-\maketitle
+%\maketitle
 \begin{enumerate}
-\item See the julia code
+\item See the QuadLL2 function in the julia code attached below.
 \item For $T_i = 1$, the probability can be written as follows
   \begin{equation}
     \label{eq:1}
@@ -29,17 +99,17 @@
     \label{eq:3}
     Pr\left(\eta_{i1} < \frac{- \alpha_1 - X_i\beta - Z_{it}\gamma-\eta^*_{i0}}{\rho \sigma_0} \middle|\eta_{i0} < \frac{\alpha_0 + X_i\beta + Z_{it}\gamma}{\sigma_0} \right) Pr\left(\eta_{i0} < \frac{\alpha_0 + X_i\beta + Z_{it}\gamma}{\sigma_0} \right) 
   \end{equation}
-  Similarly, we can define probability in $T_i = 3,4$. Based on these proababilities, we can define the log likelihood. The code is GHKLL2. 
+  Similarly, we can define probability in $T_i = 3,4$. Based on these probabilities, we can define the log likelihood. The funciton is GHKLL2. 
 
-\item See the code AcceptRejectLL()
+\item See the function AcceptRejectLL()
 
 \item We got the following likelihoods: 
   \begin{itemize}
-  \item  Quarature method:-40992
-  \item  GHK method:-60572
-  \item  Accept/Reject method:-75167
+  \item  Quadrature method:-40992
+  \item  GHK method:-60572 (Changes somewhat each time the function is called)
+  \item  Accept/Reject method:-75167 (Changes somewhat each time the function is called)
   \end{itemize}
-  The value varies, but the order (-1e5) is the same.  
+  The calculated likelihood is different under each method, but the order (-1e5) is the same.  
 \item We got the following result. 
   \begin{align*}
     \alpha_0 &= 3.12, \alpha_1 = 0.88, \alpha_2 = 2.29 \\
