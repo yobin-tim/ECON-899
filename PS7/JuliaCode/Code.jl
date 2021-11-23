@@ -22,6 +22,34 @@ end # Primitives
 end # Primitives
 
 
+function GetMoments(ρ, σ, T, H)
+
+    Random.seed!(100)
+    ϵ = zeros(T,H)
+    for hi=1:H
+        ϵ[:,hi]=rand(Normal(0,σ),T)
+    end
+
+    xₜ = zeros(T+1, H)
+    for t=2:(T+1)
+        xₜ[t,:] = ρ₀ .* xₜ[t-1,:] .+ ϵ[t-1,:]
+    end
+    x_t_1 = xₜ[1:end-1,:]
+    xₜ = xₜ[2:end,:]
+    barx = mean(xₜ, dims=1)
+
+    m1 = mean(mean(xₜ, dims=1), dims = 2)[1]
+    m2 = mean(mean((xₜ .- mean(xₜ, dims =1)).^2, dims =1), dims = 2)[1]
+    m3 = mean((xₜ.- barx) .* (x_t_1 .- barx))[1]
+
+    m = [m1, m2, m3]
+
+    return m
+        
+end
+
+
+
 function TrueData(prim)
     @unpack T, σ0, x0, ρ0 = prim
     ϵ = rand(Normal(0,sqrt(σ0)), T)
