@@ -7,47 +7,15 @@ using StatFiles, DataFrames
 
 # Indlude the functions
 include("./functions.jl")
+include("./manipulate_data.jl")
 
-# Load the data
-# car characteristics
-car_data = DataFrame(StatFiles.load("./PS3b/data/Car_demand_characteristics_spec1.dta"))
-car_data[!, :Year] = Int.(car_data.Year)
-# instruments
-instruments = DataFrame(StatFiles.load("./PS3b/data/Car_demand_iv_spec1.dta"))
-# simulated income (random coefficient)
-income = DataFrame(StatFiles.load("./PS3b/data/Simulated_type_distribution.dta"))
-dropmissing!(income)
+car_data, instruments, income = load_data("./PS3b/data/")
 
 # Parameters
-λₚ = 0.6
+parameters = [0.6]
 
-# Construct the model
-years = unique(car_data.Year)
-products = Dict()
-shares = Dict()
-prices = Dict()
-demand = Dict()
-
-for year in years
-
-    # Get the data for the year
-    year_data = dropmissing( car_data[car_data.Year .== year, :] )
-    pro = year_data.Model_id
-    sha = year_data.share
-    pri = year_data.price
-    products[year] = pro
-    shares[year] = Dict(pro .=> sha)
-    prices[year] = Dict(pro .=> pri)
-
-    # Create zero (or initial guess) inverse demands for the year
-    inv_dem = zeros(length(pro))
-    demand[year] = Dict(pro .=> inv_dem)
-end
-
-
-model = Model(λₚ, years, products, shares, prices, income.Var1, demand)
-
-year = 1985
+# Model
+model = construct_model(car_data, instruments, income, parameters)
 
 # Get the product indexes
 J = model.J[year]
@@ -60,9 +28,35 @@ Y = model.Y
 # Get the inital guess for the inverse demand
 δ = [model.δ[year][j] for j in J]
 
+# Compute the matrix μ[i,j] = λₚ * Y[i] * P[j]
 μ = repeat(Y', length(J), 1) .* P
+r,R = size(μ) 
+
+δ = inverse_demand_cm(δ, S, μ, 1)
+δ = inverse_demand_nm(δ, S, μ, 0.000001)
 
 
-choice_probability(δ, μ)
 
-inverse_demand_cm(δ, S, μ, 0.01; max_iter = 1000)
+σ, Δ  = choice_probability(δ, μ; eval_jacobian=true)
+
+Δ
+1/R * ((I(r) .* (σ * (1 .- σ)'))./ σ- ((1 .- I(r)) .* (σ * σ'))./ σ)
+
+inv(Δ)
+
+δ₁ = δ - inv(Δ) * (log.(S) - log.(σ))
+
+err = maximum( abs.(δ₁ - δ) ) 
+
+δ = copy(δ₁)
+
+for i in 1:length(δ)
+    println(abs.(δ₁[i] - δ[i]))
+end 
+# Not working yet
+# inverse_demand(model, 1985; method = "Newton")
+
+inverse_demand(model, 2005, method = "Newton")
+
+model.δ[1985]
+

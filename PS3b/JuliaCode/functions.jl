@@ -15,7 +15,7 @@ function choice_probability(δ::Array{Float64}, μ::Array{Float64}; eval_jacobia
 
     if eval_jacobian
         # Compute Jacobian
-        Δ = 1/R * ( I(r) .* (σ *(1 .- σ)') - (1 .- I(r)) .* (σ * σ') )
+        Δ = 1/R * ((I(r) .* (σ * (1 .- σ)')) - ((1 .- I(r)) .* (σ * σ')))
         return σ, Δ
     else
         return σ   
@@ -75,8 +75,7 @@ function inverse_demand_cm(δ, s, μ, tol; max_iter::Int64 = 300)
         
         # Update the iteration counter
         iter = iter + 1
-        @show iter
-        @show err
+        println("Iteration = $iter , error = $err, tolerance = $tol, error > tolerance = $(err > tol)")
     end
 
     return δ₁
@@ -99,7 +98,7 @@ function inverse_demand_nm(δ, s, μ, tol; max_iter::Int64 = 300)
         σ, Δ = choice_probability(δ₀, μ, eval_jacobian=true)
 
         # Compute the inverse demand
-        δ₁ = δ₀ - Δ^(-1) * (log.(s) - log.(σ))
+        δ₁ = δ₀ + Δ * (log.(s) - log.(σ))
         
         # Update the error
         err = maximum( abs.(δ₁ - δ₀) )
@@ -109,8 +108,7 @@ function inverse_demand_nm(δ, s, μ, tol; max_iter::Int64 = 300)
         
         # Update the iteration counter
         iter = iter + 1
-        @show iter
-        @show err
+        println("Iteration = $iter , error = $err, tolerance = $tol, error > tolerance = $(err > tol)")
     end
     return δ₁
 end
@@ -138,10 +136,13 @@ function inverse_demand(model::Model, year::Int64; method::String="Newton")
     if method=="Newton"
         ε = 1e-12
         ε₁ = 1
+        println("Aprox inverse demand usign Contraction Mapping")
         δ = inverse_demand_cm(δ, S, μ, ε₁)
+        println("Solving inverse demand usign Newton's Method")
         δ = inverse_demand_nm(δ, S, μ, ε)
     elseif method=="CM"
         ε = 1e-12
+        println("Solving inverse demand usign Contraction Mapping")
         δ = inverse_demand_cm(δ, S, μ, ε)
     else
         error("Method not implemented, implemented methods are \"Newton\" and \"CM\" ")
