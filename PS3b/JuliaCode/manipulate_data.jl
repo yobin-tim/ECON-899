@@ -21,7 +21,9 @@ function load_data(path_to_dir::String)
 end
 
 # Function to construct model from data
-function construct_model(car_data::DataFrame, instruments::DataFrame, income::DataFrame, parameters::Array)
+function construct_model(car_data::DataFrame, instruments::DataFrame, income::DataFrame)
+    
+    parameters = Primitives()
 
     years = unique(car_data.Year)
     products = Dict()
@@ -40,11 +42,14 @@ function construct_model(car_data::DataFrame, instruments::DataFrame, income::Da
         shares[year] = Dict(pro .=> sha)
         prices[year] = Dict(pro .=> pri)
 
+        # Create matrix of product characteristics
+        
+
         # Create zero (or initial guess) inverse demands for the year
         inv_dem = zeros(length(pro))
         demand[year] = Dict(pro .=> inv_dem)
 
     end
 
-    return  Model(parameters..., years, products, shares, prices, income.Var1, demand)
+    return  Model(parameters, years, products, shares, prices, income.Var1, X, Z, demand)
 end

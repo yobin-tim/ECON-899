@@ -1,5 +1,5 @@
 # Load packages
-using LinearAlgebra
+using LinearAlgebra, Parameters
 
 # Auxiliary functions
 # Choice probability function
@@ -15,107 +15,53 @@ function choice_probability(δ::Array{Float64}, μ::Array{Float64}; eval_jacobia
 
     if eval_jacobian
         # Compute Jacobian
-        Δ = 1/R * ((I(r) .* (σ * (1 .- σ)')) - ((1 .- I(r)) .* (σ * σ')))
+        Δ = 1/R * ((I(r) .* (σ * (1 .- σ)')) - ((1 .- I(r)) .* (σ * σ'))) 
         return σ, Δ
     else
-        return σ   
+        return σ, nothing 
     end
 
 end
 
 # Model Structures
+# Primitives
+@with_kw struct Primitives
+    λₚ_range :: Array{Float64} = [0, 1]
+end
+
 
 # Model
 mutable struct Model 
 
     # Parameters
-    λₚ      :: Float64 # Somehting
+    parameters  ::Primitives       # Parameters of the model
 
     # Data
-    Years   :: Array{Int64}  # Array of years
-    J       :: Dict          # Array of product indexes
-    S       :: Dict          # Dictionary of observed market shares
-    P       :: Dict          # Dictionary of observed prices
-    Y       :: Array{Float64} # Array of simulated income levels
-
+    # Unstacked data
+    Years       :: Array{Int64}             # Array of years
+    J           :: Dict                     # Array of product indexes
+    S           :: Dict                     # Dictionary of observed market shares
+    P           :: Dict                     # Dictionary of observed prices
+    Y           :: Array{Float64}           # Array of simulated income levels
+    # Stacked data
+    X           :: Array{Float64, 2}        # Matrix of stacked product characteristics
+    Z           :: Array{Float64, 2}        # Matrix of stacked instruments
     # Functions
     # choice_probability :: Function(Float64, Float64) -> Float64
 
     # Demand
-    δ       :: Dict # Dictionary of (estimated) inverse demand
+    δ           :: Dict            # Dictionary of (estimated) inverse demand
 
-end
-
-
-# Demand inversion Contraction Mapping (Barry et al., 1995)
-function inverse_demand_cm(δ, s, μ, tol; max_iter::Int64 = 300)
-
-    # Initial guess for the inverse demand
-    δ₀ = copy( δ )
-    δ₁ = copy( δ )
-    
-    # Initialize the iteration counter
-    iter = 0
-    # Initialize the error
-    err = 100
-
-    # Iterate until convergence
-    while (err > tol) && (iter < max_iter)
-        # Compute the choice probability
-        σ = choice_probability(δ₀, μ)
-
-        # Compute the inverse demand
-        δ₁ = δ₀ + log.(s) - log.(σ)
-        
-        # Update the error
-        err = maximum( abs.(δ₁ - δ₀) )
-
-        # Update the inverse demand
-        δ₀ = copy(δ₁)
-        
-        # Update the iteration counter
-        iter = iter + 1
-        println("Iteration = $iter , error = $err, tolerance = $tol, error > tolerance = $(err > tol)")
-    end
-
-    return δ₁
-end
-
-# Demand inversion Newtons Method
-function inverse_demand_nm(δ, s, μ, tol; max_iter::Int64 = 300)
-
-    # Initial guess for the inverse demand
-    δ₀ = copy( δ )
-    δ₁ = copy( δ )
-    # Initialize the iteration counter
-    iter = 0
-    # Initialize the error
-    err = 100
-
-    # Iterate until convergence
-    while (err > tol) && (iter < max_iter)
-        # Compute the choice probability and the Jacobian
-        σ, Δ = choice_probability(δ₀, μ, eval_jacobian=true)
-
-        # Compute the inverse demand
-        δ₁ = δ₀ + Δ * (log.(s) - log.(σ))
-        
-        # Update the error
-        err = maximum( abs.(δ₁ - δ₀) )
-
-        # Update the inverse demand
-        δ₀ = copy(δ₁)
-        
-        # Update the iteration counter
-        iter = iter + 1
-        println("Iteration = $iter , error = $err, tolerance = $tol, error > tolerance = $(err > tol)")
-    end
-    return δ₁
+    # 
 end
 
 
 # Demand inverter
-function inverse_demand(model::Model, year::Int64; method::String="Newton")
+function inverse_demand(model::Model, λₚ::Float64, year::Int64; method::String="Newton", max_iter = Inf)
+
+    # Check the method
+    valid_methods = ["Newton", "Contraction Mapping"]
+    @assert (method ∈ valid_methods)
 
     # Get the product indexes
     J = model.J[year]
@@ -129,30 +75,66 @@ function inverse_demand(model::Model, year::Int64; method::String="Newton")
     δ = [model.δ[year][j] for j in J]
 
     # Compute the matrix μ[i,j] = λₚ * Y[i] * P[j]
-    μ = repeat(Y', length(J), 1) .* P
+    μ = λₚ * repeat(Y', length(J), 1) .* P
 
     # Compute the inverse demand
+    
+    # Initial guess for the inverse demand
+    δ₀ = copy( δ )
+    δ₁ = copy( δ )
+    # Initialize the iteration counter
+    iter = 0
+    # Initialize the error
+    err = 100
+    eval_jacobian = false
 
-    if method=="Newton"
-        ε = 1e-12
-        ε₁ = 1
-        println("Aprox inverse demand usign Contraction Mapping")
-        δ = inverse_demand_cm(δ, S, μ, ε₁)
-        println("Solving inverse demand usign Newton's Method")
-        δ = inverse_demand_nm(δ, S, μ, ε)
-    elseif method=="CM"
-        ε = 1e-12
-        println("Solving inverse demand usign Contraction Mapping")
-        δ = inverse_demand_cm(δ, S, μ, ε)
-    else
-        error("Method not implemented, implemented methods are \"Newton\" and \"CM\" ")
+    ε = 1e-12
+    ε₁ = ( method == "Newton" ) ? 1e-8 : -Inf
+
+    # Iterate until convergence
+
+    err_list = []
+    method_flag = "Contraction Mapping"
+    θ = 1
+    while (err > ε) && (iter < max_iter)
+        # Compute the choice probability and the Jacobian
+        if (method == "Newton") && (err < ε₁)
+            eval_jacobian = true
+            method_flag = "Newton"
+        end
+
+        σ, Δ = choice_probability(δ₀, μ, eval_jacobian=eval_jacobian)
+
+        # Compute the inverse demand
+        if (method == "Newton") && (err < ε₁)
+            δ₁ = δ₀ + θ * Δ * (log.(S) - log.(σ))
+        else
+            δ₁ = δ₀ + log.(S) - log.(σ)
+        end
+        
+        # Update the error
+        err = maximum( abs.(δ₁ - δ₀) )
+        push!(err_list, err)
+        # Update the inverse demand
+        δ₀ = copy(δ₁)
+        
+        # Update the iteration counter
+        iter = iter + 1
+        if iter % 1000 == 0
+            println("Iteration = $iter, Method = $method_flag , error = $err, tolerance = $ε, error > tolerance = $(err > ε), θ = $θ")     
+        end
+
+        # # Update θ
+        # θ = 7000 * ((12 - log10(1 / err))/2)
+
     end
-
+    println("Iteration = $iter, Method = $method_flag, error = $err, tolerance = $ε, error > tolerance = $(err > ε), θ = $θ")     
     # Update the inverse demand in the model
     for j in 1:length(J)
-        model.δ[year][J[j]] = δ[j]
+        model.δ[year][J[j]] = δ₁[j]
     end
 
+    return err_list
 end
 
 
