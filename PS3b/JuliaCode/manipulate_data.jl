@@ -10,9 +10,20 @@ function load_data(path_to_dir::String)
     car_data = DataFrame(StatFiles.load(path_to_dir*"/Car_demand_characteristics_spec1.dta"))
     dropmissing!(car_data)
     car_data[!, :Year] = Int.(car_data.Year)
+    car_data[!, :Model_id] = Int.(car_data.Model_id)
+    # Create unique identifier for each product_marker
+    car_data[!, :id] = string.(car_data[!, :Year]) .* "_" .* lpad.( car_data[:, :Model_id], 4, "0")
+    # Sort by id
+    sort!(car_data, [:id])
     # instruments
     instruments = DataFrame(StatFiles.load(path_to_dir*"/Car_demand_iv_spec1.dta"))
     dropmissing!(instruments)
+    instruments[!, :Year] = Int.(instruments.Year)
+    instruments[!, :Model_id] = Int.(instruments.Model_id)
+    # Create unique identifier for each product_marker
+    instruments[!, :id] = string.(instruments[!, :Year]) .* "_" .* lpad.( instruments[:, :Model_id], 4, "0")
+    # Sort by id
+    sort!(instruments, [:id])
     # simulated income (random coefficient)
     income = DataFrame(StatFiles.load(path_to_dir*"/Simulated_type_distribution.dta"))
     dropmissing!(income)
@@ -21,35 +32,34 @@ function load_data(path_to_dir::String)
 end
 
 # Function to construct model from data
-function construct_model(car_data::DataFrame, instruments::DataFrame, income::DataFrame)
+function construct_model(model_specs::Dict, car_data::DataFrame, instruments::DataFrame, income::DataFrame)
     
+
     parameters = Primitives()
 
-    years = unique(car_data.Year)
-    products = Dict()
-    shares = Dict()
-    prices = Dict()
-    demand = Dict()
+    # Get id's of the products and markets
+    market_id = model_specs[:ids][:market]
+    product_id = model_specs[:ids][:product]
 
-    for year in years
 
-        # Get the data for the year
-        year_data = dropmissing( car_data[car_data.Year .== year, :] )
-        pro = year_data.Model_id
-        sha = year_data.share
-        pri = year_data.price
-        products[year] = pro
-        shares[year] = Dict(pro .=> sha)
-        prices[year] = Dict(pro .=> pri)
+    # Create co-variate matrix
+    X = car_data[!, model_specs[:covariates]] |> Matrix
 
-        # Create matrix of product characteristics
-        
+    # Create instruments matrix
+    Z = instruments[!, model_specs[:instruments]] |> Matrix
 
-        # Create zero (or initial guess) inverse demands for the year
-        inv_dem = zeros(length(pro))
-        demand[year] = Dict(pro .=> inv_dem)
+    # Create income vector
+    Y = income[:, model_specs[:sim_data]] |> Matrix
 
-    end
+    # Create a DataFrame for inverse demand estimation 
 
-    return  Model(parameters, years, products, shares, prices, income.Var1, X, Z, demand)
+    inv_dem_est = car_data[!, [:id, :Year, :share, :price]]
+
+    # Initial guess for the inverse demand
+    inv_dem = zeros(size(car_data)[1])
+    
+    inv_dem_est[:, :δ] = inv_dem
+
+    
+    return  Model(parameters, market_id, product_id, X, Z, Y, inv_dem_est)
 end

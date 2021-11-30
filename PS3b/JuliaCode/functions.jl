@@ -23,6 +23,27 @@ function choice_probability(δ::Array{Float64}, μ::Array{Float64}; eval_jacobia
 
 end
 
+# segment_data by market for demand estimation
+function segment_data(model, market)
+
+    # Get market id column
+    market_id_col = model.market_id
+
+    # Filter data by market
+    data = model.inv_dem_est[model.inv_dem_est[!, market_id_col] .== market, :]
+    
+     # Get the observed market shares
+     S = data.share
+     # Get the observed prices
+     P = data.price
+     # Get the income levels
+     Y = model.Y
+     # Get the inital guess for the inverse demand
+     δ = data.δ
+
+     return S, P, Y, δ
+end
+
 # Model Structures
 # Primitives
 @with_kw struct Primitives
@@ -34,48 +55,33 @@ end
 mutable struct Model 
 
     # Parameters
-    parameters  ::Primitives       # Parameters of the model
+    parameters      ::Primitives                # Parameters of the model
 
     # Data
     # Unstacked data
-    Years       :: Array{Int64}             # Array of years
-    J           :: Dict                     # Array of product indexes
-    S           :: Dict                     # Dictionary of observed market shares
-    P           :: Dict                     # Dictionary of observed prices
-    Y           :: Array{Float64}           # Array of simulated income levels
-    # Stacked data
-    X           :: Array{Float64, 2}        # Matrix of stacked product characteristics
-    Z           :: Array{Float64, 2}        # Matrix of stacked instruments
-    # Functions
-    # choice_probability :: Function(Float64, Float64) -> Float64
-
-    # Demand
-    δ           :: Dict            # Dictionary of (estimated) inverse demand
-
+    market_id       :: Any                      # Market id column
+    product_id      :: Any                      # Product id column
+    X               :: Array{Float64, 2}        # Matrix of covariates
+    Z               :: Array{Float64, 2}        # Matrix of instruments
+    Y               :: Array{Float64, 2}        # Matrix of simulated data
+    inv_dem_est     :: DataFrame                # DataFrame of for demand estimation
     # 
 end
 
 
+
 # Demand inverter
-function inverse_demand(model::Model, λₚ::Float64, year::Int64; method::String="Newton", max_iter = Inf)
+function inverse_demand(model::Model, λₚ::Float64, market; method::String="Newton", max_iter = Inf)
 
     # Check the method
     valid_methods = ["Newton", "Contraction Mapping"]
     @assert (method ∈ valid_methods)
 
-    # Get the product indexes
-    J = model.J[year]
-    # Get the observed market shares
-    S = [model.S[year][j] for j in J]
-    # Get the observed prices
-    P = [model.P[year][j] for j in J]
-    # Get the income levels
-    Y = model.Y
-    # Get the inital guess for the inverse demand
-    δ = [model.δ[year][j] for j in J]
+   # Get the data
+    S, P, Y, δ = segment_data(model, market)
 
     # Compute the matrix μ[i,j] = λₚ * Y[i] * P[j]
-    μ = λₚ * repeat(Y', length(J), 1) .* P
+    μ = λₚ * repeat(Y', length(S), 1) .* P
 
     # Compute the inverse demand
     
@@ -130,10 +136,10 @@ function inverse_demand(model::Model, λₚ::Float64, year::Int64; method::Strin
     end
     println("Iteration = $iter, Method = $method_flag, error = $err, tolerance = $ε, error > tolerance = $(err > ε), θ = $θ")     
     # Update the inverse demand in the model
-    for j in 1:length(J)
-        model.δ[year][J[j]] = δ₁[j]
-    end
-
+    # for j in 1:length(J)
+    #     model.δ[year][J[j]] = δ₁[j]
+    # end
+    println("Inverse demand = $δ₁")
     return err_list
 end
 
