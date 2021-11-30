@@ -102,7 +102,7 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
 
     err_list = []
     method_flag = "Contraction Mapping"
-    θ = 1
+
     while (err > ε) && (iter < max_iter)
         # Compute the choice probability and the Jacobian
         if (method == "Newton") && (err < ε₁)
@@ -114,7 +114,7 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
 
         # Compute the inverse demand
         if (method == "Newton") && (err < ε₁)
-            δ₁ = δ₀ + θ * Δ * (log.(S) - log.(σ))
+            δ₁ = δ₀ + (Δ) * (log.(S) - log.(σ))
         else
             δ₁ = δ₀ + log.(S) - log.(σ)
         end
@@ -128,11 +128,8 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
         # Update the iteration counter
         iter = iter + 1
         if iter % 1000 == 0
-            println("Iteration = $iter, Method = $method_flag , error = $err, tolerance = $ε, error > tolerance = $(err > ε), θ = $θ")     
+            println("Iteration = $iter, Method = $method_flag , error = $err, tolerance = $ε, error > tolerance = $(err > ε)")     
         end
-
-        # # Update θ
-        # θ = 7000 * ((12 - log10(1 / err))/2)
 
     end
     # println("Iteration = $iter, Method = $method_flag, error = $err, tolerance = $ε, error > tolerance = $(err > ε), θ = $θ")     
