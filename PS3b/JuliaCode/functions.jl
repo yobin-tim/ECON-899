@@ -53,7 +53,6 @@ end
 
 # Model
 mutable struct Model 
-
     # Parameters
     parameters      ::Primitives                # Parameters of the model
 
@@ -96,7 +95,7 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
     eval_jacobian = false
 
     ε = 1e-12
-    ε₁ = ( method == "Newton" ) ? 1e-8 : -Inf
+    ε₁ = ( method == "Newton" ) ? 1 : -Inf
 
     # Iterate until convergence
 
@@ -114,7 +113,7 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
 
         # Compute the inverse demand
         if (method == "Newton") && (err < ε₁)
-            δ₁ = δ₀ + (Δ) * (log.(S) - log.(σ))
+            δ₁ = δ₀ + inv(Δ) * (log.(S) - log.(σ))
         else
             δ₁ = δ₀ + log.(S) - log.(σ)
         end
