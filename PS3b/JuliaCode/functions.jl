@@ -127,16 +127,16 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
         
         # Update the iteration counter
         iter = iter + 1
-        # if iter % 1000 == 0
-        #     println("Iteration = $iter, Method = $method_flag , error = $err, tolerance = $ε, error > tolerance = $(err > ε), θ = $θ")     
-        # end
+        if iter % 1000 == 0
+            println("Iteration = $iter, Method = $method_flag , error = $err, tolerance = $ε, error > tolerance = $(err > ε), θ = $θ")     
+        end
 
         # # Update θ
         # θ = 7000 * ((12 - log10(1 / err))/2)
 
     end
     # println("Iteration = $iter, Method = $method_flag, error = $err, tolerance = $ε, error > tolerance = $(err > ε), θ = $θ")     
-
+    market_id_col = model.market_id
     model.inv_dem_est[model.inv_dem_est[!, market_id_col] .== market, :δ] .= δ₁[:, 1]
 
     return err_list
