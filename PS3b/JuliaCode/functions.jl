@@ -58,14 +58,15 @@ mutable struct Model
     parameters      ::Primitives                # Parameters of the model
 
     # Data
-    # Unstacked data
     market_id       :: Any                      # Market id column
     product_id      :: Any                      # Product id column
     X               :: Array{Float64, 2}        # Matrix of covariates
     Z               :: Array{Float64, 2}        # Matrix of instruments
     Y               :: Array{Float64, 2}        # Matrix of simulated data
     inv_dem_est     :: DataFrame                # DataFrame of for demand estimation
-    # 
+    
+    # GMM estimation
+    ρ               :: Array{Float64}           # GMM Residuals
 end
 
 
@@ -126,21 +127,20 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
         
         # Update the iteration counter
         iter = iter + 1
-        if iter % 1000 == 0
-            println("Iteration = $iter, Method = $method_flag , error = $err, tolerance = $ε, error > tolerance = $(err > ε), θ = $θ")     
-        end
+        # if iter % 1000 == 0
+        #     println("Iteration = $iter, Method = $method_flag , error = $err, tolerance = $ε, error > tolerance = $(err > ε), θ = $θ")     
+        # end
 
         # # Update θ
         # θ = 7000 * ((12 - log10(1 / err))/2)
 
     end
-    println("Iteration = $iter, Method = $method_flag, error = $err, tolerance = $ε, error > tolerance = $(err > ε), θ = $θ")     
-    # Update the inverse demand in the model
-    # for j in 1:length(J)
-    #     model.δ[year][J[j]] = δ₁[j]
-    # end
-    println("Inverse demand = $δ₁")
+    # println("Iteration = $iter, Method = $method_flag, error = $err, tolerance = $ε, error > tolerance = $(err > ε), θ = $θ")     
+
+    model.inv_dem_est[model.inv_dem_est[!, market_id_col] .== market, :δ] .= δ₁[:, 1]
+
     return err_list
+
 end
 
 
