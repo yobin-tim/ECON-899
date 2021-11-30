@@ -73,4 +73,3 @@ model_specs = Dict( :ids         => indentifiers,
                     :covariates  => covariates_names,
                     :instruments => instruments_names,
                     :sim_data    => sim_data_names)
-                   

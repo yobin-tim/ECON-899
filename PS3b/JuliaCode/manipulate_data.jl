@@ -60,6 +60,8 @@ function construct_model(model_specs::Dict, car_data::DataFrame, instruments::Da
     
     inv_dem_est[:, :δ] = inv_dem
 
+    # Initialize GMM Residuals
+    gmm_residuals = zeros(size(car_data)[1])
     
-    return  Model(parameters, market_id, product_id, X, Z, Y, inv_dem_est)
+    return  Model(parameters, market_id, product_id, X, Z, Y, inv_dem_est, gmm_residuals)
 end

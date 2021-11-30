@@ -15,7 +15,7 @@ function choice_probability(δ::Array{Float64}, μ::Array{Float64}; eval_jacobia
 
     if eval_jacobian
         # Compute Jacobian
-        Δ = 1/R * ((I(r) .* (σ * (1 .- σ)')) - ((1 .- I(r)) .* (σ * σ'))) 
+        Δ = 1/R * ((I(r) .* (σ * (1 .- σ)')) - ((1 .- I(r)) .* (σ * σ'))) ./ σ 
         return σ, Δ
     else
         return σ, nothing 
@@ -31,17 +31,17 @@ function segment_data(model, market)
 
     # Filter data by market
     data = model.inv_dem_est[model.inv_dem_est[!, market_id_col] .== market, :]
-    
-     # Get the observed market shares
-     S = data.share
-     # Get the observed prices
-     P = data.price
-     # Get the income levels
-     Y = model.Y
-     # Get the inital guess for the inverse demand
-     δ = data.δ
 
-     return S, P, Y, δ
+    # Get the observed market shares
+    S = data.share
+    # Get the observed prices
+    P = data.price
+    # Get the income levels
+    Y = model.Y
+    # Get the inital guess for the inverse demand
+    δ = data.δ
+    
+    return S, P, Y, δ
 end
 
 # Model Structures
@@ -78,7 +78,7 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
     valid_methods = ["Newton", "Contraction Mapping"]
     @assert (method ∈ valid_methods)
 
-   # Get the data
+    # Get the data
     S, P, Y, δ = segment_data(model, market)
 
     # Compute the matrix μ[i,j] = λₚ * Y[i] * P[j]

@@ -8,6 +8,7 @@ using StatFiles, DataFrames
 # Indlude the functions
 include("./functions.jl")
 include("./manipulate_data.jl")
+include("aux_vars.jl")
 
 car_data, instruments, income = load_data("./PS3b/data/")
 
@@ -15,48 +16,42 @@ car_data, instruments, income = load_data("./PS3b/data/")
 parameters = [0.6]
 
 # Model
-model = construct_model(car_data, instruments, income, parameters)
+model = construct_model(model_specs, car_data, instruments, income)
 
-# Get the product indexes
-J = model.J[year]
-# Get the observed market shares
-S = [model.S[year][j] for j in J]
-# Get the observed prices
-P = [model.P[year][j] for j in J]
-# Get the income levels
-Y = model.Y
-# Get the inital guess for the inverse demand
-δ = [model.δ[year][j] for j in J]
+market, λₚ = 1985, 0.6
+
+
+S, P, Y, δ = segment_data(model, market)
 
 # Compute the matrix μ[i,j] = λₚ * Y[i] * P[j]
-μ = repeat(Y', length(J), 1) .* P
-r,R = size(μ) 
+μ = λₚ * repeat(Y', length(S), 1) .* P
 
-δ = inverse_demand_cm(δ, S, μ, 1)
-δ = inverse_demand_nm(δ, S, μ, 0.000001)
+δ₀ = copy( δ )
+δ₁ = copy( δ )
 
+err, iter,err_list = 100, 0, []
+while (err > 1) && (iter < 500)
+    σ, Δ = choice_probability(δ₀, μ, eval_jacobian=false)
 
+    δ₁ = δ₀ + log.(S) - log.(σ)
 
-σ, Δ  = choice_probability(δ, μ; eval_jacobian=true)
+    # Update the error
+    err = maximum( abs.(δ₁ - δ₀) )
+    push!(err_list, err)
+    # Update the inverse demand
+    δ₀ = copy(δ₁)
+    
+    # Update the iteration counter
+    iter = iter + 1
 
-Δ
-1/R * ((I(r) .* (σ * (1 .- σ)'))./ σ- ((1 .- I(r)) .* (σ * σ'))./ σ)
+end
 
-inv(Δ)
+σ, Δ = choice_probability(δ₀, μ, eval_jacobian=true)
 
-δ₁ = δ - inv(Δ) * (log.(S) - log.(σ))
+δ₁ = δ₀ +  inv(Δ) * (log.(S) - log.(σ))
 
-err = maximum( abs.(δ₁ - δ) ) 
-
-δ = copy(δ₁)
-
-for i in 1:length(δ)
-    println(abs.(δ₁[i] - δ[i]))
-end 
-# Not working yet
-# inverse_demand(model, 1985; method = "Newton")
-
-inverse_demand(model, 2005, method = "Newton")
-
-model.δ[1985]
-
+# Update the error
+err = maximum( abs.(δ₁ - δ₀) )
+push!(err_list, err)
+# Update the inverse demand
+δ₀ = copy(δ₁)
