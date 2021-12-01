@@ -4,7 +4,7 @@ using LinearAlgebra, Parameters
 # Auxiliary functions
 # Choice probability function
 function choice_probability(δ::Array{Float64}, μ::Array{Float64}; eval_jacobian::Bool = false)
-    
+
     # number of individuals and choicesm
     r, R = size(μ);
 
@@ -15,10 +15,10 @@ function choice_probability(δ::Array{Float64}, μ::Array{Float64}; eval_jacobia
 
     if eval_jacobian
         # Compute Jacobian
-        Δ = 1/R * ((I(r) .* (σ * (1 .- σ)')) - ((1 .- I(r)) .* (σ * σ'))) ./ σ 
+        Δ = 1/R * ((I(r) .* (σ * (1 .- σ)')) - ((1 .- I(r)) .* (σ * σ'))) ./ σ
         return σ, Δ
     else
-        return σ, nothing 
+        return σ, nothing
     end
 
 end
@@ -40,7 +40,7 @@ function segment_data(model, market)
     Y = model.Y
     # Get the inital guess for the inverse demand
     δ = data.δ
-    
+
     return S, P, Y, δ
 end
 
@@ -52,7 +52,7 @@ end
 
 
 # Model
-mutable struct Model 
+mutable struct Model
     # Parameters
     parameters      ::Primitives                # Parameters of the model
 
@@ -63,7 +63,7 @@ mutable struct Model
     Z               :: Array{Float64, 2}        # Matrix of instruments
     Y               :: Array{Float64, 2}        # Matrix of simulated data
     inv_dem_est     :: DataFrame                # DataFrame of for demand estimation
-    
+
     # GMM estimation
     ρ               :: Array{Float64}           # GMM Residuals
 end
@@ -84,7 +84,7 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
     μ = λₚ * repeat(Y', length(S), 1) .* P
 
     # Compute the inverse demand
-    
+
     # Initial guess for the inverse demand
     δ₀ = copy( δ )
     δ₁ = copy( δ )
@@ -107,6 +107,9 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
         if (method == "Newton") && (err < ε₁)
             eval_jacobian = true
             method_flag = "Newton"
+        else # This will bring it back to contraction mapping if it diverges
+            eval_jacobian = false
+            method_flag = "Contraction Mapping"
         end
 
         σ, Δ = choice_probability(δ₀, μ, eval_jacobian=eval_jacobian)
@@ -117,25 +120,24 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
         else
             δ₁ = δ₀ + log.(S) - log.(σ)
         end
-        
+
         # Update the error
         err = maximum( abs.(δ₁ - δ₀) )
         push!(err_list, err)
         # Update the inverse demand
         δ₀ = copy(δ₁)
-        
+
         # Update the iteration counter
         iter = iter + 1
         if iter % 1000 == 0
-            println("Iteration = $iter, Method = $method_flag , error = $err, tolerance = $ε, error > tolerance = $(err > ε)")     
+            println("Iteration = $iter, Method = $method_flag , error = $err, tolerance = $ε, error > tolerance = $(err > ε)")
         end
 
     end
-    # println("Iteration = $iter, Method = $method_flag, error = $err, tolerance = $ε, error > tolerance = $(err > ε), θ = $θ")     
+    # println("Iteration = $iter, Method = $method_flag, error = $err, tolerance = $ε, error > tolerance = $(err > ε), θ = $θ")
     market_id_col = model.market_id
     model.inv_dem_est[model.inv_dem_est[!, market_id_col] .== market, :δ] .= δ₁[:, 1]
 
     return err_list
 
 end
-
