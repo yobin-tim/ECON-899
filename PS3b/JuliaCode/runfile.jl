@@ -8,9 +8,10 @@ using StatFiles, DataFrames
 # Indlude the functions
 include("./functions.jl")
 include("./manipulate_data.jl")
-include("aux_vars.jl")
+include("./aux_vars.jl")
 
 car_data, instruments, income = load_data("./PS3b/data/")
+car_data, instruments, income = load_data("../data/")
 
 # Parameters
 parameters = [0.6]
