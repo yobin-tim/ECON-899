@@ -79,4 +79,5 @@ p = plot([err_list[market][2:end] for market in markets], label="")
 scatter(err_list[2000][2:end])
 
 
+
 inverse_demand(model, λₚ, 1992)
