@@ -27,4 +27,3 @@ vDelta_iia = select(mPanelCharact, [:delta_iia]) |> Matrix
 vDelta0 = vDelta_iia
 
 vPrice = select(car_data, [:price]) |> Matrix
-
