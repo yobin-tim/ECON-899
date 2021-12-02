@@ -70,7 +70,7 @@ err = maximum( abs.(δ₁ - δ₀) )
 model = construct_model(model_specs, car_data, instruments, income)
 
 err_list = Dict()
-for market in markets[1:2]
+for market in markets
     err_list[market] = inverse_demand(model, λₚ, market)
 end
 err_list
