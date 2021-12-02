@@ -166,6 +166,7 @@ for i = 1:T
     aProductID[i] = mPanelCharact[(mPanelCharact.Year .== vYear[i]), :].index
 end
 ###################################################
+## Using 1985 as an example
 
 aProductID = mPanelCharact[(mPanelCharact.Year .== 1985.0), :].index
 
@@ -184,5 +185,11 @@ Sim = nrow(mEta)
 
 aZ = mZ[aProductID] .* mEta' # 149 × 100 for 1985
 
+vParam = 0.6
 
+## function: named value 
+mMu = zeros(size(aProductID,1), Sim)
 
+aMu = exp.(vParam * aZ)
+
+## function: named demand
