@@ -175,7 +175,7 @@ end
 function TwoStage_gmm(model)
     λhat = optimize(λ -> gmm(model, λ), .6,
                  method = BFGS(), f_tol = 1e-5, g_tol = 1e-5).minimizer
-    ξhat=gmm(model, λhat)
+    ξhat=gmm(model, λhat,Return_ρ=true)
     OptimalW=inv( (model.Z * ξhat)*(model.Z * ξhat)' )
     λhat_SecondStage=optimize(λ -> gmm(model, λ,SpecifyW=true,SpecifiedW=OptimalW),
                 λhat, method = BFGS(), f_tol = 1e-5, g_tol = 1e-5).minimizer

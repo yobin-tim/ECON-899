@@ -64,14 +64,14 @@ scatter(err_list[2000][2:end])
 
 
 
-inverse_demand(model, λₚ, 1992)
+#inverse_demand(model, λₚ, 1992)
 
 ###############################################################################
 ####                            Problem 2
 ###############################################################################
 l = 0:0.01:1
 data = gmm.(Ref(model), l)
-    plot(l, data,title="GMM Objective Function", xtitle=L"λ_{p}", legend=false)
+    plot(l, data,title="GMM Objective Function", xlabel=L"\lambda_{p}", legend=false)
     savefig("./PS3b/Document/Figures/Problem2.png")
 
 
