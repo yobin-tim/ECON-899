@@ -3,7 +3,7 @@
 ==#
 
 # Load the necessary packages
-using StatFiles, DataFrames
+using StatFiles, DataFrames, Plots
 
 # Indlude the functions
 include("./functions.jl")
@@ -39,7 +39,7 @@ function gmm(model, λ)
     β_iv = inv((X'Z)*W*(Z'X))*(X'Z)*W*(Z'δ)
 
     ρ = (δ - X*β_iv)
-    return ρ'Z*W*Z'*ρ 
+    return ρ'Z*W*Z'*ρ
 end
 
 l = 0:0.01:0.5
@@ -70,7 +70,7 @@ err = maximum( abs.(δ₁ - δ₀) )
 model = construct_model(model_specs, car_data, instruments, income)
 
 err_list = Dict()
-for market in markets
+for market in markets[1:2]
     err_list[market] = inverse_demand(model, λₚ, market)
 end
 err_list

@@ -72,7 +72,9 @@ end
 
 # Demand inverter
 function inverse_demand(model::Model, λₚ::Float64, market; method::String="Newton", max_iter = Inf)
-
+    print("\n")
+    print("Market: $(market)")
+    print("\n")
     # Check the method
     valid_methods = ["Newton", "Contraction Mapping"]
     @assert (method ∈ valid_methods)
@@ -116,7 +118,9 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
 
         # Compute the inverse demand
         if (method == "Newton") && (err < ε₁)
-            δ₁ = δ₀ + inv(Δ) * (log.(S) - log.(σ))
+            #I added the ./S after talking with Michael Nattinger
+            #It also lines up with JF's ox code in blp_func_ps.ox
+            δ₁ = δ₀ + inv(Δ./S) * (log.(S) - log.(σ))
         else
             δ₁ = δ₀ + log.(S) - log.(σ)
         end
