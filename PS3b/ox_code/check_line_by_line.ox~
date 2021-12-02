@@ -68,7 +68,7 @@ main()
   println(Sim);
   println("distribution of eta: ",meanc(mEta)~sqrt(varc(mEta))~quantilec(mEta,<0,1/4,1/2,3/4,1>)');
 
-  println(columns(mZ));
+  println(columns(mZ))
   /* Pre-compute interaction between price and random-coefficient */
   /* Two dimenional arrays of JxSim matrices: T x Nb of variables */
   aZ=new array[T];
