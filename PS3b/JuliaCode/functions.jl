@@ -1,5 +1,5 @@
 # Load packages
-using LinearAlgebra, Parameters
+using LinearAlgebra, Parameters, Optim
 
 # Auxiliary functions
 # Choice probability function
