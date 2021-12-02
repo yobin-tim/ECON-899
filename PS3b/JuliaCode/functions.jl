@@ -145,3 +145,39 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
     return err_list
 
 end
+
+
+function gmm(model, λ; Return_ρ::Bool=false,SpecifyW::Bool=false,
+        SpecifiedW::Array{Float64, 2}=zeros(2,2))
+    for  market in markets
+        inverse_demand(model, λ, market; method = "Contraction Mapping")
+    end
+
+    # Iv regression
+    X = model.X
+    Z = model.Z
+    W = inv(Z'Z)
+    if SpecifyW
+        W=SpecifiedW
+    end
+    δ = model.inv_dem_est.δ
+    β_iv = inv((X'Z)*W*(Z'X))*(X'Z)*W*(Z'δ)
+
+    ρ = (δ - X*β_iv)
+    if ~Return_ρ
+        return ρ'Z*W*Z'*ρ
+    else
+        return ρ
+    end
+end
+
+
+function TwoStage_gmm(model)
+    λhat = optimize(λ -> gmm(model, λ), .6,
+                 method = BFGS(), f_tol = 1e-5, g_tol = 1e-5).minimizer
+    ξhat=gmm(model, λhat)
+    OptimalW=inv( (model.Z * ξhat)*(model.Z * ξhat)' )
+    λhat_SecondStage=optimize(λ -> gmm(model, λ,SpecifyW=true,SpecifiedW=OptimalW),
+                λhat, method = BFGS(), f_tol = 1e-5, g_tol = 1e-5).minimizer
+    return λhat_SecondStage
+end

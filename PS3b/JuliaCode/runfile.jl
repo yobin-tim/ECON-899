@@ -3,7 +3,7 @@
 ==#
 
 # Load the necessary packages
-using StatFiles, DataFrames, Plots
+using StatFiles, DataFrames, Plots, LaTeXStrings
 
 # Indlude the functions
 include("./functions.jl")
@@ -21,51 +21,35 @@ model = construct_model(model_specs, car_data, instruments, income)
 
 market, λₚ = 1985, 0.6
 
-# Testing the GMM part
-
 markets = unique(model.inv_dem_est[!, model.market_id])
 
+# Testing the GMM part
+    l = 0:0.01:0.5
+    data = gmm.(Ref(model), l)
 
-function gmm(model, λ)
-    for  market in markets
-        inverse_demand(model, λ, market; method = "Contraction Mapping")
-    end
+    plot(l, data)
 
-    # Iv regression
-    X = model.X
-    Z = model.Z
-    W = inv(Z'Z)
-    δ = model.inv_dem_est.δ
-    β_iv = inv((X'Z)*W*(Z'X))*(X'Z)*W*(Z'δ)
+    model = construct_model(model_specs, car_data, instruments, income)
 
-    ρ = (δ - X*β_iv)
-    return ρ'Z*W*Z'*ρ
-end
+    inverse_demand(model, λₚ, market; method = "Contraction Mapping", max_iter = 100)
 
-l = 0:0.01:0.5
-data = gmm.(Ref(model), l)
+    S, P, Y, δ = segment_data(model, market)
 
-plot(l, data)
+    μ = λₚ * repeat(Y', length(S), 1) .* P
 
-model = construct_model(model_specs, car_data, instruments, income)
+    δ₀ = copy( δ )
+    δ₁ = copy( δ )
 
-inverse_demand(model, λₚ, market; method = "Contraction Mapping", max_iter = 100)
+    σ, Δ = choice_probability(δ₀, μ, eval_jacobian=true)
 
-S, P, Y, δ = segment_data(model, market)
+    δ₁ = δ₀ + inv(Δ) * (log.(σ) - log.(S))
 
-μ = λₚ * repeat(Y', length(S), 1) .* P
+    err = maximum( abs.(δ₁ - δ₀) )
 
-δ₀ = copy( δ )
-δ₁ = copy( δ )
+    δ₀ = copy(δ₁)
 
-σ, Δ = choice_probability(δ₀, μ, eval_jacobian=true)
-
-δ₁ = δ₀ + inv(Δ) * (log.(σ) - log.(S))
-
-err = maximum( abs.(δ₁ - δ₀) )
-
-δ₀ = copy(δ₁)
-
+###############################################################################
+####                            Problem 1
 ###############################################################################
 model = construct_model(model_specs, car_data, instruments, income)
 
@@ -81,3 +65,17 @@ scatter(err_list[2000][2:end])
 
 
 inverse_demand(model, λₚ, 1992)
+
+###############################################################################
+####                            Problem 2
+###############################################################################
+l = 0:0.01:1
+data = gmm.(Ref(model), l)
+    plot(l, data,title="GMM Objective Function", xtitle=L"λ_{p}", legend=false)
+    savefig("./PS3b/Document/Figures/Problem2.png")
+
+
+###############################################################################
+####                            Problem 3
+###############################################################################
+    λhat_GMM=TwoStage_gmm(model)
