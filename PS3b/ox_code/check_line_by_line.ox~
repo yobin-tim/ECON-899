@@ -113,15 +113,15 @@ main()
   decl maxT=T;
   decl tmp;
   value(&mMu,vParam,0);    
-
+  rowid=aProductID[0];
   mJacobian=0;
 
-  demand(mMu,&vShat,&mJacobian,vDelta,0,vParam);
+  decl eV=exp(vDelta[rowid]).*mMu;
+  decl mS=eV./(1+sumc(eV))
 
-  println(vShat);
-  f=log(vShare[rowid])-log(vShat);	
-
-  println(f);
+  mD=diag(meanr(mS.*(1-mS)))-setdiagonal(mS*mS'/Sim,0);
+  
+  println(mD);
   
  }
   

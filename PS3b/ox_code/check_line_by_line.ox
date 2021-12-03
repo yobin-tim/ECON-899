@@ -116,11 +116,13 @@ main()
   rowid=aProductID[0];
   mJacobian=0;
 
-  demand(mMu,&vShat,&mJacobian,vDelta,0,vParam);
+  decl mD;
+  decl eV=exp(vDelta[rowid]).*mMu;
+  decl mS=eV./(1+sumc(eV));
 
-  f=log(vShare[rowid])-log(vShat);	
-
-  println(f);
+  mD=diag(meanr(mS.*(1-mS)))-setdiagonal(mS*mS'/Sim,0);
+  
+  println(mD);
   
  }
   

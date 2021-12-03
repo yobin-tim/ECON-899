@@ -171,8 +171,6 @@ end
 aProductID = mPanelCharact[(mPanelCharact.Year .== 1985.0), :].index
 
 
-
-
 #/***************************************************************************************/
 # /* Random coefficients */
 #/***************************************************************************************/
@@ -191,17 +189,31 @@ vParam = 0.6
 mMu = zeros(size(aProductID,1), Sim)
 
 mMu = exp.(vParam * aZ)
-
-## function: named demand
+ 
 vDelta = vDelta_iia
 
-rowid = aProductID
-eV = exp.(vDelta0[aProductID]) .* mMu
-sum(eV, dims = 1)
-tmp = (1 .+ sum(eV, dims = 1))
-mS = eV./ tmp
-vShat = mean(mS, dims = 2)
+## TODO: for loop (should adjust return)
+## I certify that the function yields the same value as OX. 
 
-f = log.(vShare[rowid])-log.(vShat)
+function demand(mMu, aJac)
+    
+    rowid = aProductID
+    
+    eV = exp.(vDelta[rowid]) .* mMu
 
-tmp = vDelta[rowid]+f
+    tmp = (1 .+ sum(eV, dims = 1))
+
+    mS = eV./ tmp
+
+    vShat = mean(mS, dims = 2)
+
+    if (aJac == 1)
+        mD = diagm(0 => vec(mean(mS .* (1 .- mS), dims = 2))) -
+            mS*mS'/Sim -diagm(0 => diag(mS*mS'/Sim)) 
+    end        
+
+    return vShat, mD
+    
+end
+
+vDelta[rowid]= vDelta[rowid]+f
