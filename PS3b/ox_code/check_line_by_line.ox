@@ -96,15 +96,31 @@ main()
   
   /* 2SLS weighting matrix */
   A=invert(mIV'mIV);  
-
-  println("/* Plot the iteration process */");
   /* Inversion algorithm */
   iprint=1;
   vParam[0]=0.6;
   /* Contraction mapping */
+ 
+  decl vShat,vDelta=vDelta0;
+  decl f=1000;
+  decl mJacobian=1;
+  decl rowid,t;
+  decl it,maxit=1000;
+  decl vIT=new matrix[T][1];
+  decl mMu;
+  decl time0=timer();
+  decl mNorm=<>;
+  decl maxT=T;
+  decl tmp;
+  value(&mMu,vParam,0);    
+  rowid=aProductID[0];
+  mJacobian=0;
 
-  demand(mMu,&vShat,&mJacobian,vDelta,t,vP);
+  demand(mMu,&vShat,&mJacobian,vDelta,0,vParam);
+
+  f=log(vShare[rowid])-log(vShat);	
+
+  println(f);
   
-  inverse(&vDelta0, vParam,0,10^(-12));
-}
+ }
   

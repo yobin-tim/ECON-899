@@ -179,7 +179,7 @@ aProductID = mPanelCharact[(mPanelCharact.Year .== 1985.0), :].index
 
 mEta = DataFrame(StatFiles.load("../data/Simulated_type_distribution.dta")) |> Matrix
 
-Sim = nrow(mEta)
+Sim = size(mEta,1)
 
 ## TODO:different size of matrix
 
@@ -190,6 +190,18 @@ vParam = 0.6
 ## function: named value 
 mMu = zeros(size(aProductID,1), Sim)
 
-aMu = exp.(vParam * aZ)
+mMu = exp.(vParam * aZ)
 
 ## function: named demand
+vDelta = vDelta_iia
+
+rowid = aProductID
+eV = exp.(vDelta0[aProductID]) .* mMu
+sum(eV, dims = 1)
+tmp = (1 .+ sum(eV, dims = 1))
+mS = eV./ tmp
+vShat = mean(mS, dims = 2)
+
+f = log.(vShare[rowid])-log.(vShat)
+
+tmp = vDelta[rowid]+f
