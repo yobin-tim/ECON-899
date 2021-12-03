@@ -45,7 +45,7 @@ function GetMoments(ρ, σ, T, H)
     m = [m1, m2, m3]
 
     return m
-
+        
 end
 
 
@@ -178,16 +178,14 @@ function GraphAndFindbHat(W,prim,res,FindM,Exercise; NeweyWest=false,Graph=true)
     bHat=Solution.minimizer
     if Graph
     # println("The minimizer is ", bHat)
+    plot(ρgrid,σgrid,Jgrid, st=:surface,
+        title=L"\hat{b}^{1}_{TH}=[%$(round(bHat[1],digits=4)) , %$(round(bHat[2],digits=4)) ]", xlabel = "ρ",
+        ylabel = "σ", zlabel ="J")
     if NeweyWest
-        plot(ρgrid,σgrid,Jgrid, st=:surface,
-            title=L"\hat{b}^{2}_{TH}=[%$(round(bHat[1],digits=4)) , %$(round(bHat[2],digits=4)) ]", xlabel = "ρ",
-            ylabel = "σ", zlabel ="J")
         # savefig("PS7\\Figures\\Exercise$(Exercise)NeweyWestCorrection.png")
         savefig("PS7/Figures/Exercise$(Exercise)NeweyWestCorrection.png")
+
     else
-        plot(ρgrid,σgrid,Jgrid, st=:surface,
-            title=L"\hat{b}^{1}_{TH}=[%$(round(bHat[1],digits=4)) , %$(round(bHat[2],digits=4)) ]", xlabel = "ρ",
-            ylabel = "σ", zlabel ="J")
         # savefig("PS7\\Figures\\Exercise$(Exercise).png")
         savefig("PS7/Figures/Exercise$(Exercise).png")
     end

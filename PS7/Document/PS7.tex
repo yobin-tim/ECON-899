@@ -29,7 +29,7 @@
 \allowdisplaybreaks
 \usepackage[margin=1in]{geometry}
 \pagestyle{fancy}
-
+\usepackage{jlcode}
 
 \lhead{Due: \displaydate{duedate}}
 \chead{ECON 899 -- Problem Set 7 (SMM)}
@@ -94,10 +94,87 @@
 		$ M_T (x) $.
 		
 		\item Set H = 10 and simulate H vectors of length T = 200 random variables $ e_t $ from $ N(0, 1) $. We will use this to compute $ M_{TH}(y(b)) $. Store these vectors. You will use the same vector of random variables throughout the entire exercise. Since this exercise requires you to estimate $ \sigma^2 $, you want to change the variance of $ e_t $ during the estimation. You can simply use $ \sigma_{e_t} $ when the variance is $ \sigma^2 $.
-		
-		\item 
-		
+		\item We will start by estimating the$l = 2$ vector $b$ for the just identified case where $m_{2}$ uses mean and variance. Given what you found in part (1), do you think there will be a problem? Of course, in general we would not know whether this case would be a problem, so hopefully the standard error of the estimate of $b$ as well as the $J$ test will tell us something. Let’s see.
+		\begin{solution}
+		The code for completing this question, as well as the other questions for this problem set, is included in the appendix. From the results of part (1), we know that the mean will be uninformative about the true parameter values, and so in this case only the variance will be useful in identifying the parameter values. One problem that we notice here and elsewhere is that occasionally the random draws selected by the code will produce issues like negative values for variance. \textbf{COME BACK TO THIS AND DOUBLE CHECK} In this problem and for the remainder of the problem set, then, we set specific random seed values to avoid this issue. These values are shown in the code.
+		\begin{enumerate}[label=(\alph*)]
+			\item $\hat{b}_{TH}^{1}=[0.7178,0.855]$. Figure \ref{4a} displays a graph of the objective function.
+			\begin{figure}[htbp] 
+				\centering
+				\includegraphics[scale=.5]{Figures/Exercise4.png}
+				\caption{Objective Function for Exercise 4 \label{4a}}
+			\end{figure}
+			\item $\hat{b}_{TH}^{2}=[0.7179,0.8549]$ after the Newey-West correction. Figure \ref{4b} displays a graph of the objective function.
+			\begin{figure}[htbp] 
+				\centering
+				\includegraphics[scale=.5]{Figures/Exercise4NeweyWestCorrection.png}
+				\caption{Opbjective Function for Exercise 4 with the Newey-West Correction \label{4b}}
+			\end{figure}
+			\item
+				\begin{equation*}
+					\nabla_{b} g_{T}(\hat{b}^{2}_{TH})=\begin{bmatrix}
+											0.22 & 0.06 \\
+											3.66 & 3.11
+											\end{bmatrix}
+				\end{equation*}
+				The variance-covariance matrix of $\hat{b}^{2}_{TH}$ is given by
+				\begin{equation*}
+											\begin{bmatrix}
+											0.01 & -4.07e-3 \\
+											-4.07e-3 & 0.01
+											\end{bmatrix}
+				\end{equation*}
+				The standard errors are given by
+				\begin{equation*}
+											\begin{bmatrix}
+											0.08 \\
+											0.11
+											\end{bmatrix}
+				\end{equation*}
+				For local identification, it is useful to have the elements of $\nabla_{b} g_{T}(\hat{b}^{2}_{TH})$ to be relatively large. This is because if the distance between the modeled moments and the data moments is changing rapidly around the optimal parameter choices, we can be more confident in the precision with which we've identified the local optimal parameter values.
+			\item The $J$-test value is $1.17e-6$.
+		\end{enumerate}
+		\end{solution}
 		\item Next we estimating the $ l = 2 $ vector $ b $ for the just identified case where $ m_2 $ uses the variance and autocorrelation. Given what you found in part (1), do you now think there will be a problem? If not, hopefully the standard error of the estimate of $ b $ as well as the J test will tell us something. Let’s see. For this case, perform steps (a)-(d) above.
+		\begin{solution}
+		Given our results from part (1), we know that the variance and first order correlation are both informative for estimating $b$. Therefore, we do not anticipate a major problem here.
+		\begin{enumerate}[label=(\alph*)]
+			\item $\hat{b}_{TH}^{1}=[0.4408,1.0751]$. Figure \ref{5a} displays a graph of the objective function.
+			\begin{figure}[htbp] 
+				\centering
+				\includegraphics[scale=.5]{Figures/Exercise5.png}
+				\caption{Objective Function for Exercise 5 \label{5a}}
+			\end{figure}
+			\item $\hat{b}_{TH}^{2}=[0.4409,1.075]$ after the Newey-West correction. Figure \ref{5b} displays a graph of the objective function.
+			\begin{figure}[htbp] 
+				\centering
+				\includegraphics[scale=.5]{Figures/Exercise5NeweyWestCorrection.png}
+				\caption{Opbjective Function for Exercise 5 with the Newey-West Correction \label{5b}}
+			\end{figure}
+			\item
+				\begin{equation*}
+					\nabla_{b} g_{T}(\hat{b}^{2}_{TH})=\begin{bmatrix}
+											1.44 & 2.78 \\
+											1.83 & 1.22
+											\end{bmatrix}
+				\end{equation*}
+				The variance-covariance matrix of $\hat{b}^{2}_{TH}$ is given by
+				\begin{equation*}
+											\begin{bmatrix}
+											7.43e-5 & -1.02e-3 \\
+											-1.02e-3 & 0.01
+											\end{bmatrix}
+				\end{equation*}
+				The standard errors are given by
+				\begin{equation*}
+											\begin{bmatrix}
+											0.01 \\
+											0.12
+											\end{bmatrix}
+				\end{equation*}
+				For local identification, it is useful to have the elements of $\nabla_{b} g_{T}(\hat{b}^{2}_{TH})$ to be relatively large. This is because if the distance between the modeled moments and the data moments is changing rapidly around the optimal parameter choices, we can be more confident in the precision with which we've identified the local optimal parameter values.
+		\end{enumerate}
+		\end{solution}
 		
 		\item Next, we will consider the overidentified case where m3 uses the mean, variance and autocorrelation. Let’s see. For this case, perform steps (a)-(d) above. Furthermore, bootstrap the the finite sample distribution of the estimators using the following algorithm:
 		\begin{enumerate}[i.]
@@ -107,4 +184,11 @@
 		\end{enumerate}
 	
 	\end{enumerate}
+
+	\section*{Appendix}
+ 	The first codefile named "RunCode.jl" runs the code.
+ 	\jlinputlisting{Code/RunCode.jl}
+	
+ 	The second codefile named "Code.jl" contains the relevant functions.
+ 	\jlinputlisting{Code/Code.jl}
 \end{document}
