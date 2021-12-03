@@ -72,9 +72,11 @@ end
 
 # Demand inverter
 function inverse_demand(model::Model, λₚ::Float64, market; method::String="Newton", max_iter = Inf)
-    print("\n")
-    print("Market: $(market)")
-    print("\n")
+    if method=="Newton" #Otherwise this prints too often when we do the contraction mapping
+        print("\n")
+        print("Market: $(market)")
+        print("\n")
+    end
     # Check the method
     valid_methods = ["Newton", "Contraction Mapping"]
     @assert (method ∈ valid_methods)
@@ -149,8 +151,9 @@ end
 
 function gmm(model, λ; Return_ρ::Bool=false,SpecifyW::Bool=false,
         SpecifiedW::Array{Float64, 2}=zeros(2,2))
+    markets = unique(model.inv_dem_est[!, model.market_id])
     for  market in markets
-        inverse_demand(model, λ, market; method = "Contraction Mapping")
+        inverse_demand(model, λ, market, method = "Contraction Mapping")
     end
 
     # Iv regression
@@ -173,11 +176,11 @@ end
 
 
 function TwoStage_gmm(model)
-    λhat = optimize(λ -> gmm(model, λ), .6,
+    λhat = optimize(λ -> gmm(model, λ[1]), [.6],
                  method = BFGS(), f_tol = 1e-5, g_tol = 1e-5).minimizer
-    ξhat=gmm(model, λhat,Return_ρ=true)
-    OptimalW=inv( (model.Z * ξhat)*(model.Z * ξhat)' )
-    λhat_SecondStage=optimize(λ -> gmm(model, λ,SpecifyW=true,SpecifiedW=OptimalW),
-                λhat, method = BFGS(), f_tol = 1e-5, g_tol = 1e-5).minimizer
+    ξhat=gmm(model, λhat[1],Return_ρ=true)
+    OptimalW=inv( (model.Z * ξhat)*transpose(model.Z * ξhat) )
+    λhat_SecondStage=optimize(λ -> gmm(model, λ[1],SpecifyW=true,SpecifiedW=OptimalW),
+                [λhat], method = BFGS(), f_tol = 1e-5, g_tol = 1e-5).minimizer
     return λhat_SecondStage
 end

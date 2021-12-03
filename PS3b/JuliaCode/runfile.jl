@@ -21,8 +21,6 @@ model = construct_model(model_specs, car_data, instruments, income)
 
 market, λₚ = 1985, 0.6
 
-markets = unique(model.inv_dem_est[!, model.market_id])
-
 # Testing the GMM part
     l = 0:0.01:0.5
     data = gmm.(Ref(model), l)
