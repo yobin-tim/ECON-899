@@ -15,13 +15,13 @@ end # Primitives
 @with_kw mutable struct  Results
     bHat1TH       ::Array{Float64} = [0,0]
     bHat2TH       ::Array{Float64} = [0,0]
-    b_dist        ::Array{Float64} = zeros(5000,2)
+    b_dist        ::Array{Float64} = zeros(5000,2,2) #Iteration, bhat1 or 2, then each parameter
     e             ::Array{Float64}
     JTest         ::Float64        =100
     td            ::Array{Float64} = [0, 0] #The true data
 end # Primitives
 
-
+#=
 function GetMoments(ρ, σ, T, H)
 
     Random.seed!(100)
@@ -45,9 +45,9 @@ function GetMoments(ρ, σ, T, H)
     m = [m1, m2, m3]
 
     return m
-        
-end
 
+end
+=#
 
 
 function TrueData(prim)
@@ -178,14 +178,16 @@ function GraphAndFindbHat(W,prim,res,FindM,Exercise; NeweyWest=false,Graph=true)
     bHat=Solution.minimizer
     if Graph
     # println("The minimizer is ", bHat)
-    plot(ρgrid,σgrid,Jgrid, st=:surface,
-        title=L"\hat{b}^{1}_{TH}=[%$(round(bHat[1],digits=4)) , %$(round(bHat[2],digits=4)) ]", xlabel = "ρ",
-        ylabel = "σ", zlabel ="J")
     if NeweyWest
+        plot(ρgrid,σgrid,Jgrid, st=:surface,
+            title=L"\hat{b}^{2}_{TH}=[%$(round(bHat[1],digits=4)) , %$(round(bHat[2],digits=4)) ]", xlabel = "ρ",
+            ylabel = "σ", zlabel ="J")
         # savefig("PS7\\Figures\\Exercise$(Exercise)NeweyWestCorrection.png")
         savefig("PS7/Figures/Exercise$(Exercise)NeweyWestCorrection.png")
-
     else
+        plot(ρgrid,σgrid,Jgrid, st=:surface,
+            title=L"\hat{b}^{1}_{TH}=[%$(round(bHat[1],digits=4)) , %$(round(bHat[2],digits=4)) ]", xlabel = "ρ",
+            ylabel = "σ", zlabel ="J")
         # savefig("PS7\\Figures\\Exercise$(Exercise).png")
         savefig("PS7/Figures/Exercise$(Exercise).png")
     end
@@ -292,33 +294,54 @@ ________________________________________________________________________________
                 println("\n The J-Test is $(res.JTest)")
         #Bootstrapping for Exercise 6
         if Exercise==6
+            println("\n\n Beginning Bootstrapping")
             @unpack ρgrid,σgrid,gpoints=prim
-            Density=zeros(gpoints,gpoints)
+            Density=zeros(2,gpoints,gpoints)
+            FailedDraws=0
             for iter=1:size(res.b_dist,1)
                 res=Results(e=eDrawsForModel(prim,URS=true))
                 res.td=TrueData(prim)
-                res.b_dist[iter,:]=GraphAndFindbHat(I,prim,res,FindM,Exercise, Graph=false)
-
-                if res.b_dist[iter,1]<= ρgrid[1] || res.b_dist[iter,1]>= ρgrid[gpoints] ||
-                        res.b_dist[iter,2]>= σgrid[gpoints] || res.b_dist[iter,2]<= σgrid[1]
-                        #Out of range, do nothing
-                else
-                    for ρi=1:gpoints,σi=1:gpoints
-                        if (ρgrid[ρi+1]>=res.b_dist[iter,1]>=ρgrid[ρi] && σgrid[σi+1]>=res.b_dist[iter,2]>=σgrid[σi])
-                            Density[ρi,σi]+=1
-                            break
+                #bHat1TH
+                    res.b_dist[iter,1,:]=GraphAndFindbHat(I,prim,res,FindM,Exercise, Graph=false)
+                #bHat2TH
+                    md_bHat1TH=ModelData(prim,res.e, res.b_dist[iter,1,:])
+                    try
+                        WStar=NeweyWest(prim,ModelData(prim,res.e, md_bHat1TH),
+                                m, FindM(md_bHat1TH))
+                        res.b_dist[iter,2,:]=GraphAndFindbHat(WStar,prim,res,FindM,Exercise,
+                            NeweyWest=true, Graph=false)
+                    catch
+                        res.b_dist[iter,2,:]=[-Inf, -Inf]
+                        FailedDraws+=1
+                    end
+                for b_type=1:2
+                    if res.b_dist[iter,b_type,1]<= ρgrid[1] ||
+                        res.b_dist[iter,b_type,1]>= ρgrid[gpoints] ||
+                            res.b_dist[iter,b_type,2]>= σgrid[gpoints] ||
+                            res.b_dist[iter,b_type,2]<= σgrid[1]
+                            #Out of range, do nothing
+                    else
+                        for ρi=1:gpoints,σi=1:gpoints
+                            if (ρgrid[ρi+1]>=res.b_dist[iter,b_type,1]>=ρgrid[ρi] &&
+                                σgrid[σi+1]>=res.b_dist[iter,b_type,2]>=σgrid[σi])
+                                Density[b_type,ρi,σi]+=1
+                                break
+                            end
                         end
                     end
                 end
                 if iter % 250 ==0
-                    print("\n Iteration $(iter) of Bootstrapping")
+                    print("\n Iteration $(iter) of Bootstrapping. Cumulative failed draws=$(FailedDraws)")
                 end
             end #End bootstrapping with iter
-            Density=Density./size(res.b_dist,1)
-            plot(ρgrid,σgrid,Density, st=:surface,
-                title="Bootstrapping Density of Parameter Estimates", xlabel = "ρ",
-                ylabel = "σ", zlabel ="Frequency")
-            savefig("PS7/Figures/Exercise$(Exercise)Bootstrapping.png")
+            Density[1,:,:]=Density[1,:,:]./size(res.b_dist,1) #Divide by the number of iterations
+            Density[2,:,:]=Density[2,:,:]./(size(res.b_dist,1)-FailedDraws)
+            for b_type=1:2
+                plot(ρgrid,σgrid,Density[b_type,:,:], st=:surface,
+                    title=L"\hat{b}^{%$(b_type)}_{TH}", xlabel = "ρ",
+                    ylabel = "σ", zlabel ="Frequency")
+                savefig("PS7/Figures/Exercise$(Exercise)Bootstrapping$(b_type).png")
+            end
         end
     end #Exercise Loop
 end #End Function StepsAThroughD
