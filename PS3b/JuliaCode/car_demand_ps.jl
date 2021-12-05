@@ -2,12 +2,11 @@
 ## convert from ox to julia
 #########################################################################################
 
-using StatFiles, DataFrames, Statistics, LinearAlgebra
+using StatFiles, DataFrames, Statistics, LinearAlgebra, Plots
 
 #***************************************************************************************/
 #* Main dataset + Panel structure */
 #***************************************************************************************/
-
 mPanelCharact = DataFrame(StatFiles.load("../data/Car_demand_characteristics_spec1.dta"))
 
 n = nrow(mPanelCharact) # 6103
@@ -160,16 +159,12 @@ index = rownumber.(eachrow(mPanelCharact))
 
 insertcols!(mPanelCharact, :index => index)
 
-## TODO: save different length of vector in array##
-aProductID = []
+#ref: https://stackoverflow.com/questions/56366632/julia-array-with-different-sized-vectors
+aProductID = Array{Any}(undef,31);
+
 for i = 1:T
     aProductID[i] = mPanelCharact[(mPanelCharact.Year .== vYear[i]), :].index
 end
-###################################################
-## Using 1985 as an example
-
-aProductID = mPanelCharact[(mPanelCharact.Year .== 1985.0), :].index
-
 
 #/***************************************************************************************/
 # /* Random coefficients */
@@ -177,28 +172,24 @@ aProductID = mPanelCharact[(mPanelCharact.Year .== 1985.0), :].index
 
 mEta = DataFrame(StatFiles.load("../data/Simulated_type_distribution.dta")) |> Matrix
 
-Sim = size(mEta,1)
-
-## TODO:different size of matrix
-
-aZ = mZ[aProductID] .* mEta' # 149 × 100 for 1985
-
 vParam = 0.6
 
-## function: named value 
-mMu = zeros(size(aProductID,1), Sim)
+function value(vParam, t)
 
-mMu = exp.(vParam * aZ)
- 
-vDelta = vDelta_iia
+    aZ = mZ[aProductID[t]] .* mEta' 
 
-## TODO: for loop (should adjust return)
-## I certify that the function yields the same value as OX. 
+    aMu = zeros(size(aProductID[t],1), 100)
 
-function demand(mMu, aJac)
-    
-    rowid = aProductID
-    
+    aMu = exp.(vParam * aZ)
+
+    return aMu
+
+end
+
+function demand(mMu, aJac, vDelta, t)
+
+    rowid = aProductID[t]
+
     eV = exp.(vDelta[rowid]) .* mMu
 
     tmp = (1 .+ sum(eV, dims = 1))
@@ -207,13 +198,140 @@ function demand(mMu, aJac)
 
     vShat = mean(mS, dims = 2)
 
-    if (aJac == 1)
+    if aJac == 1
+        
         mD = diagm(0 => vec(mean(mS .* (1 .- mS), dims = 2))) -
-            mS*mS'/Sim -diagm(0 => diag(mS*mS'/Sim)) 
+            mS*mS'/Sim -diagm(0 => diag(mS*mS'/Sim))
+
+    else
+
+        mD = 0
+
     end        
 
     return vShat, mD
     
 end
 
-vDelta[rowid]= vDelta[rowid]+f
+## Q1-1: Contraction mapping
+
+t = 1
+
+vDelta = vDelta_iia
+
+aJac = 0
+
+eps0 = 1e-12
+
+err_list = []
+
+err = 100
+
+iter = 0
+
+while err > eps0
+    
+    tmp = demand(mMu, aJac, vDelta, t)
+
+    vShat = tmp[1];
+
+    f = log.(vShare[rowid]) - log.(vShat);
+
+    vDelta[rowid]= vDelta[rowid]+f;
+
+    err = norm(f)
+    
+    push!(err_list, err)
+
+    iter += 1
+
+end
+
+x = 1:iter;
+
+plot(x, err_list,
+     title = "Contraction Mapping",
+     xlabel = "Iteration",
+     ylabel = "Norm",
+     color =:black,
+     legend = false,
+     lw = 2)
+
+savefig("../Document/Figures/Q1_contraction.pdf")
+
+
+## Q1-2 Combination of contraction mapping and Newton
+vDelta = vDelta_iia
+
+function inverse(aDelta, vParam)
+
+    for t = 1:T
+        
+        mMu = value(vParam, t)
+
+        rowid = aProductID[t]
+
+        err_list = []
+
+        err = 100
+
+        iter = 0
+        
+        tmp = 0
+
+        while err > 10^(-12)
+
+            if err > 1
+                
+                tmp = demand(mMu, 0, vDelta, t)
+
+                vShat = tmp[1];
+
+                f = log.(vShare[rowid]) - log.(vShat);
+
+                vDelta[rowid] = vDelta[rowid]+f;
+
+            else
+                
+                tmp = demand(mMu, 1, vDelta, t)
+
+                vShat = tmp[1];
+                
+                mJacobian = tmp[2];
+
+                f = log.(vShare[rowid]) - log.(vShat);
+
+                vDelta[rowid] = vDelta[rowid]+inv(mJacobian./vShat)*f;
+
+            end
+
+            err = norm(f)
+            
+            push!(err_list, err)
+
+            iter += 1
+            
+            ## TODO: save vDelta properly
+         
+        end
+
+        println(t)
+
+    end
+
+end
+
+    
+x = 1:iter;
+
+plot(x, err_list,
+     title = "Contraction Mapping and Newton",
+     xlabel = "Iteration",
+     ylabel = "Norm",
+     color =:black,
+     legend = false,
+     lw = 2)
+
+savefig("../Document/Figures/Q1_combination.pdf")
+
+## Q2-Grid serch

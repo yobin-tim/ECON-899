@@ -116,8 +116,9 @@ main()
   rowid=aProductID[0];
   mJacobian=0;
 
+  decl mD;
   decl eV=exp(vDelta[rowid]).*mMu;
-  decl mS=eV./(1+sumc(eV))
+  decl mS=eV./(1+sumc(eV));
 
   mD=diag(meanr(mS.*(1-mS)))-setdiagonal(mS*mS'/Sim,0);
   

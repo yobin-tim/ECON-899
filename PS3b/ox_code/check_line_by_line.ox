@@ -120,7 +120,8 @@ main()
   decl eV=exp(vDelta[rowid]).*mMu;
   decl mS=eV./(1+sumc(eV));
 
-  mD=diag(meanr(mS.*(1-mS)))-setdiagonal(mS*mS'/Sim,0);
+  tmp = setdiagonal(mS*mS'/Sim,0)
+  mD=diag(meanr(mS.*(1-mS)))-
   
   println(mD);
   
