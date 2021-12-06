@@ -6,16 +6,16 @@ using LinearAlgebra, Parameters, Optim
 function choice_probability(δ::Array{Float64}, μ::Array{Float64}; eval_jacobian::Bool = false)
 
     # number of individuals and choicesm
-    r, R = size(μ);
+    J, R = size(μ);
 
     # Compute choice probabilities
     Λ = exp.( δ .+ μ  )
-    Λ = Λ./(1 .+ sum(Λ, dims=1))
+    Σ = Λ./(1 .+ sum(Λ, dims=1))
     σ = sum(Λ, dims=2)/R
 
     if eval_jacobian
         # Compute Jacobian
-        Δ = 1/R * ((I(r) .* (σ * (1 .- σ)')) - ((1 .- I(r)) .* (σ * σ'))) ./ σ
+        Δ = 1/R * ((I(J) .* (Σ * (1 .- Σ)')) - ((1 .- I(J)) .* (Σ * Σ'))) ./ Σ
         return σ, Δ
     else
         return σ, nothing
