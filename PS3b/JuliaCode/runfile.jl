@@ -11,7 +11,7 @@ include("./manipulate_data.jl")
 include("./aux_vars.jl")
 
 car_data, instruments, income = load_data("./PS3b/data/")
-car_data, instruments, income = load_data("../data/")
+#car_data, instruments, income = load_data("../data/")
 
 # Parameters
 parameters = [0.6]
@@ -19,7 +19,7 @@ parameters = [0.6]
 # Model
 model = construct_model(model_specs, car_data, instruments, income)
 
-market, λₚ = 1985, 0.6
+market, λₚ = 1985, parameters[1]
 
 # Testing the GMM part
     l = 0:0.01:0.5
@@ -50,6 +50,7 @@ market, λₚ = 1985, 0.6
 ####                            Problem 1
 ###############################################################################
 model = construct_model(model_specs, car_data, instruments, income)
+markets = unique(car_data.Year)
 
 err_list = Dict()
 for market in markets

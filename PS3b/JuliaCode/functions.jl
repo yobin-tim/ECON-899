@@ -6,16 +6,16 @@ using LinearAlgebra, Parameters, Optim
 function choice_probability(δ::Array{Float64}, μ::Array{Float64}; eval_jacobian::Bool = false)
 
     # number of individuals and choicesm
-    J, R = size(μ);
+    J, R = size(μ)
 
     # Compute choice probabilities
-    Λ = exp.( δ .+ μ  )
-    Σ = Λ./(1 .+ sum(Λ, dims=1))
-    σ = sum(Λ, dims=2)/R
+    Λ = exp.(δ .+ μ)
+    Σ = Λ ./ (1 .+ sum(Λ, dims = 1))
+    σ = sum(Σ, dims = 2) / R
 
     if eval_jacobian
         # Compute Jacobian
-        Δ = 1/R * ((I(J) .* (Σ * (1 .- Σ)')) - ((1 .- I(J)) .* (Σ * Σ'))) ./ Σ
+        Δ = (1 / R) * ((I(J) .* (Σ * (1 .- Σ)')) - ((1 .- I(J)) .* (Σ * Σ'))) ./ σ
         return σ, Δ
     else
         return σ, nothing
@@ -92,8 +92,10 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
     # Initial guess for the inverse demand
     δ₀ = copy( δ )
     δ₁ = copy( δ )
+
     # Initialize the iteration counter
     iter = 0
+
     # Initialize the error
     err = 100
     eval_jacobian = false
@@ -122,22 +124,27 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
         if (method == "Newton") && (err < ε₁)
             #I added the ./S after talking with Michael Nattinger
             #It also lines up with JF's ox code in blp_func_ps.ox
-            δ₁ = δ₀ + inv(Δ./S) * (log.(S) - log.(σ))
+            #(From Danny) JF divides by "Shat", or predicted shares,
+            # aka σ
+            #δ₁ = δ₀ + inv(Δ ./ S) * (log.(S) - log.(σ))
+            δ₁ = δ₀ + inv(Δ) * (log.(S) - log.(σ))
         else
             δ₁ = δ₀ + log.(S) - log.(σ)
         end
 
         # Update the error
-        err = maximum( abs.(δ₁ - δ₀) )
+        #err = maximum( abs.(δ₁ - δ₀) )
+        err = norm(δ₁ - δ₀)
+
         push!(err_list, err)
         # Update the inverse demand
         δ₀ = copy(δ₁)
 
         # Update the iteration counter
         iter = iter + 1
-        if iter % 1000 == 0
+        #if iter % 1000 == 0
             println("Iteration = $iter, Method = $method_flag , error = $err, tolerance = $ε, error > tolerance = $(err > ε)")
-        end
+        #end
 
     end
     # println("Iteration = $iter, Method = $method_flag, error = $err, tolerance = $ε, error > tolerance = $(err > ε), θ = $θ")
@@ -149,7 +156,7 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
 end
 
 
-function gmm(model, λ; Return_ρ::Bool=false,SpecifyW::Bool=false,
+function gmm(model, λ; Return_ρ::Bool=false, SpecifyW::Bool=false,
         SpecifiedW::Array{Float64, 2}=zeros(2,2))
     markets = unique(model.inv_dem_est[!, model.market_id])
     for  market in markets
