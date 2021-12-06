@@ -27,8 +27,8 @@ market, λₚ = 1985, 0.6
 err_list_cm = inverse_demand(model, λₚ, market; method = "Contraction Mapping", max_iter = Inf)
 err_list_n = inverse_demand(model, λₚ, market; method = "Newton", max_iter = Inf)
 
-plot(err_list_cm[50:end], xlabel = "Iteration", ylabel = "Error", title = "Error vs. Iteration", lable="Contraction Mapping")
-plot!(err_list_n[50:end],  lable="Newton")
+plot(err_list_cm[50:end], xlabel = "Iteration", ylabel = "Error", title = "Error vs. Iteration", label="Contraction Mapping")
+plot!(err_list_n[50:end],  label="Newton")
 
 # markets = unique(car_data.Year)
 
@@ -46,15 +46,19 @@ plot!(err_list_n[50:end],  lable="Newton")
 ###############################################################################
 ####                            Problem 2
 ###############################################################################
-l = 0:0.01:0.1
-data = []
-for λ in l
-    println(λ)
-    data = push!(data, gmm(model, λ))
-end
 
-plot(l, data, title="GMM Objective Function", xlabel=L"\lambda_{p}", legend=false)
-    savefig("./PS3b/Document/Figures/Problem2.png")
+function ReturnData(model)
+    l = 0:0.01:.1
+    data = []
+    for λ in l
+        println(λ)
+        data = push!(data, gmm(model, λ))
+    end
+    return data
+end
+data=ReturnData(model)
+    plot(l, data, title="GMM Objective Function", xlabel=L"\lambda_{p}", legend=false)
+        savefig("./PS3b/Document/Figures/Problem2.png")
 
 ###############################################################################
 ####                            Problem 3
