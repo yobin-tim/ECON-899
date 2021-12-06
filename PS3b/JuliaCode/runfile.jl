@@ -25,10 +25,15 @@ model = construct_model(model_specs, car_data, instruments, income)
 market, λₚ = 1985, 0.6
 
 err_list_cm = inverse_demand(model, λₚ, market; method = "Contraction Mapping", max_iter = Inf)
+    #Reset the model
+    model = construct_model(model_specs, car_data, instruments, income)
+    market, λₚ = 1985, 0.6
 err_list_n = inverse_demand(model, λₚ, market; method = "Newton", max_iter = Inf)
 
-plot(err_list_cm[50:end], xlabel = "Iteration", ylabel = "Error", title = "Error vs. Iteration", label="Contraction Mapping")
-plot!(err_list_n[50:end],  label="Newton")
+plot(err_list_cm[50:end],50:length(err_list_cm), xlabel = "Iteration",
+    ylabel = "Error", color=[:white],title = "Error vs. Iteration", label="Contraction Mapping")
+plot!(err_list_n[50:end],50:length(err_list_n), color=[:blue],line=(:dash), label="Newton")
+savefig("./PS3b/Document/Figures/Problem1.png")
 
 # markets = unique(car_data.Year)
 
