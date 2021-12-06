@@ -300,9 +300,9 @@ function gmm_obj(vParam)
 
     g = sum(mG, dims = 1)
 
-    adFunc = -g*A*g'/100
+    adFunc = g*A*g'/100
 
-    return adFunc
+    return adFunc[1]
     
 end
 
