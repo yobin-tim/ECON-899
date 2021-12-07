@@ -63,4 +63,50 @@ function Initialize()
 
 end
 
-function 
+function Initialize()
+    prim  = Primitives()
+
+    W_val = zeros(prim.nS)
+    n_opt = zeros(prim.nS)
+    x_opt = zeros(prim.nS)
+    p = (prim.p_max + prim.p_min)/2
+    μ = ones(prim.nS) / prim.nS # Uniform distribution is the initial guess
+    M = 5.0
+
+    res = Results(W_val, n_opt, x_opt, p, μ, M)
+
+    return prim, res
+
+end
+
+
+function VFI()
+    
+    @unpack n_optim, s_vals, nS, trans_mat = prim
+
+    for index_s = 1:prim.nS
+        
+        n = prim.n_optim(prim.s_vals[index_s], res.p)
+
+        exp_value = prim.trans_mat[1,:]' * res.W_val
+
+        if exp_value >= 0
+
+            res.W_val[index_s] = prim.Π(res.p, prim.s_vals[index_s], n) + exp_value
+
+            res.x_opt[index_s] = 1
+            
+        else
+
+            res.W_val[index_s] = prim.Π(res.p, prim.s_vals[index_s], n)
+            
+            res.x_opt[index_x] = 0
+            
+        end
+        
+    end
+
+    diff = 
+    
+end
+
