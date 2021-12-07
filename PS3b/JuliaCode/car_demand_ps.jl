@@ -5,10 +5,19 @@
 ## Load this part for each questions ###################
 using Parameters, StatFiles, DataFrames, Statistics, LinearAlgebra, Plots, Optim
 
+# Set plot theme
+theme(:juno) # Change to vibrant for writeup
+default(fontfamily="Computer Modern", framestyle=:box) # LaTex-style
+
 include("./blp_func_ps.jl")
 
-vYear, vShare, vDelta, aProductID, mX, mZ, mEta, mIV = load_data();
+path = "./PS3b/data"
+vYear, vShare, vDelta, aProductID, mX, mZ, mEta, mIV = load_data(path);
 ## ######################################################
+
+# TODO: Rename variables so they make sense
+# TODO: Pack demand inversion in to function 
+
 
 ## Q1-1: Contraction mapping
 
@@ -28,7 +37,7 @@ iter = 0;
 
 vParam = 0.6;
 
-mMu = value(vParam, t);
+mMu = value(vParam, aProductID[t]);
 
 rowid = aProductID[t];
 
@@ -52,14 +61,15 @@ while err > eps0
 
 end
 
-x = 1:iter;
+# x = 1:iter;
 
-plot(x, err_list,
-     title = "Contraction Mapping",
+plot(err_list[2:end],
+    #  title = "Contraction Mapping",
      xlabel = "Iteration",
      ylabel = "Norm",
-     color =:black,
-     legend = false,
+    #  color =:black,
+    #  legend = false,
+    label = "Contraction Mapping",
      lw = 2)
 
 savefig("../Document/Figures/Q1_contraction.pdf")
@@ -130,14 +140,15 @@ while converge == 0
 
 end
 
-x = 1:iter;
+# x = 1:iter;
 
-plot(x, err_list,
-     title = "Contraction Mapping and Newton",
-     xlabel = "Iteration",
-     ylabel = "Norm",
-     color =:black,
-     legend = false,
+plot!(err_list[2:end],
+    #  title = "Contraction Mapping and Newton",
+    #  xlabel = "Iteration",
+    #  ylabel = "Norm",
+    #  color =:black,
+    #  legend = false,
+    label = "Contraction Mapping and Newton",
      lw = 2)
 
 savefig("../Document/Figures/Q1_combination.pdf")
@@ -162,7 +173,7 @@ plot(grid, tmp,
      title = "The GMM objective function",
      xlabel = "Lambda",
      ylabel = "",
-     color =:black,
+    #  color =:black,
      legend = false,
      lw = 2)
 

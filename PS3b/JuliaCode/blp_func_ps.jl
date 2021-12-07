@@ -1,12 +1,18 @@
+# TODO: Rename variables so they make sense
+# TODO: Inizialize funciton dosen't makes much sense
+
+
+
+# ! why have a structure with only one field?
 mutable struct Results
 
     est :: Array{Float64,1}
 
 end
 
-function load_data()
-
-    mPanelCharact = DataFrame(StatFiles.load("../data/Car_demand_characteristics_spec1.dta"))
+function load_data(path)
+    
+    mPanelCharact = DataFrame(StatFiles.load(path*"/Car_demand_characteristics_spec1.dta"))
 
     n = nrow(mPanelCharact) # 6103
 
@@ -119,7 +125,7 @@ function load_data()
  
     #* Load price and differentation IVs *
   
-    mDemandIV = DataFrame(StatFiles.load("../data/Car_demand_iv_spec1.dta"))
+    mDemandIV = DataFrame(StatFiles.load(path*"/Car_demand_iv_spec1.dta"))
 
     aIVlist = [:i_import,
                :diffiv_local_0,
@@ -151,7 +157,7 @@ function load_data()
         aProductID[i] = mPanelCharact[(mPanelCharact.Year .== vYear[i]), :].index
     end
 
-    mEta = DataFrame(StatFiles.load("../data/Simulated_type_distribution.dta")) |> Matrix
+    mEta = DataFrame(StatFiles.load(path*"/Simulated_type_distribution.dta")) |> Matrix
 
     return vYear, vShare, vDelta, aProductID, mX, mZ, mEta, mIV
     
@@ -167,9 +173,9 @@ function Initialize()
     
 end
 
-function value(vParam, t)
+function value(vParam, aProductID)
 
-    aZ = mZ[aProductID[t]] .* mEta' 
+    aZ = mZ[aProductID] .* mEta' 
 
     aMu = zeros(size(aProductID[t],1), 100)
 
