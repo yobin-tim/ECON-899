@@ -17,7 +17,7 @@ vYear, vShare, vDelta, aProductID, mX, mZ, mEta, mIV = load_data(path);
 
 # TODO: Rename variables so they make sense
 # TODO: Pack demand inversion in to function 
-
+# TODO: Add comments
 
 ## Q1-1: Contraction mapping
 

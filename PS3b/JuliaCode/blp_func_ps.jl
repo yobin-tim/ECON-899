@@ -1,6 +1,6 @@
 # TODO: Rename variables so they make sense
 # TODO: Inizialize funciton dosen't makes much sense
-
+# TODO: Add comments
 
 
 # ! why have a structure with only one field?
