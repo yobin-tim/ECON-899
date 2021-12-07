@@ -56,7 +56,7 @@ savefig(p2, "../Document/Figures/decision_rules_2.pdf")
 ## Error for i.
 n_opt = [prim.n_optim.(prim.s_vals, r.p) for (_, r) in results]
 n_incumbents = [ prim.n_optim.(prim.s_vals, r.p)' * r.μ for (_, r) in results]
-n_entrants = [ prim.n_optim.(prim.s_vals, r.p)' * prim.ν * results[i].M for (_, r) in results]
+n_entrants = [ prim.n_optim.(prim.s_vals, r.p)' * prim.ν * results[2].M for (_, r) in results]
 n_total = [n_incumbents[i] + n_entrants[i] for i in 1:length(n_incumbents) ]
 fraction_labor_entrants = [n_entrants[i] ./ n_total[i] for i in 1:length(n_incumbents) ]
 

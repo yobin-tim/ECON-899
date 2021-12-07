@@ -15,7 +15,7 @@ using Parameters, LinearAlgebra
                                     0.2000  0.2000  0.2500  0.3400  0.0100]
     ν           ::Array{Float64}   = [0.37, 0.4631, 0.1102, 0.0504, 0.0063]
     A           ::Float64          = 1/200
-    c_f         ::Int64            = 15
+    c_f         ::Int64            = 10
     c_e         ::Int64            = 5
 
     # Price grid
@@ -27,7 +27,7 @@ using Parameters, LinearAlgebra
     # Optimal decision rules
     n_optim     ::Function         = ( s , p ) -> (θ * p * s) ^ (1/(1 - θ))
 
-    Π           ::Function         = ( s , p,  n ) -> p*s*( n )^θ - n  - p * c_f
+    Π           ::Function         = ( s , p,  n ) -> (n > 0) ? p*s*( n )^θ - n  - p * c_f : -p * c_f
 
     # Limits for the mass of entrants
     M_min       ::Float64 = 1.0
@@ -121,7 +121,8 @@ function market_clearing(prim::Primitives, res::Results; tol::Float64 = 1e-3,  n
         TW_iterate(prim, res)
         # W(prim, res)
         # Calculate EC
-        EC = sum(res.W_val .* ν) - res.p * c_e
+        #EC = sum(res.W_val .* ν) - res.p * c_e
+        EC = sum(res.W_val .* ν) /res.p - c_e
         
         # println("p = ", res.p," EC = ", EC, " tol = ", tol)
         if abs(EC) > tol * 10000
@@ -318,7 +319,8 @@ function find_equilibrium(prim::Primitives, res::Results, α::Float64; tol::Floa
         n_opt  = n_optim.(s_vals, res.p)
         W_vals = Π.(s_vals, res.p, n_opt) + sum(σ_x .* V_x, dims=2)
 
-        EC = sum(W_vals .* ν) - res.p * c_e
+        #EC = sum(W_vals .* ν) - res.p * c_e
+        EC = sum(W_vals .* ν) /res.p - c_e
             
 
         # adjust tuning parameter based on EC
