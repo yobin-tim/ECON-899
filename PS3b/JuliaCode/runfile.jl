@@ -76,7 +76,22 @@ end
 sum(num_iter_recalc)/length(num_iter_recalc)
 sum(num_iter_no_recalc)/length(num_iter_no_recalc)
 
+#? Experimemt
+# What is faster Newton or Contraction Mapping?
+using BenchmarkTools
+@btime begin 
+    model = construct_model(model_specs, car_data, instruments, income)
+    for λ ∈ grid
+        err = inverse_demand(model, λ, market; recalc_δ  = false, method = "Newton")
+    end
+end
 
+@btime begin 
+    model = construct_model(model_specs, car_data, instruments, income)
+    for λ ∈ grid
+        err = inverse_demand(model, λ, market; recalc_δ  = false, method = "Contraction Mapping")
+    end
+end
 
 function ReturnData(model, grid)
     data = []
@@ -86,7 +101,9 @@ function ReturnData(model, grid)
     end
     return data
 end
+
 data=ReturnData(model, grid)
+
 plot(grid, data, title="GMM Objective Function", xlabel=L"\lambda_{p}", legend=false, markershape = :auto)
 xticks!(grid)
 savefig("./PS3b/Document/Figures/Problem2.pdf")
@@ -94,7 +111,32 @@ savefig("./PS3b/Document/Figures/Problem2.pdf")
 ###############################################################################
 ####                            Problem 3
 ###############################################################################
- λhat_GMM=TwoStage_gmm(model)
 
+opt = optimize(λ -> gmm(model, λ[1]), [.6], method = BFGS(), f_tol = 1e-5, g_tol = 1e-5)
+
+λ_hat = opt.minimizer[]
+
+λhat_GMM=TwoStage_gmm(model)
+
+ξ_hat=gmm(model, λ_hat, Return_ρ=true)
+
+Z = model.Z
+
+temp = (Z' * ξ_hat) * (Z' * ξ_hat)'
+
+
+
+det(temp .+ rand(0.9:0.001:1.1, size(temp)))
+
+size(temp .+ rand(0.9:0.001:1.1, size(temp)))
+
+
+
+OptimalW=inv( inv(temp .+ rand(0.9:0.001:1.1, size(temp))) )
+
+Z
+
+Zopt_scondstage = optimize(λ -> gmm(model, λ[1],SpecifyW=true,SpecifiedW=OptimalW),
+                [λ_hat], method = BFGS(), f_tol = 1e-5, g_tol = 1e-5).minimizer
 
 TwoStage_gmm(model)
