@@ -45,8 +45,14 @@ function construct_model(model_specs::Dict, car_data::DataFrame, instruments::Da
     # Create co-variate matrix
     X = car_data[!, model_specs[:covariates]] |> Matrix
 
+    # Create exogenous variables matrix
+    Z_exo = car_data[!, model_specs[:exogenous]] |> Matrix
+
     # Create instruments matrix
-    Z = instruments[!, model_specs[:instruments]] |> Matrix
+    Z_inst = instruments[!, model_specs[:instruments]] |> Matrix
+
+    # Merge exogenous and instruments
+    Z = hcat(Z_exo, Z_inst)
 
     # Create income vector
     Y = income[:, model_specs[:sim_data]] |> Matrix
