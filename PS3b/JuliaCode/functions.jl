@@ -71,7 +71,7 @@ end
 
 
 # Demand inverter
-function inverse_demand(model::Model, λₚ::Float64, market; method::String="Newton", max_iter = Inf)
+function inverse_demand(model::Model, λₚ::Float64, market; method::String="Newton", max_iter = Inf, verbose::Bool = false, recalc_δ::Bool = true)
     if method=="Newton" #Otherwise this prints too often when we do the contraction mapping
         print("\n")
         print("Market: $(market)")
@@ -83,6 +83,11 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
 
     # Get the data
     S, P, Y, δ = segment_data(model, market)
+
+    if recalc_δ
+        # Recalculate the initial guess for the inverse demand
+        δ = zeros(size(δ))
+    end
 
     # Compute the matrix μ[i,j] = λₚ * Y[i] * P[j]
     μ = λₚ * repeat(Y', length(S), 1) .* P
@@ -142,7 +147,7 @@ function inverse_demand(model::Model, λₚ::Float64, market; method::String="Ne
 
         # Update the iteration counter
         iter = iter + 1
-        if iter % 10 == 0
+        if (iter % 10 == 0) && verbose
             println("Iteration = $iter, Method = $method_flag , error = $err, tolerance = $ε, error > tolerance = $(err > ε)")
         end
 
@@ -175,9 +180,9 @@ function gmm(model, λ; Return_ρ::Bool=false, SpecifyW::Bool=false,
 
     ρ = (δ - X*β_iv)
     if ~Return_ρ
-        return ρ'Z*W*Z'*ρ
+        return ρ'Z*W*Z'*ρ/100
     else
-        return ρ
+        return ρ/100
     end
 end
 
