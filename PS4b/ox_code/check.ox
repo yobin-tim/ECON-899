@@ -66,5 +66,5 @@ main(){
   
   /* CCP iteration */
   decl vP=constant(1/2,S,1),vP0,vEV;
-  println(vP0);
+  println(vP);
 }
