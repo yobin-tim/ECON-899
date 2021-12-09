@@ -141,7 +141,6 @@ main()
   savemat("PS4_transition_a0.csv",range(0,S-1)'~mF0,{"id"}~aStateID);
   savemat("PS4_transition_a1.csv",range(0,S-1)'~mF1,{"id"}~aStateID);  
 
-  
   /* CCP iteration */
   decl vP=constant(1/2,S,1),vP0,vEV;
   decl it=0;
