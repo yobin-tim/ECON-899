@@ -18,6 +18,12 @@ pr = 4
 
 c = 1
 
+iI = 1
+
+iC = 2
+
+iP = 3
+
 gamma = 1/2
 
 mPi = [0.75 0.25; 0.9 0.1]
@@ -45,3 +51,54 @@ mF1 = DataFrame(CSV.File("../ox_code/PS4_transition_a1.csv")) |> Matrix
 mF1 = mF1[:,3:end]
 
 vP = fill(0.5, S) 
+
+## CCP mapping
+
+function value(vEV)
+
+    tmp = vU0 + beta * mF0 * vEVp
+
+    tmp2 = vU1 + beta * mF1 * vEVp
+
+    mV = hcat(tmp, tmp2)
+
+    return mV
+
+end
+
+function ccp(vP)
+    
+    vU1 = alpha.*mS[:,iC] - mS[:, iP];
+    
+    vU0 = alpha.*mS[:,iC].*(mS[:,iI].>0)+lambda.*(mS[:,iC].>0).*(mS[:,iI].==0);
+
+    vE1 = 0.577216 .- log.(vP);
+
+    vE0 = 0.577216 .- log.(1 .- vP);
+
+    mF = mF0 .* (1 .- vP) .+ mF1 .* vP;
+
+    vEU = (1 .- vP) .* (vU0 .+ vE0) .+ vP .* (vU1 .+ vE1);
+
+    vEVp = inv(I(size(vP,1)) .- beta .* mF)*vEU;
+
+    vU1 = alpha.*mS[:,iC] - mS[:, iP];
+    
+    vU0 = alpha.*mS[:,iC].*(mS[:,iI].>0)+lambda.*(mS[:,iC].>0).*(mS[:,iI].==0);
+
+    mV = value(vEVp);
+
+    aP = (exp.(mV[:,2])) ./ (sum(exp.(mV), dims = 2));
+
+    return mV, aP
+
+end
+
+
+vP0 = vP
+
+tmp = ccp(vP0)
+
+vP2 = tmp[2]
+
+norm(vP0 - vP2)

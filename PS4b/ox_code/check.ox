@@ -4,6 +4,8 @@
 #include <quadpack.h>
 #import <maximize>
 #include <oxprob.h>
+
+
 /**********************************************************************************************/
 /* Global variables */
 decl alpha=2;
@@ -24,7 +26,83 @@ enum{iI,iC,iP}; /* Columns identifiers for each state variable */
 /* Parameter names */
 enum{ilambda}; /* Row identifiers for parameter */
 
-main(){
+/**********************************************************************************************/
+/* Choice-specific value-function */
+value(amV,const vEV)
+{
+  decl vU1=alpha*mS[][iC]-mS[][iP];
+  decl vU0=alpha*mS[][iC].*(mS[][iI].>0)+lambda*(mS[][iC].>0).*(mS[][iI].==0);
+  decl mV=(vU0+beta*mF0*vEV)~(vU1+beta*mF1*vEV);
+  amV[0]=mV;
+  return 1;
+}
+/* Expected value function */
+emax(aEV,const vEV0)
+{
+  decl mV;
+  value(&mV,vEV0);
+  aEV[0]=log(sumr(exp(mV)))+M_EULER;
+  return 1;
+}
+/* CCP mapping */
+ccp(aEV,aP,const vP)
+{
+  decl vU1=alpha*mS[][iC]-mS[][iP];
+  decl vU0=alpha*mS[][iC].*(mS[][iI].>0)+lambda*(mS[][iC].>0).*(mS[][iI].==0);
+  decl vE1=M_EULER-log(vP);
+  decl vE0=M_EULER-log(1-vP);
+  decl mF=mF0.*(1-vP)+mF1.*vP;
+  decl vEU=(1-vP).*(vU0+vE0)+vP.*(vU1+vE1);
+  decl vEVp=invert(unit(rows(vP))-beta*mF)*vEU;
+  decl mV;
+  value(&mV,vEVp);
+  aP[0]=exp(mV[][1])./sumr(exp(mV));
+  aEV[0]=vEVp;
+  return 1;
+}
+/**********************************************************************************************/
+
+/**********************************************************************************************/
+/* Likelihood function */
+lfunc_ccp(const vP, const adFunc, const avScore, const amHessian)
+{
+  lambda=vP[ilambda];
+  decl vCCP,vEV;
+  ccp(&vEV,&vCCP,vPhat);
+  vCCP=vCCP[vSid];
+  decl vL=vCCP.*vY+(1-vCCP).*(1-vY);
+  decl LLF;
+  LLF=double(sumc(log(vL)));
+  adFunc[0]=LLF;
+  return 1;
+}
+lfunc_nfxp(const vP, const adFunc, const avScore, const amHessian)
+{
+  lambda=vP[ilambda];
+  decl vCCP,vCCP0;
+  decl it=0;
+  decl eps=10^(-10);
+  vCCP=vPhat;
+  decl vEV=constant(0,rows(mS),1),vEV0;
+  /* CCP algorithm */
+  do{
+    vEV0=vEV;
+    vCCP0=vCCP;
+    ccp(&vEV,&vCCP,vCCP0);
+    it+=1;
+  }while(norm(vEV-vEV0)>eps);
+  vCCP=vCCP[vSid];  
+  decl vL=vCCP.*vY+(1-vCCP).*(1-vY);
+  decl LLF;
+  LLF=double(sumc(log(vL)));
+  adFunc[0]=LLF;
+  return 1;
+}
+/**********************************************************************************************/
+
+
+main()
+{
   format(1000);
   decl mPi=<0.75,0.25;0.9,0.1>;
   decl mGamma=(gamma~(1-gamma))|(gamma~(1-gamma));
@@ -66,5 +144,17 @@ main(){
   
   /* CCP iteration */
   decl vP=constant(1/2,S,1),vP0,vEV;
-  println(vP);
+  decl it=0;
+  decl eps=10^(-10);
+  vP0=vP;
+  decl vE1=M_EULER-log(vP);
+  decl vE0=M_EULER-log(1-vP);
+  decl mF=mF0.*(1-vP)+mF1.*vP;
+  decl vEU=(1-vP).*(vU0+vE0)+vP.*(vU1+vE1);
+  decl vEVp=invert(unit(rows(vP))-beta*mF)*vEU;
+  decl mV=(vU0+beta*mF0*vEVp)~(vU1+beta*mF1*vEVp);
+  decl tmp;
+  println(exp(mV[][1]));
+  println(sumr(exp(mV)));
 }
+  
