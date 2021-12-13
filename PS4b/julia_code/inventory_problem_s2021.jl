@@ -52,18 +52,6 @@ mF1 = mF1[:,3:end]
 
 ## CCP mapping
 
-# function value(vEV)
-
-#     tmp = vU0 + beta * mF0 * vEV
-
-#     tmp2 = vU1 + beta * mF1 * vEV
-
-#     mV = hcat(tmp, tmp2)
-
-#     return mV
-
-# end
-
 function ccp(vP)
     
     vU1 = alpha.*mS[:,iC] - mS[:, iP];
@@ -92,7 +80,7 @@ function ccp(vP)
 
     aP = (exp.(mV[:,2])) ./ (sum(exp.(mV), dims = 2));
 
-    return mV, aP
+    return vEVp, aP
 
 end
 
@@ -114,4 +102,38 @@ while err > eps
 
     println(err)
 
+    if err < eps
+
+        global vEV = tmp[1]
+        global vP = tmp[2]
+ 
+    end
+
 end
+
+mF = mF0 .* (1 .- vP) + mF1 .* vP
+
+vF = fill(1/S, S)
+
+err = 100
+
+while err > 10^(-10)
+    
+    vF0 = vF
+
+    vF = mF' * vF0
+
+    err = norm(vF0 - vF, Inf)
+
+    println(err)
+
+end
+
+vCF = cumsum(vF)
+
+mCF = cumsum(mF', dims = 1)'
+
+mCF0 = cumsum(mF0', dims = 1)'
+
+mCF1 = cumsum(mF1', dims = 1)'
+

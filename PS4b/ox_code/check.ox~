@@ -146,9 +146,8 @@ main()
   decl vP=constant(1/2,S,1),vP0,vEV;
   decl it=0;
   decl eps=10^(-10);
-     vP0=vP;
-    ccp(&vEV,&vP,vP0);
-    println("norm : ",norm(vP0-vP));
- 
+  vP0=vP;
+  ccp(&vEV,&vP,vP0);
+  println(vEV);  
 }
   
