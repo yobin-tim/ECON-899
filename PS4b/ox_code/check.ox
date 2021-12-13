@@ -146,14 +146,33 @@ main()
   decl vP=constant(1/2,S,1),vP0,vEV;
   decl it=0;
   decl eps=10^(-10);
-  vP0=vP;
-  decl vE1=M_EULER-log(vP);
-  decl vE0=M_EULER-log(1-vP);
+  do{
+    vP0=vP;
+    ccp(&vEV,&vP,vP0);
+    it+=1;
+    println("norm : ",norm(vP0-vP));
+  }while(norm(vP0-vP)>eps);
+  
   decl mF=mF0.*(1-vP)+mF1.*vP;
-  decl vEU=(1-vP).*(vU0+vE0)+vP.*(vU1+vE1);
-  decl vEVp=invert(unit(rows(vP))-beta*mF)*vEU;
-  decl mV;
-  value(&mV,vEVp);
-  println(mV);  
+  decl vF0,vF=constant(1/S,S,1);
+  do{
+    vF0=vF;
+    vF=mF'vF0;
+  }while(norm(vF0-vF)>10^(-10));
+  decl vCF=cumulate(vF);
+  decl mCF=cumulate(mF')';
+  decl mCF0=cumulate(mF0')';
+  decl mCF1=cumulate(mF1')';  
+  decl Sim=5000;
+  decl mSim=new matrix[Sim][columns(mS)];
+  decl vT=range(0,Sim-1);
+  decl s,u=ranu(1,1),sid;
+  
+  sid=sumc(u.>vCF);
+  mSim[0][]=mS[sid][];
+  vY=new matrix[Sim][1];
+  vSid=new matrix[Sim][1];
+  vSid[0]=sid;
+
 }
   

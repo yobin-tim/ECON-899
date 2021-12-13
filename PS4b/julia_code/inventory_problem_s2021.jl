@@ -137,3 +137,46 @@ mCF0 = cumsum(mF0', dims = 1)'
 
 mCF1 = cumsum(mF1', dims = 1)'
 
+## Simulation 
+Sim = 5000
+
+mSim = zeros(Sim, size(mS, 2))
+    
+vT = collect(Int32, 1:1:Sim)
+
+u = rand(Float64, 1)
+
+sid = floor(Int, sum(u.>vCF) + 1)
+
+mSim[1,:] = mS[sid, :]
+
+vY = zeros(Int32, Sim, 1)
+
+vSid = zeros(Int32, Sim, 1)
+
+vSid[1] = sid
+
+for s = 1:Sim
+    
+    u = rand(Float64, 1)
+
+    vY[s] = 1*(u .< vP[sid])[1]
+
+    u = rand(Float64,1)
+
+    sid = sum(u .> mCF0[sid, :], dims = 1) * (1 - vY[s]) + sum(u .> mCF1[sid, :], dims = 1) * vY[s]
+
+    sid = floor(Int, sid[1] + 1)
+
+    if s < Sim
+
+        global mSim[s+1, :] = mS[sid, :]
+
+        global vSid[s+1] = sid
+
+    end
+
+end
+    
+eta = 10^(-3)
+vSid .== collect(Int32, 1:1:Sim)

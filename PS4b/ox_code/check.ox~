@@ -146,8 +146,29 @@ main()
   decl vP=constant(1/2,S,1),vP0,vEV;
   decl it=0;
   decl eps=10^(-10);
-  vP0=vP;
-  ccp(&vEV,&vP,vP0);
-  println(vEV);  
+  do{
+    vP0=vP;
+    ccp(&vEV,&vP,vP0);
+    it+=1;
+    println("norm : ",norm(vP0-vP));
+  }while(norm(vP0-vP)>eps);
+  
+  decl mF=mF0.*(1-vP)+mF1.*vP;
+  decl vF0,vF=constant(1/S,S,1);
+  do{
+    vF0=vF;
+    vF=mF'vF0;
+  }while(norm(vF0-vF)>10^(-10));
+  decl vCF=cumulate(vF);
+  decl mCF=cumulate(mF')';
+  decl mCF0=cumulate(mF0')';
+  decl mCF1=cumulate(mF1')';  
+  println("%c",{"I & ","C & ","P & ","EV & ","Pr(x=1|s) & ","f(s) \\\ "},"%cf",
+	  {"%9.6g & ","%9.6g & ","%9.6g & ","%9.6g & ","%9.6g & ","%9.6g \\\ "},mS~vEV~vP~vF);
+
+  decl Sim=5000;
+  decl mSim=new matrix[Sim][columns(mS)];
+  decl vT=range(0,Sim-1);
+  println(vT);
 }
   
