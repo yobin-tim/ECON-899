@@ -146,14 +146,9 @@ main()
   decl vP=constant(1/2,S,1),vP0,vEV;
   decl it=0;
   decl eps=10^(-10);
-  vP0=vP;
-  decl vE1=M_EULER-log(vP);
-  decl vE0=M_EULER-log(1-vP);
-  decl mF=mF0.*(1-vP)+mF1.*vP;
-  decl vEU=(1-vP).*(vU0+vE0)+vP.*(vU1+vE1);
-  decl vEVp=invert(unit(rows(vP))-beta*mF)*vEU;
-  decl mV=(vU0+beta*mF0*vEVp)~(vU1+beta*mF1*vEVp);
-  decl tmp;
-  println(exp(mV[][1]));
+     vP0=vP;
+    ccp(&vEV,&vP,vP0);
+    println("norm : ",norm(vP0-vP));
+ 
 }
   

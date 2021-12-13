@@ -50,21 +50,19 @@ mF1 = DataFrame(CSV.File("../ox_code/PS4_transition_a1.csv")) |> Matrix
 
 mF1 = mF1[:,3:end]
 
-vP = fill(0.5, S) 
-
 ## CCP mapping
 
-function value(vEV)
+# function value(vEV)
 
-    tmp = vU0 + beta * mF0 * vEVp
+#     tmp = vU0 + beta * mF0 * vEV
 
-    tmp2 = vU1 + beta * mF1 * vEVp
+#     tmp2 = vU1 + beta * mF1 * vEV
 
-    mV = hcat(tmp, tmp2)
+#     mV = hcat(tmp, tmp2)
 
-    return mV
+#     return mV
 
-end
+# end
 
 function ccp(vP)
     
@@ -86,7 +84,11 @@ function ccp(vP)
     
     vU0 = alpha.*mS[:,iC].*(mS[:,iI].>0)+lambda.*(mS[:,iC].>0).*(mS[:,iI].==0);
 
-    mV = value(vEVp);
+    tmp = vU0 + beta * mF0 * vEVp
+
+    tmp2 = vU1 + beta * mF1 * vEVp
+
+    mV = hcat(tmp, tmp2)
 
     aP = (exp.(mV[:,2])) ./ (sum(exp.(mV), dims = 2));
 
@@ -94,11 +96,22 @@ function ccp(vP)
 
 end
 
+eps = 10^(-10);
 
-vP0 = vP
+err = 100
 
-tmp = ccp(vP0)
+vP = fill(0.5, S) 
 
-vP2 = tmp[2]
+while err > eps 
 
-norm(vP0 - vP2)
+    vP0 = vP
+
+    tmp = ccp(vP0)
+
+    vP = tmp[2]
+
+    err = norm(vP0 - vP, Inf) # ox uses infinity norm
+
+    println(err)
+
+end
