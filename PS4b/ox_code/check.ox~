@@ -163,12 +163,34 @@ main()
   decl mCF=cumulate(mF')';
   decl mCF0=cumulate(mF0')';
   decl mCF1=cumulate(mF1')';  
-  println("%c",{"I & ","C & ","P & ","EV & ","Pr(x=1|s) & ","f(s) \\\ "},"%cf",
-	  {"%9.6g & ","%9.6g & ","%9.6g & ","%9.6g & ","%9.6g & ","%9.6g \\\ "},mS~vEV~vP~vF);
-
   decl Sim=5000;
   decl mSim=new matrix[Sim][columns(mS)];
   decl vT=range(0,Sim-1);
-  println(vT);
+  decl s,u=ranu(1,1),sid;
+  
+  sid=sumc(u.>vCF);
+  mSim[0][]=mS[sid][];
+  vY=new matrix[Sim][1];
+  vSid=new matrix[Sim][1];
+  vSid[0]=sid;
+  for(s=0;s<Sim;s++)
+    {
+      u=ranu(1,1);
+      vY[s]=u.<vP[sid];
+      u=ranu(1,1);
+      sid=sumr(u.>mCF0[sid][])*(1-vY[s])+sumr(u.>mCF1[sid][])*vY[s];
+      if(s<Sim-1)  {
+	mSim[s+1][]=mS[sid][];      
+	vSid[s+1]=sid;
+      }
+    }
+  savemat("PS4_simdata.csv",vY~vSid~mS[vSid][],{"choice","state_id","I","C","P"});
+  decl eta=10^(-3);
+  decl vFhat=meanc(vSid.==range(0,S-1));
+  decl vNhat=sumc(vSid.==range(0,S-1));
+  vPhat=((vY'(vSid.==range(0,S-1)))./setbounds(vNhat,1,M_INF_POS))';
+  println(vPhat); 
+  vPhat=setbounds(vPhat,eta,1-eta);
+ 
 }
   

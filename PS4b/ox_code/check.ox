@@ -173,6 +173,29 @@ main()
   vY=new matrix[Sim][1];
   vSid=new matrix[Sim][1];
   vSid[0]=sid;
-
+  for(s=0;s<Sim;s++)
+    {
+      u=ranu(1,1);
+      vY[s]=u.<vP[sid];
+      u=ranu(1,1);
+      sid=sumr(u.>mCF0[sid][])*(1-vY[s])+sumr(u.>mCF1[sid][])*vY[s];
+      if(s<Sim-1)  {
+	mSim[s+1][]=mS[sid][];      
+	vSid[s+1]=sid;
+      }
+    }
+  savemat("PS4_simdata.csv",vY~vSid~mS[vSid][],{"choice","state_id","I","C","P"});
+  decl eta=10^(-3);
+  decl vFhat=meanc(vSid.==range(0,S-1));
+  decl vNhat=sumc(vSid.==range(0,S-1));
+  vPhat=((vY'(vSid.==range(0,S-1)))./setbounds(vNhat,1,M_INF_POS))';
+  println(vPhat); 
+  vPhat=setbounds(vPhat,eta,1-eta);
+  decl vP2,vEV2;
+  ccp(&vEV2,&vP2,vPhat);
+  println("%c",{"ID & ","I & ","C & ","P & ","$P(x)^\\ast$ & ","$\\hat{P}(s)$ & ","$EV$ & ","\\hat{EV}$ \\\ "},
+	  "%cf",{"%9.3g & ","%9.3g & ","%9.3g & ","%9.3g & ","%9.3g & ","%9.3g & ","%9.3g \\\ "},range(1,S)'~mS~vP~vPhat~vEV~vEV2);
+  
+ 
 }
   

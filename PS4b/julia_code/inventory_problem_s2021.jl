@@ -179,4 +179,46 @@ for s = 1:Sim
 end
     
 eta = 10^(-3)
-vSid .== collect(Int32, 1:1:Sim)
+
+vSid2 = vec(vSid)
+
+vFhat = zeros(36)
+
+vNhat = zeros(36)
+
+vPhat = zeros(36)
+
+for i = 1:36
+    
+    vFhat[i] = mean(vSid2 .== i)
+
+    vNhat[i] = sum(vSid2 .== i)
+
+end
+
+for i = 1:36
+    
+    tmp = vNhat[i]
+    
+    if tmp < 1
+
+        tmp = 1
+
+    end
+        
+    vPhat[i] = (vY'* (vSid2 .== i))[1]./tmp
+
+    if vPhat[i] < eta
+
+        vPhat[i] = eta
+
+    elseif vPhat[i] > 1 -eta
+
+        vPhat[i] = 1-eta
+
+    end
+
+end
+
+vEV2 = ccp(vPhat)[1]
+        
