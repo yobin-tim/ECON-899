@@ -29,6 +29,7 @@
 \allowdisplaybreaks
 \usepackage[margin=1in]{geometry}
 \pagestyle{fancy}
+\usepackage{jlcode}
 
 \lhead{Due: \displaydate{duedate}}
 \chead{ECON 899 -- Problem Set 3 }
@@ -91,19 +92,19 @@ Solve the dynamic programming problem of retirees and workers. Plot the value fu
 \subsubsection*{Exercise 2}
 After solving for agent's dynamic programming problem, solve for the steady-state distribution of agents over age, productivity and asset holdings, $ F_j (z, a) $. Find first the relative sizes of each cohort of age $ j $ (denoted by $ \mu_j $ ) using the expression below: \[ \mu_{i+1} = \frac{\mu_i}{1 +N}, \; \text{for } \; i = 1, \hdots, N-1  \]  with any $ \mu_1 = \tilde{\mu}_1 >0 $. Then normalize $ \mu $, so that it sums up to 1 across all age groups. Finally, start with the newborn generation with zero wealth: given its distribution, $ F_1(z^H, 0) = \mu_1 × 0.2037 $ and $ F_1(z^L, 0) = \mu_1×0.7963 $, compute the distribution of agents over asset holdings at subsequent ages by applying the optimal decision rules.
 \begin{solution}
-  See the code and report the results in Exercise 3 based on Exercise 2.  
+  The code used to solve this portion is included in the appendix, and the results shown in Exercise 3 use this code from Exercise 2.  
 \end{solution}
 
 \subsubsection*{Exercise 3}
 \begin{enumerate}
 \item First, solve for the benchmark model with social security. Is this economy dynamically efficient (compare the interest rate with the implicit return from social security, which is equal to the population growth rate)? Now eliminate social security by setting $ \theta = 0 $. Observe how aggregate capital accumulation and labor supply change as a result of the tax reform. Provide intuition in terms of insurance and output efficiency. How does aggregate welfare change? Who benefits and who loses due to this reform? How does the reform affect cross-sectional wealth inequality? You can use table 1 to support your answers.
   \begin{solution}
-    Table \ref{tab1} summarises the results. This economy is not efficient because it is not equal to population growth. The total welfare decrease. Figure \ref{lambda} shows the effect of this policy change by age. Only a few young gets a benefit. 
+    Table \ref{tab1} summarises the results. This economy is not efficient because it is not equal to population growth. The total welfare decreases. Figure \ref{lambda} shows the effect of this policy change by age. Only a few young people are benefited. 
   \end{solution}
 
 \item In the second experiment, there is no idiosyncratic risk. Assume that at each age $ j $, $ z^L = z^H = 0.5. $ First, compute the aggregate variables for the case with social security. How does the aggregate capital stock change relative to the benchmark model? Provide intuition in terms of capital as a buffer stock. Then, eliminate social security. How does the aggregate welfare change? What can you conclude about social security as an insurance device against idiosyncratic risk? Comment on the extent, to which these welfare comparisons across steady states are meaningful or misleading.
   \begin{solution}
-    The welfare decreases. Social security decreases comparing with the benchmark model. The aggregate capital decreases because people don't have saving demand for the shock. If social security is eliminated, the aggregate welfare does not change well. The result suggests that social security works as insurance because welfare decreases in the benchmark when the social security is removed.     
+    The welfare decreases. Social security decreases comparing with the benchmark model. The aggregate capital decreases because people don't have saving demand for the shock. If social security is eliminated, the aggregate welfare does not change well. The result suggests that social security works as insurance because welfare decreases in the benchmark when social security is removed.     
   \end{solution}
   
 \item Consider the case, when labor supply is exogenous $ (\gamma = 1 $). Compare the distortionary effect of social security on the aggregate labor supply. How does the support for social security change with exogenous labor supply?
@@ -136,4 +137,16 @@ After solving for agent's dynamic programming problem, solve for the steady-stat
 \end{figure}
 
 \end{enumerate}
+
+\newpage
+
+\subsubsection*{Appendix}
+ 	
+The first codefile runs the code:
+ 	
+\jlinputlisting{Code/run_model.jl}
+	
+ The second contains the relevant functions:
+ \jlinputlisting{Code/conesa_kueger.jl}
+
 \end{document}

@@ -79,14 +79,14 @@ sum(num_iter_no_recalc)/length(num_iter_no_recalc)
 #? Experimemt
 # What is faster Newton or Contraction Mapping?
 using BenchmarkTools
-@btime begin 
+@btime begin
     model = construct_model(model_specs, car_data, instruments, income)
     for λ ∈ grid
         err = inverse_demand(model, λ, market; recalc_δ  = false, method = "Newton")
     end
 end
 
-@btime begin 
+@btime begin
     model = construct_model(model_specs, car_data, instruments, income)
     for λ ∈ grid
         err = inverse_demand(model, λ, market; recalc_δ  = false, method = "Contraction Mapping")
@@ -112,13 +112,19 @@ savefig("./PS3b/Document/Figures/Problem2.pdf")
 ####                            Problem 3
 ###############################################################################
 
-opt = optimize(λ -> gmm(model, λ[1]), [.6], method = BFGS(), f_tol = 1e-5, g_tol = 1e-5)
-
-λ_hat = opt.minimizer[]
-
 λhat_GMM=TwoStage_gmm(model)
 
-ξ_hat=gmm(model, λ_hat, Return_ρ=true)
+
+
+
+
+##Testing
+opt = optimize(λ -> gmm(model, λ[1]), [.6], method = BFGS(), f_tol = 1e-5, g_tol = 1e-5)
+    λ_hat = opt.minimizer[]
+    ξ_hat=gmm(model, λ_hat, Return_ρ=true)
+    OptimalW=inv( (model.Z .* ξ_hat)*transpose(model.Z .* ξ_hat) )
+    λ_hat_2=gmm(model, λ_hat,SpecifyW=true,SpecifiedW=OptimalW)
+
 
 Z = model.Z
 

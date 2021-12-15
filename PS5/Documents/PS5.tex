@@ -1,10 +1,65 @@
-\documentclass{article}
-\usepackage{amsmath}
-\title{Econ899 PS5}
-\begin{document}
-\maketitle
+\documentclass{article} % kind of document 
+\usepackage[utf8]{inputenc} %encoding of choice
+\usepackage[american]{babel} %language of choice
+\usepackage[p,osf]{cochineal}
+\usepackage{fancyhdr} %for header
+\usepackage{amsmath, tabu} %math mode
+\usepackage{mathtools}
+\usepackage{extarrows} % for more options with arrows
+\usepackage{amssymb} %math symbols
+\usepackage{dsfont} %specifically for the indicator function symbol
+\usepackage{xcolor} %to color text
+\usepackage{amsthm} %math theorem
+\usepackage{tikz}
+\usepackage{caption}
+\usepackage{multirow}
+\usepackage[bottom]{footmisc}
+% \usepackage[dvipsnames]{xcolor}
+\usepackage{enumerate} %make lists
+\usepackage{graphicx} %insert images
+\usepackage{float} %to fix image position
+\usepackage{moreverb} %to make boxes
+\usepackage{hyperref} %to create hyperlinks
+\usepackage{lipsum} %lorem ipsum package
+\usepackage{setspace} % to use singlespace below in the solution environment
+\usepackage[shortlabels]{enumitem}
+\usepackage{parskip}
+\usepackage[us]{datetime} %package for setting due date in US format
+\newdate{duedate}{13}{10}{2021} %to set a due date
+\allowdisplaybreaks
+\usepackage[margin=1in]{geometry}
+\pagestyle{fancy}
+\usepackage{jlcode}
 
-The converged value is the following. The values are similar with results in the note. The $R^2$ is 0.99991. 
+\lhead{Due: \displaydate{duedate}}
+\chead{ECON 899 -- Problem Set 5}
+\rhead{Danny, Hiroaki, Mitch, Ryan, Yobin}
+
+
+\DeclareMathOperator*{\E}{\mathbb{E}} %ease of writing e and E
+\newcommand{\e}{\mathrm{e}}
+\newcommand{\ct}{\mathsf{c}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\ifn}{\mathds{1}}
+\newcommand{\X}{\mathbf{X}}
+\newcommand{\Y}{\mathbf{Y}}
+\newcommand{\one}{\mathbf{1}}
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+\newcommand*\widebar[1]{\overline{#1}} % to get a widebar
+\theoremstyle{definition}
+\newtheorem{theorem}{theorem} % Theorem display format
+\newtheorem{problem}[theorem]{Exercise} % Problem display format, last bracket sets display choice
+
+\newenvironment{solution}[1][Answer]{\begin{singlespace}\underline{\textbf{#1:}}\quad }{\ \rule{0.3em}{0.3em}\end{singlespace}} % Answer format
+
+\newenvironment{solutions}[1][Proof]{\begin{singlespace}\underline{\textbf{#1:}}\quad }{\ \rule{0.3em}{0.3em}\end{singlespace}} % Answer format
+
+\begin{document}
+%\maketitle
+\begin{solution}
+The converged value is the following, and our code is attached in the appendix. The values are similar with results in the note. The $R^2$ is 0.99991. 
 
 $$
    \log K' =\begin{cases}
@@ -12,6 +67,16 @@ $$
                  0.063 + 0.973 \log K  & \text{if } z = z_b
                \end{cases}
 $$
+\end{solution}
+
+
+	\newpage
+	\section*{Appendix}
+ 	The first code file runs the code:
+ 	\jlinputlisting{Code/run_code.jl}
+	
+ 	The second code file contains the relevant functions.
+ 	\jlinputlisting{Code/krusell_smith.jl}
 
 
 \end{document}
