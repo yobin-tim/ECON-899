@@ -30,6 +30,7 @@
 \allowdisplaybreaks
 \usepackage[margin=1in]{geometry}
 \pagestyle{fancy}
+\usepackage{jlcode}
 
 \lhead{Due: \displaydate{duedate}}
 \chead{ECON 899 -- Problem Set 4}
@@ -67,7 +68,7 @@
 \item  Compute the transition path of the economy using the algorithm in \textit{Step 2: Solving for the transition path} in the lecture notes. Try N = 30 for the
   number of periods it approximately takes to get to the new steady state. Obtain and store the value function for the generations in the initial steady state, $ V_0(z,a,j; \theta_0^{SS}, \theta_N^{SS}) $. Plot the transition paths of interest rate, wage, capital and effective labor. Comment on the results you obtain.
   \begin{solution}
-    During the transition dynamics, capital adjusts gradually. While efficient labor supply jumps in the policy period, which induces jumps in the interest rate and wage at the beginning. Afterward, all variables smoothly transit to the new steady state.
+    During the transition dynamics, capital adjusts gradually. Efficient labor supply jumps in the policy period, which induces jumps in the interest rate and wage at the beginning. Afterward, all variables smoothly transit to the new steady state. Figure \ref{fig} contains the results.
     \begin{figure*}
       \centering
       \begin{subfigure}[b]{0.475\textwidth}
@@ -89,7 +90,7 @@
         \centering 
         \includegraphics[width=\textwidth]{Figures/capital.pdf}
       \end{subfigure}
-      \caption{Transition Path: Unaticipated Shock}
+      \caption{Transition Path: Unanticipated Shock}
       \label{fig}
     \end{figure*}
   \end{solution}
@@ -97,11 +98,16 @@
 \clearpage  
 \item  What fraction of the overall population would support the reform? Compute and plot the measure of consumption equivalent variation for each age, $ EV_j $ , using $$ EV_j = \sum_z \int_a EV(z,a,j)  \Gamma_0^{SS}(z,a,j; \theta_0^{SS})  da, $$ with \[  EV(z,a,j) = \left(  \frac{ V_0(z,a,j; \theta_0^{SS}, \theta_N^{SS}) }{  V_0^{SS}(z,a,j; \theta_0^{SS}) } \right)^{\frac{1}{\gamma(1 - \sigma)}} . \] Discuss the results.		
   \begin{solution}
-    All age groups prefer plocy with social security, with younger generations benefit more from social security system.
+	
+    All age groups prefer policy with social security, and younger generations benefit the most from having the social security system. Figure \ref{EV1} shows the results.
+
+\begin{figure}[htbp]
     \begin{center}
       \includegraphics[width=0.5\textwidth]{Figures/EV.pdf}
-      
+	\caption{Consumption Equivalent Variation}
+      \label{EV1}
     \end{center}
+\end{figure}
     
   \end{solution}
 \end{enumerate}
@@ -111,8 +117,8 @@
 \begin{enumerate}
 \item Instead of considering an unexpected elimination of the social security system, assume that in $ t = 0 $ the government credibly announces that it is going to abolish the public pension system starting from $ t = 21 $ onwards. Thus, all individuals retired keep their social security benefits, but future retirees anticipate that they will receive only part or no social security benefits. Repeat steps (1)-(3) of exercise 1 to study how agents readjust their plans and how political support changes for the anticipated reform in 21 years. You will have to increase the number of transition periods (try $ N = 50 $). Discuss your results.
   \begin{solution}
-    With an expected policy change, agents start to adjust from the annoucement period, while they also make a relatively bidder adjustment when the policy change happens, expecially for labor supply. But capital adjustment is smoother, and most of the adjustment happens before policy changes.
-    With expected policy change, the welfare loss is lower. 
+    With an expected policy change, agents start to adjust from the announcement period, while they also make a relatively bidder adjustment when the policy change happens, especially for labor supply. But capital adjustment is smoother, and most of the adjustment happens before policy changes.
+    With an expected policy change, the welfare loss is lower. Figures \ref{fig2} and \ref{EV2} display the results.
     \begin{figure*}
       \centering
       \begin{subfigure}[b]{0.475\textwidth}
@@ -134,13 +140,24 @@
         \centering 
         \includegraphics[width=\textwidth]{Figures/capital_ex2.pdf}
       \end{subfigure}
-      \caption{Transition Path: Unaticipated Shock}
-      \label{fig}
+      \caption{Transition Path: Anticipated Shock}
+      \label{fig2}
     \end{figure*}
     \clearpage
-    \begin{center}
-      \includegraphics[width=0.5\textwidth]{Figures/EV_ex2.pdf}
-    \end{center}
+	\begin{figure}
+	    \begin{center}
+	      \includegraphics[width=0.5\textwidth]{Figures/EV_ex2.pdf}
+		\caption{Consumption Equivalent Variation for Exercise 2}
+		\label{EV2}
+	    \end{center}
+	\end{figure}
   \end{solution}
 \end{enumerate}
+\newpage
+	\section*{Appendix}
+ 	The first code file runs the code.
+ 	\jlinputlisting{Code/run_model.jl}
+	
+ 	The second code file contains the relevant functions.
+ 	\jlinputlisting{Code/conesa_kueger.jl}
 \end{document}
