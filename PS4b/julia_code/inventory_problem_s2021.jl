@@ -2,7 +2,7 @@
 ## This code is a julia version from inventory_problem_s2021.ox
 ###############################################################
 
-using DataFrames, LinearAlgebra, CSV
+using DataFrames, LinearAlgebra, CSV, Plots, Optim, Latexify
 
 alpha = 2
 
@@ -50,9 +50,9 @@ mF1 = DataFrame(CSV.File("../ox_code/PS4_transition_a1.csv")) |> Matrix
 
 mF1 = mF1[:,3:end]
 
+### Q1
 ## CCP mapping
-
-function ccp(vP)
+function ccp(vP, lambda)
     
     vU1 = alpha.*mS[:,iC] - mS[:, iP];
     
@@ -94,7 +94,7 @@ while err > eps
 
     vP0 = vP
 
-    tmp = ccp(vP0)
+    tmp = ccp(vP0, lambda)
 
     vP = tmp[2]
 
@@ -111,6 +111,14 @@ while err > eps
 
 end
 
+##########################
+## Q1 Output
+##########################
+latexify(hcat(mS, vEV))
+
+#######################################################
+## Q2
+#######################################################
 mF = mF0 .* (1 .- vP) + mF1 .* vP
 
 vF = fill(1/S, S)
@@ -221,4 +229,87 @@ for i = 1:36
 end
 
 vEV2 = ccp(vPhat)[1]
-        
+
+## Q2 output
+latexify(hcat(mS, vEV, vEV2))
+
+### Likelihood function
+
+function lfunc_ccp(lambda)
+    
+    vCCP = ccp(vPhat, lambda)[2]
+
+    vCCP = vCCP[vSid]
+
+    vL = vCCP .* vY + (1 .- vCCP) .* (1 .- vY)
+
+    LLF = -sum(log.(vL))
+
+end
+
+function lfunc_nfxp(param)
+
+    global lambda = param 
+         
+    global vCCP = vPhat
+
+    global eps = 10^(-10)
+
+    global vEV = fill(0, S) 
+
+    global err = 100
+
+    while err > eps 
+
+        global vEV0 = vEV
+
+        global vCCP0 = vCCP
+
+        global tmp = ccp(vCCP0, lambda)
+
+        global vEV = tmp[1]
+
+        global err = norm(vEV - vEV0, Inf) 
+
+        if err < eps
+
+            global vEV = tmp[1]
+            
+            global vCCP = tmp[2]
+ 
+        end
+
+    end
+
+    global vCCP = vCCP[vSid]
+
+    global vL = vCCP .* vY + (1 .- vCCP) .* (1 .- vY)
+
+    global LLF = -sum(log.(vL))
+
+end
+
+grid = collect(range(-10, length = 101, stop = 0))
+
+ll = zeros(length(grid))
+
+for i = 1:length(grid)
+    
+    ll[i] = lfunc_nfxp(grid[i])
+
+end
+
+
+lambda = optimize(lfunc_ccp, -10, 0).minimizer
+
+lambda = optimize(lfunc_nfxp, -10, 0).minimizer
+
+plot(grid, ll,
+     title = "Grid serach",
+     xlabel = "Lambda",
+     ylabel = "Likelihood",
+     color =:black,
+     legend = false,
+     lw = 2)
+
+savefig("../document/figures/Q4_grid.pdf")

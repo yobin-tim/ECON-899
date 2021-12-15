@@ -195,7 +195,17 @@ main()
   ccp(&vEV2,&vP2,vPhat);
   println("%c",{"ID & ","I & ","C & ","P & ","$P(x)^\\ast$ & ","$\\hat{P}(s)$ & ","$EV$ & ","\\hat{EV}$ \\\ "},
 	  "%cf",{"%9.3g & ","%9.3g & ","%9.3g & ","%9.3g & ","%9.3g & ","%9.3g & ","%9.3g \\\ "},range(1,S)'~mS~vP~vPhat~vEV~vEV2);
-  
+  /* Pseudo-likelihood */
+  decl L,vParam=new matrix[1][1];
+  vParam[ilambda]=lambda;
+  decl vParam_true=vParam;
+  println(vParam);
+
+  lambda=vP[ilambda];
+  decl vCCP,vEV;
+  ccp(&vEV,&vCCP,vPhat);
+  vCCP=vCCP[vSid];
+  println(vCCP);
  
 }
   
