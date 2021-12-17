@@ -1,0 +1,98 @@
+\documentclass[landscape]{article} % kind of document 
+\usepackage[utf8]{inputenc} %encoding of choice
+\usepackage[american]{babel} %language of choice
+\usepackage[p,osf]{cochineal}
+\usepackage{fancyhdr} %for header
+\usepackage{amsmath, tabu} %math mode
+\usepackage{mathtools}
+\usepackage{extarrows} % for more options with arrows
+\usepackage{amssymb} %math symbols
+\usepackage{dsfont} %specifically for the indicator function symbol
+\usepackage{xcolor} %to color text
+\usepackage{amsthm} %math theorem
+\usepackage{tikz}
+\usepackage{caption}
+\usepackage{multirow}
+\usepackage[bottom]{footmisc}
+% \usepackage[dvipsnames]{xcolor}
+%\usepackage{pythontex}
+\usepackage{enumerate} %make lists
+\usepackage{graphicx} %insert images
+\usepackage{float} %to fix image position
+\usepackage{moreverb} %to make boxes
+\usepackage{hyperref} %to create hyperlinks
+\usepackage{lipsum} %lorem ipsum package
+\usepackage{setspace} % to use singlespace below in the solution environment
+\usepackage[shortlabels]{enumitem}
+\usepackage{parskip}
+\usepackage[us]{datetime} %package for setting due date in US format
+\newdate{duedate}{6}{12}{2021} %to set a due date
+\allowdisplaybreaks
+\usepackage[margin=.5in, landscape]{geometry}
+\usepackage{rotating}
+\usepackage{pdflscape}
+\usepackage[paper=portrait,pagesize]{typearea}
+\usepackage{jlcode}
+\pagestyle{fancy}
+
+
+\fancypagestyle{mylandscape}{
+	\fancyhf{} %Clears the header/footer
+	\fancyfoot{% Footer
+		\makebox[\textwidth][r]{% Right
+			\rlap{\hspace{.75cm}% Push out of margin by \footskip
+				\smash{% Remove vertical height
+					\raisebox{4.87in}{% Raise vertically
+						\rotatebox{90}{\thepage}}}}}}% Rotate counter-clockwise
+	\renewcommand{\headrulewidth}{0pt}% No header rule
+	\renewcommand{\footrulewidth}{0pt}% No footer rule
+}
+
+\lhead{Due: \displaydate{duedate}}
+\chead{ECON 899 -- PS3b -- }
+\rhead{Danny, Hiroaki, Mitchell, Ryan, Yobin}
+
+\newcommand{\E}[1]{\mathbb{E}\left[#1\right]} %ease of writing e and E
+\newcommand{\Ee}[1]{\mathbb{E}_{\epsilon}\left[#1\right]}
+\newcommand{\Eep}[1]{\mathbb{E}_{\epsilon'}\left[#1\right]}
+\newcommand{\e}{\mathrm{e}}
+\newcommand{\ct}{\mathsf{c}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\ifn}{\mathds{1}}
+\newcommand{\X}{\mathbf{X}}
+\newcommand{\Y}{\mathbf{Y}}
+\newcommand{\one}[1]{\mathbf{1}\left\{#1\right\}}
+\newcommand{\usmax}[1]{\underset{#1}{\text{max }}}
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+\newcommand*\widebar[1]{\overline{#1}} % to get a widebar
+\theoremstyle{definition}
+\newtheorem{theorem}{theorem} % Theorem display format
+\newtheorem{problem}[theorem]{Exercise} % Problem display format, last bracket sets display choice
+
+\newenvironment{solution}[1][Answer]{\begin{singlespace}\underline{\textbf{#1:}}\quad }{\ \rule{0.3em}{0.3em}\end{singlespace}} % Answer format
+
+\newenvironment{solutions}[1][Proof]{\begin{singlespace}\underline{\textbf{#1:}}\quad }{\ \rule{0.3em}{0.3em}\end{singlespace}} % Answer format
+\title{Econ899 PS1b}
+\usepackage{listings}
+
+\begin{document}
+%\maketitle
+The code used to complete this problem set is attached in the appendix below.
+\begin{enumerate}
+	\item The expected value function can be written as:\begin{align*}
+            \Ee{V(i, c, p, \epsilon)} &= \Ee{\usmax{a\in\{0, 1\}} U(a|i,c,p,\epsilon) + \beta\sum_{c',p'}\Eep{V(i',c',p',\epsilon')}\Pr(c',p'|c,p,a)} \\
+            \Ee{V(s, \epsilon)} &= \Ee{\usmax{a\in\{0, 1\}} U(a|s,\epsilon) + \beta\sum_{s'}\Eep{V(s', \epsilon')}\Pr(s'|s,a)} \\
+            \overline{V}(s) &= \Ee{\usmax{a\in\{0, 1\}} U(a|s,\epsilon) + \beta\sum_{s'}\overline{V}(s')\Pr(s'|s,a)} 
+        \end{align*}
+\end{enumerate}
+
+\newpage
+\section*{Appendix}
+ 	The first codefile named ``runfile.jl" runs the code.
+ 	%\jlinputlisting{runfile.jl}
+	
+ 	The second codefile named ``functions.jl" contains the relevant functions.
+ 	%\jlinputlisting{functions.jl}
+\end{document}

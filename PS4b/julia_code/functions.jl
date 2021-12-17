@@ -11,19 +11,23 @@ using LinearAlgebra, Parameters, Optim, CSV
     imax::Int64 = 8
 
     # Markov transition matrix
-    Π::Array{Float64, 2} = [
+    Π::Array{Float64,2} = [
         0.9 0.1
         0.9 0.1
     ]
+
+    # Utility function
+    U::Function = (a, i, c, p, ϵ) -> (a == 1) ? α * c - p + ϵ[2] : (
+                        (i > 0) ? α * c + ϵ[1] : λ * (c > 0) + ϵ[0])
 
     # Parameters that must be loaded:
     # State space S 
     # Transition matrix F(s'|s, a = 0)
     # Transition matrix F(s'|s, a = 1)
-    S::Array{Int64, 2} = (DataFrame(CSV.File(
+    S::Array{Int64,2} = (DataFrame(CSV.File(
         "./PS4b/ox_code/PS4_state_space.csv"))|>Matrix)[:, 3:end]
-    F₀::Array{Float64, 2} = (DataFrame(CSV.File(
-        "./PS4b/ox_code/PS4_transition_a0.csv")) |> Matrix)[:, 3:end]
-    F₁::Array{Float64, 2} = (DataFrame(CSV.File(
-        "./PS4b/ox_code/PS4_transition_a1.csv")) |> Matrix)[:, 3:end]
+    F₀::Array{Float64,2} = (DataFrame(CSV.File(
+        "./PS4b/ox_code/PS4_transition_a0.csv"))|>Matrix)[:, 3:end]
+    F₁::Array{Float64,2} = (DataFrame(CSV.File(
+        "./PS4b/ox_code/PS4_transition_a1.csv"))|>Matrix)[:, 3:end]
 end # Primitives struct 
