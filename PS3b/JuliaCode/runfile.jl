@@ -3,11 +3,11 @@
 ==#
 
 # Load the necessary packages
-using StatFiles, DataFrames, Plots, LaTeXStrings
+using StatFiles, DataFrames, Plots, LaTeXStrings, Printf
 theme(:juno)
 # Un-comment the following line when compiling the document
 # theme(:vibrant)
-default(fontfamily="Computer Modern", framestyle=:box) # LaTex-style
+default(fontfamily = "Computer Modern", framestyle = :box) # LaTex-style
 
 
 # Indlude the functions
@@ -30,9 +30,9 @@ err_list_cm = inverse_demand(model, λₚ, market; method = "Contraction Mapping
 # No longer need to reset the model. Funcion will recalculate δ from scratch if not told otherwise
 err_list_n = inverse_demand(model, λₚ, market; method = "Newton", max_iter = Inf)
 
-plot(err_list_cm[2:end], xlabel = "Iteration", size=(800,600),
-    ylabel = "Error",title = "Error vs. Iteration", label="Contraction Mapping")
-plot!(err_list_n[2:end],line=(:dash), label="Newton")
+plot(err_list_cm[2:end], xlabel = "Iteration", size = (800, 600),
+    ylabel = "Error", title = "Error vs. Iteration", label = "Contraction Mapping")
+plot!(err_list_n[2:end], line = (:dash), label = "Newton")
 savefig("./PS3b/Document/Figures/Problem1.pdf")
 
 
@@ -62,19 +62,19 @@ model = construct_model(model_specs, car_data, instruments, income)
 
 num_iter_recalc = []
 for λ ∈ grid
-    err = inverse_demand(model, λ, market; recalc_δ  = true)
+    err = inverse_demand(model, λ, market; recalc_δ = true)
     push!(num_iter_recalc, length(err))
 end
 
 num_iter_no_recalc = []
 for λ ∈ grid
-    err = inverse_demand(model, λ, market; recalc_δ  = false)
+    err = inverse_demand(model, λ, market; recalc_δ = false)
     push!(num_iter_no_recalc, length(err))
 end
 
 
-sum(num_iter_recalc)/length(num_iter_recalc)
-sum(num_iter_no_recalc)/length(num_iter_no_recalc)
+sum(num_iter_recalc) / length(num_iter_recalc)
+sum(num_iter_no_recalc) / length(num_iter_no_recalc)
 
 #? Experimemt
 # What is faster Newton or Contraction Mapping?
@@ -82,14 +82,14 @@ using BenchmarkTools
 @btime begin
     model = construct_model(model_specs, car_data, instruments, income)
     for λ ∈ grid
-        err = inverse_demand(model, λ, market; recalc_δ  = false, method = "Newton")
+        err = inverse_demand(model, λ, market; recalc_δ = false, method = "Newton")
     end
 end
 
 @btime begin
     model = construct_model(model_specs, car_data, instruments, income)
     for λ ∈ grid
-        err = inverse_demand(model, λ, market; recalc_δ  = false, method = "Contraction Mapping")
+        err = inverse_demand(model, λ, market; recalc_δ = false, method = "Contraction Mapping")
     end
 end
 
@@ -102,9 +102,9 @@ function ReturnData(model, grid)
     return data
 end
 
-data=ReturnData(model, grid)
+data = ReturnData(model, grid)
 
-plot(grid, data, title="GMM Objective Function", xlabel=L"\lambda_{p}", legend=false, markershape = :auto)
+plot(grid, data, title = "GMM Objective Function", xlabel = L"\lambda_{p}", legend = false, markershape = :auto)
 xticks!(grid)
 savefig("./PS3b/Document/Figures/Problem2.pdf")
 
@@ -112,12 +112,18 @@ savefig("./PS3b/Document/Figures/Problem2.pdf")
 ####                            Problem 3
 ###############################################################################
 
-λhat_GMM=TwoStage_gmm(model)
+λhat_GMM = TwoStage_gmm(model)
+
+# print result
+fname = "./PS3b/Document/Problem3.tex";
+open(fname, "w") do io
+    str = @sprintf "\$\\lambda_p=%1.3f\$" λhat_GMM[1]
+    write(io, str)
+end;
 
 
 
-
-
+#==
 ##Testing
 opt = optimize(λ -> gmm(model, λ[1]), [.6], method = BFGS(), f_tol = 1e-5, g_tol = 1e-5)
     λ_hat = opt.minimizer[]
@@ -146,3 +152,4 @@ Zopt_scondstage = optimize(λ -> gmm(model, λ[1],SpecifyW=true,SpecifiedW=Optim
                 [λ_hat], method = BFGS(), f_tol = 1e-5, g_tol = 1e-5).minimizer
 
 TwoStage_gmm(model)
+==#

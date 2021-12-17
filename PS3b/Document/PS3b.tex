@@ -78,14 +78,24 @@
 %\maketitle
 The code used to complete this problem set is attached in the appendix below.\footnote{We gratefully acknowledge a conversation with Michael Nattinger that helped us to find an error in applying the Newton method.}
 \begin{enumerate}
-	\item Problem 1: 
+	\item Problem 1: See inverse\_demand() in functions.jl. The function converges in 73 iterations, and the errors are plotted below.
+		\begin{center}
+			\includegraphics[width=0.8\textwidth]{figures/Problem1.pdf}
+		\end{center}
+
+	\item Problem 2: The GMM objective function using the 2SLS weighting matrix is plotted below for $\lambda_p\in[0, 1]$. As you can see, the function is smooth, continuous, and concave with a unique minimum in this range.
+		\begin{center}
+			\includegraphics[width=0.8\textwidth]{figures/Problem2.pdf}
+		\end{center}
+
+	\item Problem 3: Minimizing the GMM objective function to estimate $\lambda$ with 2-step GMM yields an estimate of \input{Problem3.tex}.
 \end{enumerate}
 
 \newpage
 \section*{Appendix}
- 	The first codefile named "runfile.jl" runs the code.
+ 	The first codefile named ``runfile.jl" runs the code.
  	%\jlinputlisting{runfile.jl}
 	
- 	The second codefile named "functions.jl" contains the relevant functions.
+ 	The second codefile named ``functions.jl" contains the relevant functions.
  	%\jlinputlisting{functions.jl}
 \end{document}
