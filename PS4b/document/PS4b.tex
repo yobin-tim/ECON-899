@@ -58,6 +58,7 @@
 \newcommand{\e}{\mathrm{e}}
 \newcommand{\ct}{\mathsf{c}}
 \newcommand{\Z}{\mathbb{Z}}
+\renewcommand{\L}{\mathcal{L}}
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\N}{\mathbb{N}}
 \newcommand{\ifn}{\mathds{1}}
@@ -65,6 +66,7 @@
 \newcommand{\Y}{\mathbf{Y}}
 \newcommand{\one}[1]{\mathbf{1}\left\{#1\right\}}
 \newcommand{\usmax}[1]{\underset{#1}{\text{max }}}
+\newcommand{\loge}[1]{\text{log}\left(#1\right)}
 \newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
 \newcommand*\widebar[1]{\overline{#1}} % to get a widebar
 \theoremstyle{definition}
@@ -79,14 +81,21 @@
 
 \begin{document}
 %\maketitle
-The code used to complete this problem set is attached in the appendix below.
-\begin{enumerate}
-	\item The expected value function can be written as:\begin{align*}
-            \Ee{V(i, c, p, \epsilon)} &= \Ee{\usmax{a\in\{0, 1\}} U(a|i,c,p,\epsilon) + \beta\sum_{c',p'}\Eep{V(i',c',p',\epsilon')}\Pr(c',p'|c,p,a)} \\
-            \Ee{V(s, \epsilon)} &= \Ee{\usmax{a\in\{0, 1\}} U(a|s,\epsilon) + \beta\sum_{s'}\Eep{V(s', \epsilon')}\Pr(s'|s,a)} \\
-            \overline{V}(s) &= \Ee{\usmax{a\in\{0, 1\}} U(a|s,\epsilon) + \beta\sum_{s'}\overline{V}(s')\Pr(s'|s,a)} 
-        \end{align*}
-\end{enumerate}
+The code used to complete this problem set is attached in the appendix below. \bigskip \\
+The expected value function can be written as:\begin{align*}
+	\Ee{V(i, c, p, \epsilon)} &= \Ee{\usmax{a\in\{0, 1\}} U(a|i,c,p,\epsilon) + \beta\sum_{c',p'}\Eep{V(i',c',p',\epsilon')}\Pr(c',p'|c,p,a)} \\
+	\Ee{V(s, \epsilon)} &= \Ee{\usmax{a\in\{0, 1\}} U(a|s,\epsilon) + \beta\sum_{s'}\Eep{V(s', \epsilon')}\Pr(s'|s,a)} \\
+	\overline{V}(s) &= \Ee{\usmax{a\in\{0, 1\}} U(a|s,\epsilon) + \beta\sum_{s'}\overline{V}(s')\Pr(s'|s,a)} 
+\end{align*}
+The numerical value for each state variable, $s$, is in the first column below, with the implied value function from $\hat{P}(s)$ in the second column. As you can see, the expected values are much higher using $\hat{P}(s)$, for each state. \input{Problem2.tex}
+\newpage
+The log-likelihood function is \[
+	\L(s_i|\lambda) = \sum_ia_i\loge{P(s_i)} + (1-a_i)\loge{1 - P(s_i)}
+\]
+Solving this log-likelihood function using a nested fixed point algorithm yields a result of \input{Problem4.tex}. The negative log-likelihood function is plotted below, displaying a unique minimum between -10 and 0.
+\begin{center}
+	\includegraphics[width = \textwidth]{figures/Problem4.pdf}
+\end{center}
 
 \newpage
 \section*{Appendix}

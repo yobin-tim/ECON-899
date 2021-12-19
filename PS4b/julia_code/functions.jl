@@ -9,6 +9,7 @@ using LinearAlgebra, Parameters, Optim, CSV, Printf
     pᵣ::Int64   = 4
     pₛ::Int64   = 1
     imax::Int64 = 8
+    λ::Float64 
 
     # Markov transition matrix
     Π::Array{Float64,2} = [
@@ -34,11 +35,14 @@ end # Primitives struct
 
 
 ## Function calculates expected value
-function ExpVal(prim::Primitives, P, λ)
+function ExpVal(prim::Primitives, P, θ; primβ = true)
 
     # unpack relevant primitives
     @unpack α, β, S, U, F₀, F₁ = prim
     γ = MathConstants.eulergamma;
+
+    # replace β with second argument of θ is primβ not specified
+    if (primβ); λ = θ; else; λ, β = θ[1], θ[2]; end;
 
     # define utility levels for each state space and choice of a 
     U₁ = U.(1, S[:, 1], S[:, 2], S[:, 3], λ, 0)
@@ -59,17 +63,22 @@ end # ExpVal()
 
 ## Wrapper function for the expected value function that performs
 ## the CCP algorithm
-function CCP(prim::Primitives, P₀; ε = 10e-10, err = 100, N = 100)
+function CCP(prim::Primitives, P₀; ε = 10e-10, err = 100, N = 100, trueλ = true)
 
     # unpack relevant primitives
-    @unpack λ₀ = prim
+    if (trueλ)
+        @unpack λ₀ = prim
+    else
+        @unpack λ₀, λ = prim; λ₀ = λ
+    end
+
 
     # initialize iteration counter
     i = 1;
 
     # iterate the expected value function until convergence
     while err > ε
-        EV, P = ExpVal(prim, P₀, λ₀)
+        global EV, P = ExpVal(prim, P₀, λ₀)
         err = norm(P - P₀)
 
         # print progress every N iterations
@@ -83,3 +92,23 @@ function CCP(prim::Primitives, P₀; ε = 10e-10, err = 100, N = 100)
     return EV, P
 
 end # CCP()
+
+## Function that evaluates the log-likelihood for choices aᵢ at a given λ and β
+function LL(aᵢ, Sᵢ, θ, P₀; primβ = true)
+
+    # use the CCP to solve for P given θ
+    if (primβ); prim.λ = θ; else; prim.λ, prim.β = θ[1], θ[2]; end;
+
+    # solve for fixed-point CCP
+    P = CCP(prim, P₀; trueλ = false)[2]
+
+    # calculate likelihood for each observation
+    Lᵢ = zeros(length(unique(Sᵢ)), 1)
+    for i ∈ 0:(length(unique(Sᵢ)) - 1)
+        Lᵢ[i+1] = sum(aᵢ[Sᵢ .== i].*log.(P[i + 1]) + 
+                    (1 .- aᵢ[Sᵢ .== i]).*log.(1 .- P[i + 1]))
+    end
+
+    # return log-likelihood
+    return sum(Lᵢ)
+end # log-likelihood function, LL()
