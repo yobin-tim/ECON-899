@@ -15,7 +15,7 @@ using Parameters, LinearAlgebra
                                     0.2000  0.2000  0.2500  0.3400  0.0100]
     ν           ::Array{Float64}   = [0.37, 0.4631, 0.1102, 0.0504, 0.0063]
     A           ::Float64          = 1/200
-    c_f         ::Int64
+    c_f         ::Int64            = 10
     c_e         ::Int64            = 5
 
     # Price grid
@@ -47,8 +47,8 @@ mutable struct Results
 end
 
 # Initialize model
-function Initialize(;cfval=10)
-    prim  = Primitives(c_f=cfval)
+function Initialize()
+    prim  = Primitives()
 
     W_val = zeros(prim.nS)
     n_opt = zeros(prim.nS)
@@ -299,7 +299,7 @@ function find_Vx(prim::Primitives, res::Results,  α::Float64 ; tol::Float64 = 1
 
     end # end while
     # println("Iter $n err = $err")
-    return V_x, σ_x
+    return V_x, σ_x, U₀
 end # find_Vx
 
 # Find equilibrium objects given a  variance indexer α for the shocks
@@ -312,7 +312,7 @@ function find_equilibrium(prim::Primitives, res::Results, α::Float64; tol::Floa
 
     println("\n",'='^135, "\n",'='^135, "\n", "Solving for price such that entrants make 0 profits, TV1 Shocks α = $α", "\n", '='^135)
     while n < n_max
-        V_x, σ_x = find_Vx(prim, res, α);
+        V_x, σ_x, U₀ = find_Vx(prim, res, α);
 
 
         # Calculate value of each firm
@@ -321,7 +321,7 @@ function find_equilibrium(prim::Primitives, res::Results, α::Float64; tol::Floa
         res.W_val = copy(W_vals)
 
         #EC = sum(W_vals .* ν) - res.p * c_e
-        EC = sum(W_vals .* ν) /res.p - c_e
+        EC = sum(U₀ .* ν) /res.p - c_e
 
 
         # adjust tuning parameter based on EC
@@ -362,7 +362,7 @@ function find_equilibrium(prim::Primitives, res::Results, α::Float64; tol::Floa
     println('='^135, "\n", "Model Solved with random disturbances, TV1 Shocks α = $α", "\n", '='^135, "\n",'='^135, "\n")
 end # find_equilibrium
 
-function AvTimeIn(prim,res; SampleSize=1000000)
+function AvTimeIn(prim,res; SampleSize=10000000)
     @unpack nS, ν, s_vals, Π, trans_mat = prim
     @unpack p, x_opt =res
     AvTimeIn=0

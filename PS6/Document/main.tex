@@ -66,26 +66,33 @@ Our code is attached in the appendix.
 \subsubsection*{Task 2}
 Compute the following model moments and fill in the table. Are they any different across model specifications? If yes, try to explain intuitively what drives the differences.
 \begin{solution}
-	The table is the following. 
+	The table is the following:
 	\begin{center}
 	\begin{tabular}{ccccc}
-	variable & Standard & TV1 Shock $\alpha$ = 2.0 & TV1 Shock $\alpha$ = 3.0 & TV1 Shock $\alpha$ = 1.0\\
-	Price Level & 0.739 & 0.725 & 0.728 & 0.713\\
-	Mass of Incumbents & 8.321 & 8.829 & 8.207 & 10.336\\
-	Mass of Entrants & 2.639 & 3.033 & 3.218 & 2.756\\
-	Mass of Exits & 1.662 & 2.132 & 2.09 & 2.132\\
-	Aggregate Labor & 179.834 & 183.024 & 181.198 & 187.775\\
-	Labor of Incumbents & 142.627 & 142.497 & 137.744 & 152.541\\
-	Labor of Entrants & 37.207 & 40.527 & 43.455 & 35.234\\
-	Fraction of Labor Entrants & 0.207 & 0.221 & 0.24 & 0.188\\
+		variable & Standard & TV1 Shock $\alpha$ = 1.0 & TV1 Shock $\alpha$ = 2.0 & TV1 Shock $\alpha$ = 3.0\\
+		\hline
+		Price Level & 0.739 & 0.713 & 0.725 & 0.728\\
+		Mass of Incumbents & 8.32 & 10.336 & 8.83 & 8.216\\
+		Mass of Entrants & 2.638 & 2.757 & 3.031 & 3.209\\
+		Mass of Exits & 1.662 & 2.133 & 2.132 & 2.087\\
+		Aggregate Labor & 185.37 & 191.285 & 183.026 & 178.805\\
+		Labor of Incumbents & 142.625 & 152.537 & 142.519 & 137.856\\
+		Labor of Entrants & 42.746 & 38.748 & 40.507 & 40.949\\
+		Fraction of Labor Entrants & 0.231 & 0.203 & 0.221 & 0.229\\
+		\hline
+		Average Time In & 4.155 & 4.745 & 3.907 & 3.559\\
+		$\int W(s;p)\nu(ds)$ & 3.696 & 3.567 & 3.627 & 3.645\\
+
 	\end{tabular}
 	\end{center}
+
+	There are differences across model specifications. As the variance of the TV1 shock increases, the equilibrium price level decreases. This suggests that increasing the TV1 shock variance tends to increase $\int W(s;p)\nu(ds)$ for a given value of $p$. A partial explanation for why could be that conditional on entering, the average number of periods an entrant tends to stay in the market is increasing in the variance of the TV1 shock, as shown in the ``Average Time In'' row. In equilibrium, $\int W(s;p)\nu(ds)$ is decreasing in the variance of the TV1 shock. Since it takes longer for firms to exit the market upon entering, the mass of incumbents at any given time is therefore increasing in the variance of the TV1 shock. This explains the general trend of the ``Mass of Incumbents'' row, and seems also to explain why the mass and labor of entrants respectively shrink relative to the mass and labor of incumbents as the variance of the TV1 shock rises. The ``Mass of Exits,'' ``Aggregate Labor,'' and ``Incumbent Labor'' also tend to rise with the variance of the TV1 shock, which is likely because there is a larger total number of firms in the market at higher values of the TV1 shock variance.
 \end{solution}
 
 \subsubsection*{Task 3}
 Plot the decision rules of exit in all model specifications you have solved. Are they any different? If yes, try to explain intuitively what drives the differences.
 \begin{solution}
-Figure \ref{T3} displays the results.
+Figure \ref{T3} displays the results. There are differences across model specifications.  The benchmark model shows that, absent the shocks, all firms optimally exit the market at a productivity of 3.98e-4 but stay in at all higher productivity levels. Therefore, the only reason a firm would deviate from this plan of action is if they received an appropriate shock, and the larger the variance of the shock, the greater the chances that a firm will deviate. This explains why, as the variance of the TV1 shock increases, the probability of exiting the market decreases when firm productivity is 3.98e-4 and increases when firm productivity is at 3.58.
 	\begin{figure}[htbp]
 	\begin{center}
 	\includegraphics[scale=.35]{Figures/decision_rules.pdf}
@@ -99,7 +106,14 @@ Figure \ref{T3} displays the results.
 How does the exit decision rule change if cf rises from 10 to 15?
 
 \begin{solution}
-
+Figure \ref{T4} shows the results. Relative to the case shown in figure \ref{T3} where $c_{f}=10$, now under the benchmark model firms optimally exit when their productivity level is at 3.58 as well as when it is at 3.98e-4. When $c_{f}=15$, firms become less likely to exit as the variance of the TV1 shock increases for each of these two productivity levels.
+\begin{figure}[htbp]
+	\begin{center}
+	\includegraphics[scale=.35]{Figures/decision_rules_cf15.pdf}
+	\caption{Decision Rules across Model Specifications when $c_{f}=15$ rather than $10$}
+	\label{T4}
+	\end{center}
+\end{figure}
 \end{solution}
 
 \newpage

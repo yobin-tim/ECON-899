@@ -15,7 +15,7 @@ using Parameters, LinearAlgebra
                                     0.2000  0.2000  0.2500  0.3400  0.0100]
     ν           ::Array{Float64}   = [0.37, 0.4631, 0.1102, 0.0504, 0.0063]
     A           ::Float64          = 1/200
-    c_f         ::Int64            = 10
+    c_f         ::Int64
     c_e         ::Int64            = 5
 
     # Price grid
@@ -47,8 +47,8 @@ mutable struct Results
 end
 
 # Initialize model
-function Initialize()
-    prim  = Primitives()
+function Initialize(;cfval=10)
+    prim  = Primitives(c_f=cfval)
 
     W_val = zeros(prim.nS)
     n_opt = zeros(prim.nS)
@@ -66,7 +66,7 @@ end
 # Bellman operator for W
 function W(prim::Primitives, res::Results)
     @unpack Π, n_optim,s_vals, nS, trans_mat, c_f, β = prim
-    @unpack p = res 
+    @unpack p = res
 
     temp_val = zeros(size(res.W_val))
 
@@ -84,19 +84,19 @@ function W(prim::Primitives, res::Results)
 
         # Firm exit the market if next period's expected value of stay is negative
         x = ( exp_cont_value > 0 ) ? 0 : 1
-        
+
         temp_val[s_i] = prof + β * (1 - x) * (exp_cont_value )
         res.x_opt[s_i] = x
-        
+
     end
-    
+
     res.W_val = temp_val
-    
+
 end # W
 
 #Value function iteration for W operator
 function TW_iterate(prim::Primitives, res::Results; tol::Float64 = 1e-4)
-    
+
     n = 0 #counter
     err = 100.0 #initialize error
     while  (err > tol) & (n < 4000)#begin iteration
@@ -116,14 +116,14 @@ function market_clearing(prim::Primitives, res::Results; tol::Float64 = 1e-3,  n
 
     θ = 0.99
     n = 0
-    
+
     while n < n_max
         TW_iterate(prim, res)
         # W(prim, res)
         # Calculate EC
         #EC = sum(res.W_val .* ν) - res.p * c_e
         EC = sum(res.W_val .* ν) /res.p - c_e
-        
+
         # println("p = ", res.p," EC = ", EC, " tol = ", tol)
         if abs(EC) > tol * 10000
         # adjust tuning parameter based on EC
@@ -134,7 +134,7 @@ function market_clearing(prim::Primitives, res::Results; tol::Float64 = 1e-3,  n
             θ = 0.9
         else
             θ = 0.99
-        end    
+        end
         if n % 10 == 0
             println(n+1, " iterations; EC = ", EC, ", p = ", res.p, ", p_min = ", p_min, ", p_max = ", p_max, ", θ = ", θ)
         end
@@ -153,9 +153,9 @@ function market_clearing(prim::Primitives, res::Results; tol::Float64 = 1e-3,  n
             res.p = θ*res.p + (1-θ)*p_max
             p_min = p_old
         end
-        
+
         n += 1
-        
+
     end
 end
 
@@ -172,7 +172,7 @@ function labor_supply_demand(prim::Primitives, res::Results; M::Float64=res.M)
     @unpack c_e, ν = prim
 
     res.μ = Tμ(prim, res.x_opt, M)
-    
+
     # Calculate optimal labor demand for each firm (for each productivity level)
     n_opt = prim.n_optim.(prim.s_vals, res.p)
     # Calculate profit for each firm (for each productivity level)
@@ -181,9 +181,9 @@ function labor_supply_demand(prim::Primitives, res::Results; M::Float64=res.M)
     mass = res.μ  + M *  prim.ν
 
     # Calculate Total labor demand
-    tot_labor_demand = n_opt' * mass 
+    tot_labor_demand = n_opt' * mass
 
-    # Calculate total profits 
+    # Calculate total profits
     tot_profit = prof' * mass
     # Calculate total supply of labor
     tot_labor_supply = 1/prim.A - tot_profit
@@ -195,12 +195,12 @@ end
 # Iterate until labor market clears
 function Tμ_iterate_until_cleared(prim::Primitives, res::Results;  tol::Float64 = 1e-3, n_max::Int64 = 1000)
     @unpack Π, n_optim , s_vals, ν, A, M_min, M_max = prim
-    
+
     θ = 0.5
     n = 0 #counter
     err = 100.0 #initialize error
 
-    
+
     while  (abs(err) > tol) & (n < n_max)#begin iteration
         # Calculate optimal labor demand for a given mass of entrants
 
@@ -218,12 +218,12 @@ function Tμ_iterate_until_cleared(prim::Primitives, res::Results;  tol::Float64
             θ = 0.9
         else
             θ = 0.99
-        end    
+        end
 
         if (n+1) % 10 == 0
             println(n+1, " iterations; LMC = ", LMC, ", M = ", res.M, ", M_min = ", M_min, ", M_max = ", M_max, ", θ = ", θ)
         end
-        
+
         if abs( LMC ) < tol
             println("Labor Market Cleared in $(n+1) iterations, Mass of entrants = $(res.M)")
             break
@@ -238,7 +238,7 @@ function Tμ_iterate_until_cleared(prim::Primitives, res::Results;  tol::Float64
             res.M = θ*res.M + (1-θ)*M_max
             M_min = M_old
         end
-        
+
         n += 1
     end
 
@@ -258,25 +258,25 @@ end
 # Obtain values assocued with exit decicion for a given random disturvance variance
 function find_Vx(prim::Primitives, res::Results,  α::Float64 ; tol::Float64 = 1e-3, n_max::Int64 = 100)
     @unpack Π, n_optim , nS, s_vals, ν, A, M_min, M_max, β, trans_mat = prim
-    
+
     nX = 2
-    
+
     # Initialize error and counter
     err = 100.0
     n = 0
-    
+
     # Make initial guess of U(s;p)
     U₀ = zeros(nS)
     # Optimal labor demand and profits by productivity
     n_opt = n_optim.(s_vals, res.p)
     prof = Π.(s_vals, res.p, n_opt)
-    
+
     # Initialize V_x
-    V_x = ones(nS, nX) .* prof 
+    V_x = ones(nS, nX) .* prof
     σ_x = zeros(nS, nX)
-    
+
     while (err > tol ) & (n < n_max)
-        # Compute V_0(s;p), V_1(s;p) wont change 
+        # Compute V_0(s;p), V_1(s;p) wont change
         V_x[:, 1] = prof + β * (trans_mat * U₀)
 
         c = maximum(α * V_x, dims=2)  # Define normalization constant
@@ -286,7 +286,7 @@ function find_Vx(prim::Primitives, res::Results,  α::Float64 ; tol::Float64 = 1
         U₁ = 1/α * ( 0.5772156649 .+ log_sum )
 
         err = maximum( abs.( U₁ - U₀ ) )
-        # if n % 10 == 0 
+        # if n % 10 == 0
         #     println("Iter $n err = $err")
         # end
         U₀ = copy(U₁)
@@ -304,12 +304,12 @@ end # find_Vx
 
 # Find equilibrium objects given a  variance indexer α for the shocks
 function find_equilibrium(prim::Primitives, res::Results, α::Float64; tol::Float64 = 1e-3, n_max::Int64 = 100)
-    
+
     @unpack Π, n_optim , nS, s_vals, ν, p_min, p_max, c_e = prim
-    
+
     θ = 0.99
     n = 0
-    
+
     println("\n",'='^135, "\n",'='^135, "\n", "Solving for price such that entrants make 0 profits, TV1 Shocks α = $α", "\n", '='^135)
     while n < n_max
         V_x, σ_x = find_Vx(prim, res, α);
@@ -318,10 +318,11 @@ function find_equilibrium(prim::Primitives, res::Results, α::Float64; tol::Floa
         # Calculate value of each firm
         n_opt  = n_optim.(s_vals, res.p)
         W_vals = Π.(s_vals, res.p, n_opt) + sum(σ_x .* V_x, dims=2)
+        res.W_val = copy(W_vals)
 
         #EC = sum(W_vals .* ν) - res.p * c_e
         EC = sum(W_vals .* ν) /res.p - c_e
-            
+
 
         # adjust tuning parameter based on EC
         if abs(EC) > tol * 10000
@@ -332,7 +333,7 @@ function find_equilibrium(prim::Primitives, res::Results, α::Float64; tol::Floa
             θ = 0.9
         else
             θ = 0.99
-        end    
+        end
         if n % 10 == 0
             println(n+1, " iterations; EC = ", EC, ", p = ", res.p, ", p_min = ", p_min, ", p_max = ", p_max, ", θ = ", θ)
         end
@@ -361,3 +362,40 @@ function find_equilibrium(prim::Primitives, res::Results, α::Float64; tol::Floa
     println('='^135, "\n", "Model Solved with random disturbances, TV1 Shocks α = $α", "\n", '='^135, "\n",'='^135, "\n")
 end # find_equilibrium
 
+function AvTimeIn(prim,res; SampleSize=1000000)
+    @unpack nS, ν, s_vals, Π, trans_mat = prim
+    @unpack p, x_opt =res
+    AvTimeIn=0
+    for iter=1:SampleSize
+        TimeIn=1
+        #Draw a productivity
+            CurrentS=1
+            randno=rand()
+            for draw=1:nS
+                if randno <=sum(ν[1:draw])
+                    CurrentS=draw
+                    break
+                end
+            end
+        StillIn=1
+        while StillIn==1
+            randno=rand()
+            if randno<=x_opt[CurrentS]
+                #Exiting
+                StillIn=0
+            else #Still in
+                randno=rand()
+                #Find a New S
+                for draw=1:prim.nS
+                    if randno <=sum(trans_mat[CurrentS,1:draw])
+                        CurrentS=draw
+                        break
+                    end
+                end
+                TimeIn+=1
+            end
+        end #While loop
+        AvTimeIn+=TimeIn/SampleSize
+    end #End the for loop over iterations
+    return AvTimeIn
+end
