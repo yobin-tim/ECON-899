@@ -169,3 +169,45 @@ function FindDist_ForPlot(prim,res; dist_tol::Float64 = 1e-6, dist_err::Float64 
     return Dist, Dist[1:na].+Dist[(na+1):2*na]
 end
 ##############################################################################
+
+
+function Question3(prim, res)
+    @unpack β,α , na =prim
+    @unpack val_func=res
+    #Get the Distribution across wealth
+        Dist, SS_WealthDistribution=FindDist_ForPlot(prim,res)
+    #Utility
+        function U(x)
+            if x<0
+                return -Inf
+            else
+                return (x^(1-α)-1)/(1-α)
+            end
+        end
+    #Cbar. As found in problem 1, cbar=yu+πe(ye-yu)
+        cbar=.5+sum(Dist[1:na])*(1-.5)
+    #As found in problem 1, cbar=0.97 in the first best. Thus,
+        W_fb=(1/(1-β))*U(cbar)
+    #Next Find λ
+        λ=((W_fb+1/((1-α)*(1-β)))  ./  (val_func .+ 1/((1-α)*(1-β)) )    ).^(1/(1-α)) .-
+            1
+        μ=copy(λ)
+        μ[:,1]=Dist[1:na] #The employed folks
+        μ[:,2]=Dist[(na+1):2*na] #The unemployed folks
+    #Get Welfare Gain
+        WG=sum(λ.*μ)
+        W_Inc=sum(val_func.*μ)
+    #What fraction would support it?
+        function PositiveIndicator(input)
+            if input>=0
+                return 1
+            else
+                return 0
+            end
+        end
+        FracThatWouldFavor=sum(PositiveIndicator.(λ).*μ)
+        println("W_fb=$(W_fb), W_Inc=$(W_Inc), WG=$(WG), π(e)=$(sum(Dist[1:na])).\n
+            $(100*FracThatWouldFavor)% of the population would favor changing to
+            complete markets.\n")
+    return λ
+end

@@ -85,4 +85,12 @@ The Gini Coefficient is $(round(Gini,digits=8))",
                     Plots.savefig("./PS2/Figures/Lorenz.png")
         end
         DistPlots()
-#
+
+
+### Answering Question III
+#As found in in problem 1, cbar=0.97
+    λout=Question3(out_primitives,out_results)
+    Plots.plot(a_grid, λout[:,1], title="λ(a,s)", label="Employed")
+        plot!(a_grid, λout[:,2], title="λ(a,s)",label="Unemployed",
+        ylabel="λ(a,s)",xlabel="Assets")
+        Plots.savefig("./PS2/Figures/Lambda.png")

@@ -74,7 +74,7 @@ This problem set was completed by Danny Edgel, Mitchell Valdes Bobes, Ryan Mathe
 			\end{align*}
 		Combined, we have that $ u'(c_{e,t}) = u'(c_{u,t}) \Leftrightarrow c_{e,t} = c_{u,t} = \bar{c}$.
 
-		Plugging into the BC, we get $ \bar{c} = y_t(u) + \pi(e)[y_t(e) - y_t(u)] $. For instance, in Part II, we are given $ \pi(e) = 0.94 $, $ y_t(e) = 1 $ and $ y_t(u) = 0.5$, which would imply $ \bar{c} = 0.97$.
+		Plugging into the BC, we get $ \bar{c} = y_t(u) + \pi(e)[y_t(e) - y_t(u)] $. For instance, in Part II, we calculate that $ \pi(e) \approx 0.9434$, and are given that $ y_t(e) = 1 $ and $ y_t(u) = 0.5$. This would imply that $ \bar{c} \approx 0.9717$.
 
 		The decentralized EE for an individual $ i $ is $ \beta^t u'(c_t^i)  = \lambda q_t \Leftrightarrow q_{t+1} = \beta q_t = \beta^{t+1} q_0$.
 		\end{solution}
@@ -91,7 +91,7 @@ This problem set was completed by Danny Edgel, Mitchell Valdes Bobes, Ryan Mathe
 					The policy function is graphed below in Figure \ref{4a}. As can be seen, there does exist an $\hat{a}$ beyond which modeled agents always, whether employed or unemployed, dissave on net.
 					\begin{figure}[htbp!]
 					\centering
-					\includegraphics[scale=.5]{ForIncludingInDocument/02_ryan_Policy_Functions.png}
+					\includegraphics[scale=.5]{ForIncludingInDocument/Policy_Functions.png}
 					\caption{Problem 4(a) \label{4a}}
 					\end{figure}
 				\end{solution}
@@ -101,7 +101,7 @@ This problem set was completed by Danny Edgel, Mitchell Valdes Bobes, Ryan Mathe
 					The equilibrium bond price is $q=0.9943074$, and the resulting cross-sectional distribution of wealth is shown in Figure \ref{4b}.
 				\begin{figure}[htbp!]
 					\centering
-					\includegraphics[scale=.25]{ForIncludingInDocument/02_ryanpubreadyDistribution.pdf}
+					\includegraphics[scale=.5]{ForIncludingInDocument/Distribution.png}
 					\caption{Problem 4(b) \label{4b}}
 					\end{figure}
 				\end{solution}
@@ -112,7 +112,7 @@ This problem set was completed by Danny Edgel, Mitchell Valdes Bobes, Ryan Mathe
 				The Lorenz curve is shown in Figure \ref{4c}, and implies a Gini coefficient of 0.29969592. The true Income Gini coefficient for the US economy in 2020 was .458,\footnote{U.S. Census Bureau, Current Population Survey, 1968 to 2021 Annual Social and Economic Supplements (CPS ASEC), \href{https://www2.census.gov/programs-surveys/cps/tables/time-series/historical-income-families/f04.xlsx}{Table F-4}} so if we take this to be the relevant statistic against which to compare our model results, our model explains about 65\% of inequality as captured by the Gini Coefficient.
 				\begin{figure}[htbp!]
 					\centering
-					\includegraphics[scale=.25]{ForIncludingInDocument/02_ryanpubreadyLorenz.pdf}
+					\includegraphics[scale=.5]{ForIncludingInDocument/Lorenz.png}
 					\caption{Problem 4(c) \label{4c}}
 					\end{figure}
 				\end{solution}
@@ -123,15 +123,20 @@ This problem set was completed by Danny Edgel, Mitchell Valdes Bobes, Ryan Mathe
 		\begin{enumerate}
 			\item Plot $ \lambda(a,s) $ across $ a $ for both $ s = e $ and $ s = u $ in the same graph.
 			\begin{solution}
-
+				Figure \ref{IIIa} provides the plot.
+				\begin{figure}[htbp!]
+					\centering
+					\includegraphics[scale=.5]{ForIncludingInDocument/Lambda.png}
+					\caption{Problem III(a) \label{IIIa}}
+				\end{figure}
 			\end{solution}
 			\item What is $ W^{FB} $? What is $ W^{INC}  = \sum_{(a,s) \in A \times S} \mu(a,s) \nu(a,s) $? What is WG?
 			\begin{solution}
-
+				$ W^{FB}\approx-4.2525$,  $ W^{INC}  \approx -4.4583$, and $WG\approx 0.0014$.
 			\end{solution}
 			\item What fraction of the population would favor changing to complete markets? That is $   \sum_{(a,s) \in A \times S}   \ifn_{\lambda(a,s) \geq 0}  (a,s) \mu(a,s) $.
 			\begin{solution}
-
+				About 55.0265\% of the population would favor changing to complete markets.
 			\end{solution}
 		\end{enumerate}
 	\end{enumerate}

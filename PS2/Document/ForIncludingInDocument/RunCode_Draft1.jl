@@ -16,7 +16,7 @@
 using Plots, LaTeXStrings #import the libraries we want
 Plots.plot(a_grid, val_func[:,1], title="Value Function", label="Employed")
     plot!(a_grid, val_func[:,2], label="Unemployed")
-    Plots.savefig("Value_Functions.png")
+    Plots.savefig("./PS2/Figures/Value_Functions.png")
     #Plotting Policy functions
         function PolicyPolots()
             a_hat=0
@@ -31,7 +31,7 @@ Plots.plot(a_grid, val_func[:,1], title="Value Function", label="Employed")
                 plot!(a_grid,a_grid, label="45 line", legend=:bottomright)
                 vline!(a_hat, label=L"\hat{a}",color=:purple)
                 annotate!(a_hat[1]-.15, 4.5, text("$(round(a_hat[1],digits=3))", :purple, :right, 12))
-                Plots.savefig("Policy_Functions.png")
+                Plots.savefig("./PS2/Figures/Policy_Functions.png")
         end
         PolicyPolots()
     #Plotting Distribution
@@ -54,7 +54,7 @@ Plots.plot(a_grid, val_func[:,1], title="Value Function", label="Employed")
 where q=$(round(out_results.q,digits=8))",
                 label="Employed")
                 plot!(a_grid[1:MaxNonZero], ForDistPlot[(na+1):na+MaxNonZero], label="Unemployed", xlabel="Assets")
-                Plots.savefig("Distribution.png")
+                Plots.savefig("./PS2/Figures/Distribution.png")
             #Lorenz Curve
             n_lorenz=1000
             Lorenz=zeros(n_lorenz,2)
@@ -82,7 +82,15 @@ The Gini Coefficient is $(round(Gini,digits=8))",
                 xlabel="% of Population",
                     ylabel="% of Assets", legend=:bottomright, label="Lorenz")
                     plot!(100*Lorenz[:,1],100*Lorenz[:,1], label="Line of Equality")
-                    Plots.savefig("Lorenz.png")
+                    Plots.savefig("./PS2/Figures/Lorenz.png")
         end
         DistPlots()
-#
+
+
+### Answering Question III
+#As found in in problem 1, cbar=0.97
+    λout=Question3(out_primitives,out_results)
+    Plots.plot(a_grid, λout[:,1], title="λ(a,s)", label="Employed")
+        plot!(a_grid, λout[:,2], title="λ(a,s)",label="Unemployed",
+        ylabel="λ(a,s)",xlabel="Assets")
+        Plots.savefig("./PS2/Figures/Lambda.png")
