@@ -1,18 +1,5 @@
-using LinearAlgebra, Parameters, Interpolations
+using LinearAlgebra, Parameters, Interpolations, Plots
 
-@doc """
-    The following function recieves the following input:
-
-        - d_z:Array{Float64,1} the duration of states [d_g, d_b]
-        - d_unemp:Array{Float64,1} the duration of unemployment in each state [d_unemp_g, d_unemp_b]
-        - u:Array{Float64,1} the fraction of people unemployed inn each state [u_g, u_b]
-
-    and returns:
-
-        - Π:{Array,2} the transition matrix Π_z'ze'e
-        - An entry of this matix should be read as:
-            - Π_z'ze'e[z',e'] = probability of transitioning from state (z,e) to state (z',e')
-    """
 function trans_mat(d_z, d_u, u)
 
     d_z = ( d_z .- 1 )./d_z #So 7/8 of the time you will stay
@@ -95,12 +82,13 @@ end
     ē      ::Float64          = 0.3271                                 # Labor efficiency (per hour worked)
 
     # # # Initial Conditions
-    nk     ::Int64            = 20                                     # Number of grid points for capital
-    k_min  ::Float64          = 10.0                                  # Minimum capital
+    nk     ::Int64            = 30                                     # Number of grid points for capital
+    k_min  ::Float64          = 0.01                                  # Minimum capital
     k_max  ::Float64          = 15.0                                   # Maximum capital
     # Change: using a logaritythmic grid to better deal with concavity of the value function
     # k_grid ::Array{Float64}   = exp.(range(log(k_min), stop=log(k_max), length=nk))  # Capital grid
-    k_grid ::Array{Float64,1} = range(k_min, length = nk, stop = k_max)# Capital grid
+    k_grid ::Array{Float64,1} = vcat(range(k_min, length = Integer((2/3)*nk), stop = 5),
+                                    range(6, length = nk-Integer((2/3)*nk), stop = k_max))    # Capital grid
 
     #L_g    ::Float64          = 1 - u[1]                               # Aggregate labor from the good state
     #L_b    ::Float64          = 1 - u[2]                               # Aggregate labor from the bad state
@@ -108,9 +96,9 @@ end
     #L_ss   ::Float64          = L_ss = π*L_g + (1-π)*L_b
     K_ss   ::Float64          = 11.55 #(α/((1/β) + δ - 1))^(1/(1-α))*L_ss
 
-    K_min  ::Float64          = 10.0
+    K_min  ::Float64          = 11.0
     K_max  ::Float64          = 15.0
-    nK     ::Int64            = 11                                      # Number of grid points for capital
+    nK     ::Int64            = 20                                      # Number of grid points for capital
     # Change: using a logaritythmic grid to better deal with concavity of the value function
     # K_grid ::Array{Float64}   = exp.(range(log(K_min), stop=log(K_max), length=nK))
     K_grid ::Array{Float64,1} = range(K_min, length = nK, stop = K_max) # Aggregate Capital grid
@@ -131,6 +119,30 @@ end
     #   - b::Array{Float64} log linear coefficients in case of bad productivity shock
     k_forecast ::Function     = (z, a, b, k_last) -> ( z == 1 ) ? exp(a[1]+a[2]*log(k_last)) : exp(b[1]+b[2]*log(k_last))
 
+end
+
+function generate_shocks_alt(prim)
+    @unpack T, T_burn, d_z, d_u, u, N = prim
+    Π, Π_z=trans_mat(d_z,d_u,u)
+    Π=transpose(Π)
+    #Making the z sequence
+        z_seq=ones(T+T_burn)
+        for ti=2:T
+            rn=rand()
+            if rn>Π_z[Integer(z_seq[ti-1]),1]
+                z_seq[ti]=2
+            end #otherwise it is one already
+        end
+    #Making the ϵ sequence
+        ϵ_seq=ones(N,T+T_burn)
+        for ti=2:(T+T_burn), ni=1:N #Start everyone off at one (employed)
+            rn=rand()
+            if rn>Π[Integer(2*(1-ϵ_seq[ni,ti-1])+z_seq[ti-1]),Integer(z_seq[ti])]
+                ϵ_seq[ni,ti]=0
+            end #Otherwise they stay at 1 (employed)
+        end
+    #Return the results
+    return (Π, Π_z,  z_seq, ϵ_seq)
 end
 
 function generate_shocks(prim)
@@ -236,7 +248,7 @@ function Initialize()
 
     V = zeros(N, T)
 
-    Π, Π_z, z_seq, ℇ = generate_shocks( prim )
+    Π, Π_z, z_seq, ℇ = generate_shocks_alt( prim )
 
     shocks = Shocks(Π, Π_z, z_seq, ℇ)
     res = Results(val_fun, pol_fun, val_fun_interp, pol_fun_interp, a, b, k_forecast_grid, V)
@@ -399,6 +411,35 @@ function V_iterate(prim::Primitives, res::Results, shocks::Shocks; use_dense_gri
 
 end # Bellman iteration
 
+function Simulation_alt(prim::Primitives,res::Results,shocks::Shocks)
+    @unpack K_ss, T_burn, T, N = prim
+    @unpack z_seq, ℇ=shocks
+    @unpack pol_fun_interp=res
+    #Discard the First T_burn periods
+        ϵ_ind=copy(ℇ) #Replacing ℇ with the ϵ index
+        for ti=2:(T+T_burn), ni=1:N
+            if ϵ_ind[ni,ti]==0
+                ϵ_ind[ni,ti]=2
+            end
+        end
+        res.V[:,1].=K_ss
+        K_agg=K_ss
+        for ti=1:(T_burn+1)
+            for ni=1:N
+                res.V[ni,1]=pol_fun_interp[(Integer(z_seq[ti]),Integer(ϵ_ind[ni,ti]))](res.V[ni,1],K_agg)
+            end
+            K_agg=sum(res.V[:,ti])/N
+        end
+    #Then update the V matrix
+    for ti=2:T
+        for ni=1:N
+            res.V[ni,ti]=pol_fun_interp[(Integer(z_seq[ti]),Integer(ϵ_ind[ni,ti]))](res.V[ni,ti-1],K_agg)
+        end
+        K_agg=sum(res.V[:,ti])/N
+    end
+    return res.V
+end
+
 # simulate a time series using the Bellman solution
 function Simulation(prim::Primitives, res::Results, shocks::Shocks)
     @unpack T, T_burn, K_ss, N, z_val, u, k_forecast = prim
@@ -433,6 +474,25 @@ function Simulation(prim::Primitives, res::Results, shocks::Shocks)
     res.V = temp_V[:, T_burn + 1:T + T_burn]
 
 end # Simulation
+
+function auto_reg_alt(prim::Primitives, V::Array{Float64, 2}, shocks::Shocks)
+    @unpack z_seq=shocks
+    @unpack T_burn,T,nZ=prim
+    reg_coefs,X,Y,RSq = Dict(),[],[],.5
+    for zi=1:nZ
+        K_agg=log.(sum(V,dims=1))[z_seq[T_burn+1:T+T_burn].==zi]
+        X=hcat(ones(length(K_agg)-1),K_agg[1:end-1])
+        Y=K_agg[2:end]
+        reg_coefs[zi]=inv(transpose(X)*X)*transpose(X)*Y
+        if zi==2
+            Y_fitted=X*reg_coefs[2]
+            Y_bar=sum(Y)/(T-1)
+            RSq=1-sum((Y_fitted.-Y).^2)/sum((Y.-Y_bar).^2)
+        end
+    end
+    return reg_coefs, RSq
+end
+
 
 # Do (auto)regression with simulated data
 function auto_reg(prim::Primitives, res::Results, shocks::Shocks)
@@ -487,7 +547,7 @@ end
 
 
 # Outer-most function that iterates to convergence
-function SolveModel(; max_n_iter=30, tol = 1e-4, err = 100, I = 1, use_dense_grid::Bool=false)
+function SolveModel(; max_n_iter=30, tol = 1e-6, err = 100, I = 1, use_dense_grid::Bool=false)
 
         # initialize environment
         println("Initializing Model")
@@ -507,10 +567,11 @@ function SolveModel(; max_n_iter=30, tol = 1e-4, err = 100, I = 1, use_dense_gri
 
             # given consumers' policy functions, simulate time series
             println("Simulating time series")
-            V = Simulation(prim, res, shocks)
+            V = Simulation_alt(prim, res, shocks)
 
             # Do (auto)regression with simulated data
-            reg_coefs, R_squared = auto_reg(prim, res, shocks)
+            #reg_coefs, R_squared = auto_reg(prim, res, shocks)
+            reg_coefs, R_squared = auto_reg_alt(prim,res.V,shocks)
 
             # Get error:
             err = sum( (res.a - reg_coefs[1]).^2) + sum( (res.b - reg_coefs[2]).^2 )
@@ -530,7 +591,4 @@ function SolveModel(; max_n_iter=30, tol = 1e-4, err = 100, I = 1, use_dense_gri
             println("Iteration: ", i, " --- ", err, " --- a = ", res.a, " --- b = ", res.b, " --- R² = ", R_squared)
             i+=1
         end
-
-        # Iterate until convergence
-
 end # Model solver
